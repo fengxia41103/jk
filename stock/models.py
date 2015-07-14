@@ -15,7 +15,7 @@ from datetime import datetime as dt
 from django.db.models.signals import pre_save,post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
-from localflavor.us.forms import USPhoneNumberField
+from decimal import Decimal
 
 class MyBaseModel (models.Model):
 	# fields
@@ -134,9 +134,9 @@ class MyStockCustomManager(models.Manager):
 		pe_high = int(user_profile.pe_threshold.split('-')[1])
 		return data.filter(pe__gte=pe_low,pe__lte=pe_high)
 
-	def in_heat(self,user,top_count=500):
+	def in_heat(self,user):
 		# data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0,day_open__lte=F('prev_close')).order_by('-prev_change')[:top_count]
-		data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0).order_by('-prev_change')[:top_count]
+		data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0).order_by('-prev_change')
 		return data
 
 class MyStock(models.Model):
@@ -247,32 +247,42 @@ class MyStock(models.Model):
 		default = 0.0,
 		verbose_name = u'Prev day change (%)'
 	)
+	day_change = models.FloatField(
+		default = 0.0,
+		verbose_name = u'Today change(%)'
+	)
+	spread = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,		
+		default = 0.0,
+		verbose_name = u'Bid-ask spread'
+	)
+	vol_over_float = models.FloatField(
+		default = 0.0,
+		verbose_name = u'Vol/floating shares (%)'
+	)
 
 	def __unicode__(self):
 		return '%s (%s)'%(self.symbol,self.company_name)
 
 @receiver(pre_save,sender=MyStock)
-def day_change_handler(sender, **kwargs):
+def stock_update_handler(sender, **kwargs):
 	instance = kwargs.get('instance')
 	if instance.id: 
 		original = MyStock.objects.get(id=instance.id)
 
-		# if we are changing into a new day, update prev_ fields
-		if dt.today() > original.last_update_time.date():
-			# set prev values
-			instance.prev_open = instance.day_open
-			instance.prev_high = instance.day_high
-			instance.prev_low = instance.day_low
-			instance.prev_close = instance.last
-			instance.prev_vol = instance.vol
-			instance.prev_change = (instance.prev_open-instance.prev_close)/instance.prev_open*100
+		# spot price changed
+		if original.last != instance.last and instance.day_open:
+			# update day_change
+			instance.day_change = (instance.last-instance.day_open)/instance.day_open*Decimal(100)
 
-			# reset current day values
-			instance.day_open = 0
-			instance.last = 0
-			instance.vol = 0
-			instance.ask = instance.bid = 0.0
-			instance.day_range = ''
+		# if ask or bid changed
+		if original.ask!=instance.ask or original.bid!=instance.bid:
+			instance.spread = instance.ask-instance.bid
+
+		# if vol changed
+		if original.vol != instance.vol and instance.float_share:
+			instance.vol_over_float = instance.vol/instance.float_share/10
 
 class MyUserProfile(models.Model):	
 	owner = models.OneToOneField (

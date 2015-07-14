@@ -1,0 +1,52 @@
+{% extends "stock/common/base.html" %}
+
+{% block page-header %}
+	S&P500 Heat
+{% endblock %}
+
+{% block content %}
+	<table class="table table-striped table-hover" id="stock-list">
+	<thead>
+		<th>Symbol</th>
+		<th>Company Name</th>
+		<th>Day open</th>
+		<th>Day change</th>
+		<th>Ask</th>
+		<th>Bid</th>
+		<th>Last</th>
+	</thead>
+	<tbody>
+		{% for obj in object_list %}
+		<tr><td>
+			{{ obj.symbol }}
+		</td><td>
+			{{ obj.company_name }}
+		</td><td>
+			{{ obj.day_open|floatformat:2 }}
+		</td><td>
+			{{ obj.day_change|floatformat:2 }}%
+		</td><td>
+			{{ obj.ask|floatformat:2 }}
+		</td><td>
+			{{ obj.bid|floatformat:2 }}
+		</td><td>
+			{{ obj.last|floatformat:2 }}
+		</td></tr>
+    	{% endfor %}
+	</tbody>
+	</table>
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+	j$(document).ready(function(){
+		j$('#stock-list').DataTable({
+			"lengthMenu": [[-1], ["All"]],
+			"info": false,
+			'paging': false,
+			// 'pagingType': 'simple'
+		});		
+	});
+</script>
+{% endblock %}
+

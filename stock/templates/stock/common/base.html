@@ -124,11 +124,29 @@
 					</a>
 					<ul class="dropdown-menu">
 						<li>
-							<a href="{% url 'stock_list_heat' %}">
+							<a href="{% url 'heat_prev_change' %}">
 								<i class="fa fa-pencil"></i>
-								S&P500 heat
+								By prev change
 							</a>						
 						</li>
+						<li>
+							<a href="{% url 'heat_spread' %}">
+								<i class="fa fa-pencil"></i>
+								By spread
+							</a>						
+						</li>
+						<li>
+							<a href="{% url 'heat_vol_over_float' %}">
+								<i class="fa fa-pencil"></i>
+								By vol/float
+							</a>						
+						</li>
+						<li>
+							<a href="{% url 'heat_day_change' %}">
+								<i class="fa fa-pencil"></i>
+								By day change
+							</a>						
+						</li>																	
 					</ul>
 				</li>
 			</ul>
@@ -269,6 +287,12 @@
     <script type="text/javascript"
     	src="{% static 'visjs/vis.min.js' %}">
     </script>
+
+    {# sparkline http://omnipotent.net/jquery.sparkline/#s-about #}
+    <script type="text/javascript"
+    	src="{% static 'sparkline/jquery.sparkline.min.js' %}">
+    </script>
+
 
     {# google fonts #}
 	<link href='http://fonts.googleapis.com/css?family=Abril+Fatface' rel='stylesheet' type='text/css'>	 

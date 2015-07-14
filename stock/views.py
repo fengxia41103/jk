@@ -197,9 +197,33 @@ class MyStockUpdate(TemplateView):
 			content_type='application/javascript')
 
 @class_view_decorator(login_required)
-class MyStockListHeat(ListView):
-	template_name = 'stock/stock/list_heat.html'
+class MyStockHeatPrevChange(ListView):
+	template_name = 'stock/stock/list_heat_prev_change.html'
 	paginate_by = 250
 
 	def get_queryset(self):
-		return MyStock.objects.in_heat(self.request.user,250)
+		return MyStock.objects.in_heat(self.request.user)[:250]
+
+@class_view_decorator(login_required)
+class MyStockHeatSpread(ListView):
+	template_name = 'stock/stock/list_heat_spread.html'
+	paginate_by = 250
+
+	def get_queryset(self):
+		return MyStock.objects.in_heat(self.request.user).order_by('spread')
+
+@class_view_decorator(login_required)
+class MyStockHeatDayChange(ListView):
+	template_name = 'stock/stock/list_heat_day_change.html'
+	paginate_by = 250
+
+	def get_queryset(self):
+		return MyStock.objects.in_heat(self.request.user).filter(day_change__gt=0)
+
+@class_view_decorator(login_required)
+class MyStockHeatVolOverFloat(ListView):
+	template_name = 'stock/stock/list_heat_vol_over_float.html'
+	paginate_by = 250
+
+	def get_queryset(self):
+		return MyStock.objects.in_heat(self.request.user).order_by('vol_over_float')

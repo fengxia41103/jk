@@ -103,11 +103,13 @@ class MyStockMonitorYahoo():
 			try: stock.pe = Decimal(vals[1])
 			except: pass
 
-			try: stock.prev_close = Decimal(vals[2])
-			except: pass # could be N/A
 			stock.day_open = Decimal(vals[3])
-			stock.ask = Decimal(vals[4])
-			stock.bid = Decimal(vals[5])
+			
+			try: stock.ask = Decimal(vals[4])
+			except: pass
+			try: stock.bid = Decimal(vals[5])
+			except: pass
+
 			stock.vol = int(vals[6])/1000.0
 			
 			try: stock.float_share = float(vals[7])/1000000

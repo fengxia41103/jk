@@ -21,7 +21,10 @@ urlpatterns = patterns(
 		url(r'^user/profile/$', views.UserProfileView.as_view(), name='user_profile'),
 
 		url(r'^stock/$', views.MyStockList.as_view(), name='stock_list'),
-		url(r'^stock/heat/$', views.MyStockListHeat.as_view(), name='stock_list_heat'),		
 		url(r'^stock/update/$', views.MyStockUpdate.as_view(), name='stock_update'),
+		url(r'^heat/prev/change/$', views.MyStockHeatPrevChange.as_view(), name='heat_prev_change'),		
+		url(r'^heat/vol/over/float/$', views.MyStockHeatVolOverFloat.as_view(), name='heat_vol_over_float'),		
+		url(r'^heat/spread/$', views.MyStockHeatSpread.as_view(), name='heat_spread'),		
+		url(r'^heat/day/change/$', views.MyStockHeatDayChange.as_view(), name='heat_day_change'),		
 				
 	)+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
