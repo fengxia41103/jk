@@ -71,7 +71,7 @@ class MyStockPrevYahoo():
 			stock.prev_high = Decimal(vals[2])
 			stock.prev_low = Decimal(vals[3])
 			stock.prev_close = Decimal(vals[4])
-			stock.prev_change = (stock.prev_open-stock.prev_close)/stock.prev_open*100.0
+			stock.prev_change = (stock.prev_open-stock.prev_close)/stock.prev_open*Decimal(100.0)
 			stock.save()
 			self.logger.debug('[%s] complete'%symbol)
 
