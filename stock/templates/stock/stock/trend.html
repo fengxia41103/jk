@@ -20,15 +20,18 @@
 		<thead>
 			<th>Symbol</th>
 			<th>Company Name</th>
+			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
 		</thead>
 		<tbody>
 			{% for obj in up_up %}
 			<tr><td>
-				{{ obj.symbol }}
+			<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
 			</td><td>
 				{{ obj.company_name }}
+			</td><td>
+				{{ obj.prev_change|floatformat:2}}%
 			</td><td>
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>
@@ -44,15 +47,18 @@
 		<thead>
 			<th>Symbol</th>
 			<th>Company Name</th>
+			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
 		</thead>
 		<tbody>
 			{% for obj in up_down %}
 			<tr><td>
-				{{ obj.symbol }}
+			<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
 			</td><td>
 				{{ obj.company_name }}
+			</td><td>
+				{{ obj.prev_change|floatformat:2}}%
 			</td><td>
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>
@@ -68,15 +74,18 @@
 		<thead>
 			<th>Symbol</th>
 			<th>Company Name</th>
+			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
 		</thead>
 		<tbody>
 			{% for obj in down_up %}
 			<tr><td>
-				{{ obj.symbol }}
+			<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
 			</td><td>
 				{{ obj.company_name }}
+			</td><td>
+				{{ obj.prev_change|floatformat:2}}%
 			</td><td>
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>
@@ -92,15 +101,18 @@
 		<thead>
 			<th>Symbol</th>
 			<th>Company Name</th>
+			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
 		</thead>
 		<tbody>
 			{% for obj in down_down %}
 			<tr><td>
-				{{ obj.symbol }}
+			<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
 			</td><td>
 				{{ obj.company_name }}
+			</td><td>
+				{{ obj.prev_change|floatformat:2}}%
 			</td><td>
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>

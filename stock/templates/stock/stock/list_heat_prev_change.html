@@ -26,7 +26,7 @@ Prev change measures stocks whose price closed LOWER than its openning price in 
 	<tbody>
 		{% for obj in object_list %}
 		<tr><td>
-			{{ obj.symbol }}
+			<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
 		</td><td>
 			{{ obj.company_name }}
 		</td><td>

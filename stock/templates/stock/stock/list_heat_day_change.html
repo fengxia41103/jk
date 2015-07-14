@@ -25,7 +25,7 @@ Day change measures stocks whose last trading price is above its openning price.
 	<tbody>
 		{% for obj in object_list %}
 		<tr><td>
-			{{ obj.symbol }}
+			<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
 		</td><td>
 			{{ obj.company_name }}
 		</td><td>
@@ -50,8 +50,8 @@ Day change measures stocks whose last trading price is above its openning price.
 		j$('#stock-list').DataTable({
 			"lengthMenu": [[-1], ["All"]],
 			"info": false,
-			// 'paging': false,
-			'pagingType': 'simple'
+			'paging': false,
+			// 'pagingType': 'simple'
 		});		
 	});
 </script>
