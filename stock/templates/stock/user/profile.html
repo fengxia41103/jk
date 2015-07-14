@@ -1,0 +1,63 @@
+<a href="" class="" data-toggle="dropdown">
+	<i class="fa fa-gears"></i>
+	User preferences
+</a>
+<div id="user-config" class="dropdown-menu my-dropdown-container">
+	<h4 class="page-header">
+		<b class="fa fa-cogs"></b>
+		Screening
+	</h4>
+
+	<form class="" id="user-property-form" role="form" action="{% url 'user_profile' %}" method="post">
+		{% csrf_token %}
+		<div class="form-group">
+			<label for="pe" class="control-label">
+				PE threshold
+			</label>
+			<input name="pe" type="text" class="form-control" placeholder="20-100" value="{{ user.myuserprofile.pe_threshold|default_if_none:'' }}">
+		</div>
+
+	<h4 class="page-header">
+		<b class="fa fa-cogs"></b>
+		Trading
+	</h4>
+
+	<div class="form-group">
+			<label for="per_trade_total" class="control-label">
+				Per trade total $ amount
+			</label>
+			<input name="per_trade_total" type="number" class="form-control" placeholder="1000.0" value="{{ user.myuserprofile.per_trade_total|default_if_none:'1000.0'|floatformat:2 }}">		
+		</div><div class="form-group">
+			<label for="exit_pcnt" class="control-label">
+				Percentage of price to exit
+			</label>
+			<input name="exit_pcnt" type="number" class="form-control" placeholder="2.0" value="{{ user.myuserprofile.exit_percent|default_if_none:'2.0'|floatformat:2 }}">
+		</div>
+
+		<button class="btn btn-small btn-primary default pull-right ladda-button"  
+		id="btn-save-user-property" data-style="expand-left" 
+		data-size="l" data-spinner-color="#333">
+			<i class="fa fa-refresh"></i>
+			Save
+			<span class="ladda-label"></span>
+		</button>
+
+	<div id="results"></div> <!-- errors go here -->
+	</form>						
+</div>
+
+<script type="text/javascript">
+j$(document).ready(function(){
+	j$('[data-toggle="tooltip"]').tooltip();
+
+	// navbar form spinner
+	// loading spinner
+	j$('#btn-save-user-property').click(function(){
+		var l = Ladda.create(this);
+		l.start();
+
+		j$(this).parents('form:first').submit();
+	});
+});	
+</script>
+

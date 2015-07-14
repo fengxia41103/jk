@@ -1,0 +1,55 @@
+{% extends "stock/common/base.html" %}
+
+{% block page-header %}
+	Stock Heat
+{% endblock %}
+
+
+{% block content %}
+	<table class="table table-striped table-hover" id="stock-list">
+	<thead>
+		<th>Symbol</th>
+		<th>Company Name</th>
+		<th>Prev change</th>
+		<th>Ask</th>
+		<th>Bid</th>
+		<th>Vol (000s)</th>
+		<th>Last</th>
+		<th>Day range</th>
+	</thead>
+	<tbody>
+		{% for obj in object_list %}
+		<tr><td>
+			{{ obj.symbol }}
+		</td><td>
+			{{ obj.company_name }}
+		</td><td>
+			<font class="btn btn-danger">{{ obj.prev_change|floatformat:6 }}%</font>
+		</td><td>
+			{{ obj.ask|floatformat:2 }}
+		</td><td>
+			{{ obj.bid|floatformat:2 }}
+		</td><td>
+			{{ obj.vol }}
+		</td><td>
+			{{ obj.last|floatformat:2 }}
+		</td><td>
+			{{ obj.day_low|floatformat:2 }} &rarr; {{ obj.day_high|floatformat:2 }}
+		</td></tr>
+    	{% endfor %}
+	</tbody>
+	</table>
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+	j$(document).ready(function(){
+		j$('#stock-list').DataTable({
+			"lengthMenu": [[-1], ["All"]],
+			"info": false,
+			'paging': false
+		});		
+	});
+</script>
+{% endblock %}
+

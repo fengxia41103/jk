@@ -1,0 +1,80 @@
+{% extends "stock/common/base.html" %}
+
+{% block page-header %}
+	S&P500
+{% endblock %}
+
+
+{% block content %}
+	<table class="table table-striped table-hover" id="stock-list">
+	<thead>
+		<th>Symbol</th>
+		<th>Company Name</th>
+		<th>Prev High</th>
+		<th>Prev Low</th>
+		<th>Prev Open</th>
+		<th>Prev Close</th>
+		<th>Ask</th>
+		<th>Bid</th>
+		<th>Vol</th>
+		<th>Last</th>
+		<th>Day range</th>
+	</thead>
+	<tbody>
+		{% for obj in object_list %}
+		<tr><td>
+			{{ obj.symbol }}
+		</td><td>
+			{{ obj.company_name }}
+		</td><td>
+			{{ obj.prev_high|floatformat:2 }}
+		</td><td>
+			{{ obj.prev_low|floatformat:2 }}
+		</td><td>
+			{{ obj.prev_open|floatformat:2 }}
+		</td><td>
+			{{ obj.prev_close|floatformat:2 }}
+		</td><td>
+			{{ obj.ask|floatformat:2 }}
+		</td><td>
+			{{ obj.bid|floatformat:2 }}
+		</td><td>
+			{{ obj.vol }}
+		</td><td>
+			{{ obj.last|floatformat:2 }}
+		</td><td>
+			{{ obj.day_low|floatformat:2 }} &rarr; {{ obj.day_high|floatformat:2 }}
+		</td></tr>
+    	{% endfor %}
+	</tbody>
+	</table>
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+	function update_stock(){
+	    // ajax to server to get a list of columns:4"markers that are within the viewport
+	    j$.post("{% url 'stock_update' %}", // passed in from view
+	        {
+	        }, 
+	        function(resp) { // success callback
+	            //toastr.info('Spot price updated');
+	            //setTimeout(update_stock, 5000); // refresh every 5 seconds
+	        },'json'
+	    ).always(function(){
+			// remove spinner      	
+	    });  	
+	}	
+
+	j$(document).ready(function(){
+		update_stock();
+
+		j$('#stock-list').DataTable({
+			"lengthMenu": [[50,100, -1], [50, 100, "All"]],
+			"info": false,
+			'pagingType': 'simple'
+		});		
+	});
+</script>
+{% endblock %}
+
