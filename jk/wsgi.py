@@ -1,6 +1,6 @@
 import os,os.path
 
-os.environ['DJANGO_SETTINGS_MODULE'] = 'ny.settings'
+os.environ['DJANGO_SETTINGS_MODULE'] = 'jk.settings'
 
 # Fix django closing connection to MemCachier after every request (#11331)
 # http://blog.memcachier.com/2014/12/12/django-persistent-memcached-connections/
