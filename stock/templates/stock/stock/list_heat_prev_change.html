@@ -19,7 +19,6 @@ Prev change measures stocks whose price closed LOWER than its openning price in 
 		<th>Prev change</th>
 		<th>Ask</th>
 		<th>Bid</th>
-		<th>Spread</th>
 		<th>Vol (000s)</th>
 		<th>Last</th>
 		<th>Yesterday&rarr;Today</th>
@@ -36,8 +35,6 @@ Prev change measures stocks whose price closed LOWER than its openning price in 
 			{{ obj.ask|floatformat:2 }}
 		</td><td>
 			{{ obj.bid|floatformat:2 }}
-		</td><td>
-			{{ obj.spread|floatformat:2 }}
 		</td><td>
 			{{ obj.vol }}
 		</td><td>

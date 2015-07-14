@@ -25,7 +25,7 @@ from django.views.decorators.vary import vary_on_headers
 # protect the view with require_POST decorator
 from django.views.decorators.http import require_POST
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q,F
 from django.template import loader, Context
 
 # django-crispy-forms
@@ -227,3 +227,15 @@ class MyStockHeatVolOverFloat(ListView):
 
 	def get_queryset(self):
 		return MyStock.objects.in_heat(self.request.user).order_by('vol_over_float')
+
+@class_view_decorator(login_required)
+class MyStockTrend(TemplateView):
+	template_name = 'stock/stock/trend.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(TemplateView, self).get_context_data(**kwargs)
+		context['up_up'] = MyStock.objects.filter(prev_change__gt=0,day_change__gt=0)
+		context['down_up'] = MyStock.objects.filter(prev_change__lt=0,day_change__gt=0)
+		context['up_down'] = MyStock.objects.filter(prev_change__gt=0,day_change__lt=0)
+		context['down_down'] = MyStock.objects.filter(prev_change__lt=0,day_change__lt=0)
+		return context

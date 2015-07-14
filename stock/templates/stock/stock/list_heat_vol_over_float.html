@@ -24,7 +24,7 @@
 		</td><td>
 			{{ obj.vol }}
 		</td><td>
-			{{ obj.vol_over_float|floatformat:2 }}
+			{{ obj.vol_over_float|floatformat:2 }}%
 		</td><td>
 			{{ obj.ask|floatformat:2 }}
 		</td><td>
@@ -43,8 +43,8 @@
 		j$('#stock-list').DataTable({
 			"lengthMenu": [[-1], ["All"]],
 			"info": false,
-			'paging': false,
-			// 'pagingType': 'simple'
+			// 'paging': false,
+			'pagingType': 'simple'
 		});		
 	});
 </script>
