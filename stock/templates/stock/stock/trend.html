@@ -1,0 +1,127 @@
+{% extends "stock/common/base.html" %}
+
+{% block page-header %}
+	S&P500 Trend
+{% endblock %}
+
+
+{% block content %}
+<ul class="nav nav-tabs" data-type="nav-side">
+	<li class="active"><a data-toggle="tab" href="#up_up">/&rarr;/ ({{up_up|length}})</a></li>
+	<li><a data-toggle="tab" href="#up_down">/&rarr;\ ({{up_down|length}})</a></li>
+	<li><a data-toggle="tab" href="#down_up">\&rarr;/ ({{down_up|length}})</a></li>
+	<li><a data-toggle="tab" href="#down_down">\&rarr;\ ({{down_down|length}})</a></li>
+</ul>
+
+<div class="tab-content">
+	<div id="up_up" class="tab-pane fade in active">
+		<h2>Up, Up</h2>
+		<table class="table table-striped table-hover">
+		<thead>
+			<th>Symbol</th>
+			<th>Company Name</th>
+			<th>Day Open</th>
+			<th>Last</th>
+		</thead>
+		<tbody>
+			{% for obj in up_up %}
+			<tr><td>
+				{{ obj.symbol }}
+			</td><td>
+				{{ obj.company_name }}
+			</td><td>
+				{{ obj.day_open|floatformat:2 }}
+			</td><td>
+				{{ obj.last|floatformat:2 }}
+			</td></tr>
+	    	{% endfor %}
+		</tbody>
+		</table>
+	</div>
+	<div id="up_down" class="tab-pane fade in">
+		<h2>Up, Down</h2>
+		<table class="table table-striped table-hover">
+		<thead>
+			<th>Symbol</th>
+			<th>Company Name</th>
+			<th>Day Open</th>
+			<th>Last</th>
+		</thead>
+		<tbody>
+			{% for obj in up_down %}
+			<tr><td>
+				{{ obj.symbol }}
+			</td><td>
+				{{ obj.company_name }}
+			</td><td>
+				{{ obj.day_open|floatformat:2 }}
+			</td><td>
+				{{ obj.last|floatformat:2 }}
+			</td></tr>
+	    	{% endfor %}
+		</tbody>
+		</table>
+	</div>
+	<div id="down_up" class="tab-pane fade in">
+		<h2>Down, Up</h2>
+		<table class="table table-striped table-hover">
+		<thead>
+			<th>Symbol</th>
+			<th>Company Name</th>
+			<th>Day Open</th>
+			<th>Last</th>
+		</thead>
+		<tbody>
+			{% for obj in down_up %}
+			<tr><td>
+				{{ obj.symbol }}
+			</td><td>
+				{{ obj.company_name }}
+			</td><td>
+				{{ obj.day_open|floatformat:2 }}
+			</td><td>
+				{{ obj.last|floatformat:2 }}
+			</td></tr>
+	    	{% endfor %}
+		</tbody>
+		</table>
+	</div>
+	<div id="down_down" class="tab-pane fade in">
+		<h2>Down,Down</h2>
+		<table class="table table-striped table-hover">
+		<thead>
+			<th>Symbol</th>
+			<th>Company Name</th>
+			<th>Day Open</th>
+			<th>Last</th>
+		</thead>
+		<tbody>
+			{% for obj in down_down %}
+			<tr><td>
+				{{ obj.symbol }}
+			</td><td>
+				{{ obj.company_name }}
+			</td><td>
+				{{ obj.day_open|floatformat:2 }}
+			</td><td>
+				{{ obj.last|floatformat:2 }}
+			</td></tr>
+	    	{% endfor %}
+		</tbody>
+		</table>
+	</div>			
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+	j$(document).ready(function(){
+		j$('.table').DataTable({
+			"lengthMenu": [[250, -1], [250, "All"]],
+			"info": false,
+			'pagingType': 'simple'
+		});		
+	});
+</script>
+{% endblock %}
+
