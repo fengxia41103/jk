@@ -5,6 +5,13 @@
 {% endblock %}
 
 {% block content %}
+<div class="jumbotron">
+<h1>Day change: <i class="fa fa-info-circle"></i>{{object_list|length}}</h1>
+<p>
+Day change measures stocks whose last trading price is above its openning price. In other words, here lists all stocks that are currently going up. Values are in percenage of openning price.
+</p>
+</div>
+
 	<table class="table table-striped table-hover" id="stock-list">
 	<thead>
 		<th>Symbol</th>
