@@ -6,6 +6,12 @@
 
 
 {% block content %}
+<blockquote>
+<p>
+This page will request server to update intraday data every 60 seconds.
+</p>
+</blockquote>
+
 	<table class="table table-striped table-hover" id="stock-list">
 	<thead>
 		<th>Symbol</th>
@@ -13,7 +19,9 @@
 		<th>PE</th>
 		<th>Prev Open</th>
 		<th>Prev Close</th>
-		<th>Vol</th>
+		<th>Vol (000)</th>
+		<th>Float (M)</th>
+		<th>Day Open</th>
 		<th>Last</th>
 		<th>2 Day Open/Close</th>
 		<th>Trend</th>
@@ -33,6 +41,10 @@
 			{{ obj.prev_close|floatformat:2 }}
 		</td><td>
 			{{ obj.vol }}
+		</td><td>
+			{{ obj.float_share }}
+		</td><td>
+			{{ obj.day_open|floatformat:2 }}
 		</td><td>
 			{{ obj.last|floatformat:2 }}
 		</td><td class="spark">
@@ -75,7 +87,7 @@
 	        }, 
 	        function(resp) { // success callback
 	            //toastr.info('Spot price updated');
-	            //setTimeout(update_stock, 5000); // refresh every 5 seconds
+	            setTimeout(update_stock, 60000); // refresh every 60 seconds
 	        },'json'
 	    ).always(function(){
 			// remove spinner      	
@@ -83,8 +95,6 @@
 	}	
 
 	j$(document).ready(function(){
-		update_stock();
-
 		/* Use 'html' instead of an array of values to pass options 
         to a sparkline with data in the tag */
         j$('.spark').sparkline('html', {type: 'line',width:"100px"} );	
@@ -93,7 +103,9 @@
 			"lengthMenu": [[50,100, -1], [50, 100, "All"]],
 			"info": false,
 			'pagingType': 'simple'
-		});		
+		});	
+		
+		update_stock();		
 	});
 </script>
 {% endblock %}

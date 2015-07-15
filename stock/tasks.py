@@ -62,7 +62,7 @@ class MyStockPrevYahoo():
 		content = self.http_handler.request(url)
 
 		f = StringIO.StringIO(content)
-		for vals in csv.reader(f)]:
+		for vals in csv.reader(f):
 			if len(vals) != 7: 
 				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
 			else:
