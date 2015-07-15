@@ -53,8 +53,8 @@ def main():
 	# tasks
 	# populate_sp_500	()
 	crawl_stock_prev_yahoo()
-	crawl_stock_yahoo_spot()
-	crawl_stock_yahoo_spot2()
+	# crawl_stock_yahoo_spot()
+	# crawl_stock_yahoo_spot2()
 
 if __name__ == '__main__':
 	main()

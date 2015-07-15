@@ -62,18 +62,19 @@ class MyStockPrevYahoo():
 		content = self.http_handler.request(url)
 
 		f = StringIO.StringIO(content)
-		vals = [s for s in csv.reader(f)][1]
-		if len(vals) != 7: 
-			self.logger.error('[%s] error, %d' % (symbol, len(vals)))
-		else:
-			stock = MyStock.objects.get(symbol=symbol)
-			stock.prev_open = Decimal(vals[1])
-			stock.prev_high = Decimal(vals[2])
-			stock.prev_low = Decimal(vals[3])
-			stock.prev_close = Decimal(vals[4])
-			stock.prev_change = (stock.prev_open-stock.prev_close)/stock.prev_open*Decimal(100.0)
-			stock.save()
-			self.logger.debug('[%s] complete'%symbol)
+		for vals in csv.reader(f)]:
+			if len(vals) != 7: 
+				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+			else:
+				stock = MyStock.objects.get(symbol=symbol)
+				stock.prev_open = Decimal(vals[1])
+				stock.prev_high = Decimal(vals[2])
+				stock.prev_low = Decimal(vals[3])
+				stock.prev_close = Decimal(vals[4])
+				stock.prev_change = (stock.prev_open-stock.prev_close)/stock.prev_open*Decimal(100.0)
+				stock.save()
+				self.logger.debug('[%s] complete'%symbol)
+				break
 
 @shared_task
 def stock_prev_yahoo_consumer(symbol):
