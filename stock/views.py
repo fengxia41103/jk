@@ -96,7 +96,7 @@ class HomeView (TemplateView):
 ###################################################
 class LoginView(FormView):
 	template_name = 'registration/login.html'
-	success_url = reverse_lazy('trend_overall')
+	success_url = reverse_lazy('trend_2day_loss')
 	form_class = AuthenticationForm
 	def form_valid(self,form):
 		username = form.cleaned_data['username']
