@@ -23,6 +23,7 @@ Gain/loss is computed by comparing a stock's last trading price vs. its last day
 	<th>7-day</th>
 	<th>4-week by week</th>
 	<th>Trend (2d,7d,4w)</th>
+	<th><a href="http://www.investopedia.com/terms/f/fibonaccitimezones.asp">Fibonacci timezone</a></th>	
 </thead>
 <tbody>
 	{% for obj in object_list %}
@@ -57,7 +58,9 @@ Gain/loss is computed by comparing a stock's last trading price vs. its last day
 		<span data-toggle="tooltip" title="4-week">/</span>
 		{% else %}
 		<span data-toggle="tooltip" title="4-week">\</span>
-		{% endif %}			
+		{% endif %}
+	</td><td class="spark_bar">
+		{{ obj.fib_adjusted_close }}
 	</td></tr>
 	{% endfor %}
 </tbody>
@@ -69,6 +72,7 @@ Gain/loss is computed by comparing a stock's last trading price vs. its last day
 <script type="text/javascript">
 	j$(document).ready(function(){
         j$('.spark').sparkline('html', {type: 'line',width:'100px'} );	
+        j$('.spark_bar').sparkline('html', {type: 'bar',barColor:'red'} );	
 
 		j$('.table').DataTable({
 			"lengthMenu": [[250, -1], [250, "All"]],

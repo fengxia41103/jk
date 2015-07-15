@@ -269,6 +269,10 @@ class MyStock(models.Model):
 		default = '',
 		verbose_name = u'1-month adjusted closing price'
 	)	
+	fib_adjusted_close = models.TextField(
+		default = '',
+		verbose_name = u'Fib interval adjusted closing price'
+	)	
 
 	def _twoday_change(self):
 		return (self.last-self.prev_open)/self.prev_open*Decimal(100)

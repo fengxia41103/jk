@@ -48,12 +48,13 @@ def crawl_stock_yahoo_spot2():
 		stock_monitor_yahoo_consumer2.delay(','.join(symbols[i*step:(i*step+step)]))
 
 
-from stock.tasks import stock_prev_week_yahoo_consumer,stock_prev_month_yahoo_consumer
+from stock.tasks import stock_prev_week_yahoo_consumer,stock_prev_month_yahoo_consumer,stock_prev_fib_yahoo_consumer
 def crawl_stock_prev_yahoo2():
 	symbols = MyStock.objects.all().values_list('symbol',flat=True)
 	for s in symbols:	
-		stock_prev_week_yahoo_consumer.delay(s)
-		stock_prev_month_yahoo_consumer.delay(s)
+		# stock_prev_week_yahoo_consumer.delay(s)
+		# stock_prev_month_yahoo_consumer.delay(s)
+		stock_prev_fib_yahoo_consumer.delay(s)
 
 def main():
 	django.setup()

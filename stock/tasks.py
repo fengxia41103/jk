@@ -150,7 +150,7 @@ class MyStockPrevMonthYahoo():
 			elif cnt < 4: 
 				adj_close.append(vals[-1])
 				cnt += 1
-			elif cnt > 4: break
+			elif cnt >= 4: break
 
 		# persist
 		stock.month_adjusted_close = ','.join(list(reversed(adj_close)))
@@ -161,7 +161,47 @@ class MyStockPrevMonthYahoo():
 def stock_prev_month_yahoo_consumer(symbol):
 	http_agent = PlainUtility()
 	crawler = MyStockPrevMonthYahoo(http_agent)
-	crawler.parser(symbol)	
+	crawler.parser(symbol)
+
+class MyStockPrevFibYahoo():
+	def __init__(self,handler):
+		self.http_handler = handler
+		self.agent = handler.agent
+		self.logger = logging.getLogger('jk')
+
+	def parser(self,symbol):
+		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
+		now = dt.now()
+		ago = now+relativedelta(months=-180)
+
+		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(ago.month-1,ago.day,ago.year,now.month-1,now.day,now.year)
+		url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=w&ignore=.csv' % (symbol,date_str)
+		self.logger.debug(url)
+		content = self.http_handler.request(url)
+
+		stock = MyStock.objects.get(symbol=symbol)
+		adj_close = []
+		fib = [0,1,2,3,5,8,13,21,34,55,89,144]
+		f = StringIO.StringIO(content)
+		for cnt, vals in enumerate(csv.reader(f)):
+			if len(vals) != 7: 
+				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+			elif 'Adj' in vals[-1]: continue
+			elif cnt in fib: 
+				adj_close.append(vals[-1])
+			elif cnt > fib[-1]: break # no more need
+
+		# persist
+		self.logger.debug(len(adj_close))
+		stock.fib_adjusted_close = ','.join(list(reversed(adj_close)))
+		stock.save()
+		self.logger.debug('[%s] complete'%symbol)
+
+@shared_task
+def stock_prev_fib_yahoo_consumer(symbol):
+	http_agent = PlainUtility()
+	crawler = MyStockPrevFibYahoo(http_agent)
+	crawler.parser(symbol)		
 
 class MyStockMonitorYahoo():
 	def __init__(self,handler):
