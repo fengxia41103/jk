@@ -164,11 +164,29 @@
 							</a>					
 						</li>
 						<li>
-							<a href="{% url 'trend_overall' %}">
+							<a href="{% url 'trend_2day_gain' %}">
 							<i class="fa fa-pencil"></i>
-							Gain/Loss
+							2-day gain
 							</a>					
-						</li>											
+						</li>
+						<li>
+							<a href="{% url 'trend_2day_loss' %}">
+							<i class="fa fa-pencil"></i>
+							2-day loss
+							</a>					
+						</li>																	
+						<li>
+							<a href="{% url 'trend_consistent_gain' %}">
+							<i class="fa fa-pencil"></i>
+							Consistent gain
+							</a>					
+						</li>					
+						<li>
+							<a href="{% url 'trend_consistent_loss' %}">
+							<i class="fa fa-pencil"></i>
+							Consistent loss
+							</a>					
+						</li>
 					</ul>
 				</li>
 			</ul>

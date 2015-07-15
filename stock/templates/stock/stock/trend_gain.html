@@ -1,0 +1,81 @@
+{% extends "stock/common/base.html" %}
+
+{% block page-header %}
+	{{direction}}
+{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+<h1>{{direction}}: <i class="fa fa-info-circle"></i>{{object_list|length}}</h1>
+<p>
+Gain/loss is computed by comparing a stock's last trading price vs. its last day's open price. Consistency is determined by reading a stocks's 2-day, 7-day and 4-week trend. If only all three are in the same direction is the stock considered "consistent".
+</p>
+
+</div>
+<table class="table table-striped table-hover">
+<thead>
+	<th>Symbol</th>
+	<th>Company Name</th>
+	<th>Prev open</th>
+	<th>Last</th>
+	<th>PE</th>
+	<th>2-day</th>
+	<th>7-day</th>
+	<th>4-week by week</th>
+	<th>Trend (2d,7d,4w)</th>
+</thead>
+<tbody>
+	{% for obj in object_list %}
+	<tr><td>
+	<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
+	</td><td>
+		{{ obj.company_name }}
+	</td><td>
+		{{ obj.prev_open|floatformat:2}}
+	</td><td>
+		{{ obj.last|floatformat:2 }}
+	</td><td>
+		{{ obj.pe|floatformat:2 }}
+	</td><td>
+		{{ obj.twoday_change|floatformat:2}}%
+	</td><td class="spark">
+		{{ obj.week_adjusted_close}}
+	</td><td class="spark">
+		{{ obj.month_adjusted_close }}
+	</td><td>
+		{% if obj.twoday_change > 0 %}
+		<span data-toggle="tooltip" title="2-day">/</span>
+		{% else %}
+		<span data-toggle="tooltip" title="2-day">\</span>
+		{% endif %}			
+		{% if obj.week_change > 0 %}
+		<span data-toggle="tooltip" title="7-day">/</span>
+		{% else %}
+		<span data-toggle="tooltip" title="7-day">\</span>
+		{% endif %}
+		{% if obj.month_change > 0 %}
+		<span data-toggle="tooltip" title="4-week">/</span>
+		{% else %}
+		<span data-toggle="tooltip" title="4-week">\</span>
+		{% endif %}			
+	</td></tr>
+	{% endfor %}
+</tbody>
+</table>
+
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+	j$(document).ready(function(){
+        j$('.spark').sparkline('html', {type: 'line',width:'100px'} );	
+
+		j$('.table').DataTable({
+			"lengthMenu": [[250, -1], [250, "All"]],
+			"info": false,
+			'pagingType': 'simple'
+		});		
+	});
+</script>
+{% endblock %}
+

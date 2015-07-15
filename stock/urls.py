@@ -31,7 +31,10 @@ urlpatterns = patterns(
 			
 		# trend
 		url(r'^trend/2day/$', views.MyStockTrendTransition.as_view(), name='trend_2day_transition'),		
-		url(r'^trend/overall/$', views.MyStockTrendOverall.as_view(), name='trend_overall'),		
+		url(r'^trend/2day/gain/$', views.MyStockTrendGain.as_view(), name='trend_2day_gain'),		
+		url(r'^trend/2day/loss/$', views.MyStockTrendLoss.as_view(), name='trend_2day_loss'),		
+		url(r'^trend/consistent/gain/$', views.MyStockTrendConsistentGain.as_view(), name='trend_consistent_gain'),		
+		url(r'^trend/consistent/loss/$', views.MyStockTrendConsistentLoss.as_view(), name='trend_consistent_loss'),		
 
 	)+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

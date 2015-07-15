@@ -261,10 +261,40 @@ class MyStock(models.Model):
 		default = 0.0,
 		verbose_name = u'Vol/floating shares (%)'
 	)
+	week_adjusted_close = models.TextField(
+		default = '',
+		verbose_name = u'1-week adjusted closing price'
+	)
+	month_adjusted_close = models.TextField(
+		default = '',
+		verbose_name = u'1-month adjusted closing price'
+	)	
 
-	def _overall_trend(self):
+	def _twoday_change(self):
 		return (self.last-self.prev_open)/self.prev_open*Decimal(100)
-	overall_trend = property(_overall_trend)
+	twoday_change = property(_twoday_change)
+
+	def _week_change(self):
+		vals = self.week_adjusted_close.split(',')
+		return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
+	week_change = property(_week_change)
+
+	def _month_change(self):
+		vals = self.month_adjusted_close.split(',')
+		return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
+	month_change = property(_month_change)
+
+	def _trend_is_consistent_gain(self):
+		if self.twoday_change>0 and self.week_change>0 and self.month_change>0:
+			return True
+		else: return False
+	trend_is_consistent_gain = property(_trend_is_consistent_gain)
+
+	def _trend_is_consistent_loss(self):
+		if self.twoday_change<0 and self.week_change<0 and self.month_change<0:
+			return True
+		else: return False
+	trend_is_consistent_loss = property(_trend_is_consistent_loss)
 
 	def __unicode__(self):
 		return '%s (%s)'%(self.symbol,self.company_name)

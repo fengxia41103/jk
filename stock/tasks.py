@@ -44,6 +44,7 @@ from selenium.webdriver.support.select import Select
 from random import shuffle
 from decimal import Decimal
 import csv, StringIO
+from dateutil.relativedelta import relativedelta
 
 class MyStockPrevYahoo():
 	def __init__(self,handler):
@@ -54,19 +55,19 @@ class MyStockPrevYahoo():
 	def parser(self,symbol):
 		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
 		now = dt.now()
-		a_week_ago = now-timedelta(7)
+		ago = now-timedelta(7)
 
-		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(now.month-1,now.day-1,now.year,a_week_ago.month-1,a_week_ago.day,a_week_ago.year)
+		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(now.month-1,now.day,now.year,ago.month-1,ago.day,ago.year)
 		url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (symbol,date_str)
 		self.logger.debug(url)
 		content = self.http_handler.request(url)
 
+		stock = MyStock.objects.get(symbol=symbol)
 		f = StringIO.StringIO(content)
 		for vals in csv.reader(f):
 			if len(vals) != 7: 
 				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
 			else:
-				stock = MyStock.objects.get(symbol=symbol)
 				stock.prev_open = Decimal(vals[1])
 				stock.prev_high = Decimal(vals[2])
 				stock.prev_low = Decimal(vals[3])
@@ -81,6 +82,86 @@ def stock_prev_yahoo_consumer(symbol):
 	http_agent = PlainUtility()
 	crawler = MyStockPrevYahoo(http_agent)
 	crawler.parser(symbol)
+
+class MyStockPrevWeekYahoo():
+	def __init__(self,handler):
+		self.http_handler = handler
+		self.agent = handler.agent
+		self.logger = logging.getLogger('jk')
+
+	def parser(self,symbol):
+		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
+		now = dt.now()
+		ago = now-timedelta(weeks=1)
+
+		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(ago.month-1,ago.day,ago.year,now.month-1,now.day,now.year)
+		url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (symbol,date_str)
+		self.logger.debug(url)
+		content = self.http_handler.request(url)
+
+		stock = MyStock.objects.get(symbol=symbol)
+		adj_close = []
+		f = StringIO.StringIO(content)
+		cnt = 0
+		for vals in csv.reader(f):
+			if len(vals) != 7: 
+				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+			elif 'Adj' in vals[-1]: continue
+			elif cnt < 7: 
+				adj_close.append(vals[-1])
+				cnt+=1
+			elif cnt >= 7: break
+
+		# persist
+		stock.week_adjusted_close = ','.join(list(reversed(adj_close)))
+		stock.save()
+		self.logger.debug('[%s] complete'%symbol)
+
+@shared_task
+def stock_prev_week_yahoo_consumer(symbol):
+	http_agent = PlainUtility()
+	crawler = MyStockPrevWeekYahoo(http_agent)
+	crawler.parser(symbol)
+
+class MyStockPrevMonthYahoo():
+	def __init__(self,handler):
+		self.http_handler = handler
+		self.agent = handler.agent
+		self.logger = logging.getLogger('jk')
+
+	def parser(self,symbol):
+		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
+		now = dt.now()
+		ago = now+relativedelta(months=-1)
+
+		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(ago.month-1,ago.day,ago.year,now.month-1,now.day,now.year)
+		url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=w&ignore=.csv' % (symbol,date_str)
+		self.logger.debug(url)
+		content = self.http_handler.request(url)
+
+		stock = MyStock.objects.get(symbol=symbol)
+		adj_close = []
+		f = StringIO.StringIO(content)
+		cnt = 0
+		for vals in csv.reader(f):
+			if len(vals) != 7: 
+				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+			elif 'Adj' in vals[-1]: continue
+			elif cnt < 4: 
+				adj_close.append(vals[-1])
+				cnt += 1
+			elif cnt > 4: break
+
+		# persist
+		stock.month_adjusted_close = ','.join(list(reversed(adj_close)))
+		stock.save()
+		self.logger.debug('[%s] complete'%symbol)
+
+@shared_task
+def stock_prev_month_yahoo_consumer(symbol):
+	http_agent = PlainUtility()
+	crawler = MyStockPrevMonthYahoo(http_agent)
+	crawler.parser(symbol)	
 
 class MyStockMonitorYahoo():
 	def __init__(self,handler):

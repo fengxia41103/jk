@@ -241,11 +241,43 @@ class MyStockTrendTransition(TemplateView):
 		return context
 
 @class_view_decorator(login_required)
-class MyStockTrendOverall(TemplateView):
-	template_name = 'stock/stock/trend_overall.html'
+class MyStockTrendGain(TemplateView):
+	template_name = 'stock/stock/trend_gain.html'
 
 	def get_context_data(self, **kwargs):
 		context = super(TemplateView, self).get_context_data(**kwargs)
-		context['up'] = MyStock.objects.filter(prev_open__lt=F('last'))
-		context['down'] = MyStock.objects.filter(prev_open__gt=F('last'))
-		return context		
+		context['direction'] = 'Gain'
+		context['object_list'] = MyStock.objects.filter(prev_open__lt=F('last'))
+		return context
+
+@class_view_decorator(login_required)
+class MyStockTrendLoss(TemplateView):
+	template_name = 'stock/stock/trend_gain.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(TemplateView, self).get_context_data(**kwargs)
+		context['direction'] = 'Loss'
+		context['object_list'] = MyStock.objects.filter(prev_open__gt=F('last'))
+		return context	
+
+@class_view_decorator(login_required)
+class MyStockTrendConsistentGain(TemplateView):
+	template_name = 'stock/stock/trend_gain.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(TemplateView, self).get_context_data(**kwargs)
+		context['direction'] = 'Consistent gain'
+		context['object_list']=filter(lambda x: x.trend_is_consistent_gain, MyStock.objects.filter(prev_open__lt=F('last')))
+
+		return context	
+
+@class_view_decorator(login_required)
+class MyStockTrendConsistentLoss(TemplateView):
+	template_name = 'stock/stock/trend_gain.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(TemplateView, self).get_context_data(**kwargs)
+		context['direction'] = 'Consistent loss'
+		context['object_list']=filter(lambda x: x.trend_is_consistent_loss, MyStock.objects.filter(prev_open__gt=F('last')))
+
+		return context	
