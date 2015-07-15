@@ -10,15 +10,14 @@
 	<thead>
 		<th>Symbol</th>
 		<th>Company Name</th>
-		<th>Prev High</th>
-		<th>Prev Low</th>
+		<th>PE</th>
 		<th>Prev Open</th>
 		<th>Prev Close</th>
-		<th>Ask</th>
-		<th>Bid</th>
 		<th>Vol</th>
 		<th>Last</th>
-		<th>Day range</th>
+		<th>2 Day Open/Close</th>
+		<th>Trend</th>
+		<th>Overall</th>
 	</thead>
 	<tbody>
 		{% for obj in object_list %}
@@ -27,23 +26,40 @@
 		</td><td>
 			{{ obj.company_name }}
 		</td><td>
-			{{ obj.prev_high|floatformat:2 }}
-		</td><td>
-			{{ obj.prev_low|floatformat:2 }}
+			{{ obj.pe|floatformat:2 }}
 		</td><td>
 			{{ obj.prev_open|floatformat:2 }}
 		</td><td>
 			{{ obj.prev_close|floatformat:2 }}
 		</td><td>
-			{{ obj.ask|floatformat:2 }}
-		</td><td>
-			{{ obj.bid|floatformat:2 }}
-		</td><td>
 			{{ obj.vol }}
 		</td><td>
 			{{ obj.last|floatformat:2 }}
+		</td><td class="spark">
+			{{ obj.prev_open|floatformat:2}},
+			{{ obj.prev_close|floatformat:2 }},
+			{{ obj.day_open|floatformat:2 }},
+			{{ obj.last|floatformat:2 }}
 		</td><td>
-			{{ obj.day_low|floatformat:2 }} &rarr; {{ obj.day_high|floatformat:2 }}
+			{% if obj.prev_open > obj.close %}
+				{% if obj.day_open > obj.last %}
+				\ &rarr; \
+				{% else %}
+				\ &rarr; /
+				{% endif %}
+			{% else %}
+				{% if obj.day_open > obj.last %}
+				/ &rarr; \
+				{% else %}
+				/ &rarr; /
+				{% endif %}				
+			{% endif %}
+		</td><td>
+			{% if obj.last > obj.prev_open %}
+				/
+			{% else %}
+				\
+			{% endif %}
 		</td></tr>
     	{% endfor %}
 	</tbody>
@@ -68,6 +84,10 @@
 
 	j$(document).ready(function(){
 		update_stock();
+
+		/* Use 'html' instead of an array of values to pass options 
+        to a sparkline with data in the tag */
+        j$('.spark').sparkline('html', {type: 'line',width:"100px"} );	
 
 		j$('#stock-list').DataTable({
 			"lengthMenu": [[50,100, -1], [50, 100, "All"]],

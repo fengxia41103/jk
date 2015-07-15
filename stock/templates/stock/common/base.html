@@ -150,12 +150,27 @@
 					</ul>
 				</li>
 
-				<li>
-					<a href="{% url 'trend' %}">
-					<i class="fa fa-line-chart"></i>
-					Trend
-					</a>					
-				</li>					
+				<li class="dropdown">
+					<a href="" class="" data-toggle="dropdown">
+						<i class="fa fa-line-chart"></i>
+						Trend									
+						<b class="caret"></b>
+					</a>
+					<ul class="dropdown-menu">
+						<li>
+							<a href="{% url 'trend_2day_transition' %}">
+							<i class="fa fa-pencil"></i>
+							2-day transition
+							</a>					
+						</li>
+						<li>
+							<a href="{% url 'trend_overall' %}">
+							<i class="fa fa-pencil"></i>
+							Overall
+							</a>					
+						</li>											
+					</ul>
+				</li>
 			</ul>
 
 			<ul class="nav navbar-nav navbar-right visible-md visible-lg">	

@@ -229,8 +229,8 @@ class MyStockHeatVolOverFloat(ListView):
 		return MyStock.objects.in_heat(self.request.user).order_by('vol_over_float')
 
 @class_view_decorator(login_required)
-class MyStockTrend(TemplateView):
-	template_name = 'stock/stock/trend.html'
+class MyStockTrendTransition(TemplateView):
+	template_name = 'stock/stock/trend_2day_transition.html'
 
 	def get_context_data(self, **kwargs):
 		context = super(TemplateView, self).get_context_data(**kwargs)
@@ -239,3 +239,13 @@ class MyStockTrend(TemplateView):
 		context['up_down'] = MyStock.objects.filter(prev_change__gt=0,day_change__lt=0)
 		context['down_down'] = MyStock.objects.filter(prev_change__lt=0,day_change__lt=0)
 		return context
+
+@class_view_decorator(login_required)
+class MyStockTrendOverall(TemplateView):
+	template_name = 'stock/stock/trend_overall.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(TemplateView, self).get_context_data(**kwargs)
+		context['up'] = MyStock.objects.filter(prev_open__lt=F('last'))
+		context['down'] = MyStock.objects.filter(prev_open__gt=F('last'))
+		return context		

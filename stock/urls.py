@@ -30,5 +30,8 @@ urlpatterns = patterns(
 		url(r'^heat/day/change/$', views.MyStockHeatDayChange.as_view(), name='heat_day_change'),		
 			
 		# trend
-		url(r'^trend/$', views.MyStockTrend.as_view(), name='trend'),		
+		url(r'^trend/2day/$', views.MyStockTrendTransition.as_view(), name='trend_2day_transition'),		
+		url(r'^trend/overall/$', views.MyStockTrendOverall.as_view(), name='trend_overall'),		
+
 	)+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

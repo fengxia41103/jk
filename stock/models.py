@@ -262,6 +262,10 @@ class MyStock(models.Model):
 		verbose_name = u'Vol/floating shares (%)'
 	)
 
+	def _overall_trend(self):
+		return (self.last-self.prev_open)/self.prev_open*Decimal(100)
+	overall_trend = property(_overall_trend)
+
 	def __unicode__(self):
 		return '%s (%s)'%(self.symbol,self.company_name)
 

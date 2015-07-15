@@ -52,7 +52,7 @@ def main():
 
 	# tasks
 	# populate_sp_500	()
-	# crawl_stock_prev_yahoo()
+	crawl_stock_prev_yahoo()
 	crawl_stock_yahoo_spot()
 	crawl_stock_yahoo_spot2()
 

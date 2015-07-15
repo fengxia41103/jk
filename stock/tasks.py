@@ -56,7 +56,7 @@ class MyStockPrevYahoo():
 		now = dt.now()
 		a_week_ago = now-timedelta(7)
 
-		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(now.month-1,now.day,now.year,a_week_ago.month-1,a_week_ago.day,a_week_ago.year)
+		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(now.month-1,now.day-1,now.year,a_week_ago.month-1,a_week_ago.day,a_week_ago.year)
 		url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (symbol,date_str)
 		self.logger.debug(url)
 		content = self.http_handler.request(url)
