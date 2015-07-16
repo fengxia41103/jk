@@ -19,11 +19,12 @@ Gain/loss is computed by comparing a stock's last trading price vs. its last day
 	<th>Prev open</th>
 	<th>Last</th>
 	<th>PE</th>
-	<th>2-day</th>
-	<th>7-day</th>
-	<th>4-week by week</th>
-	<th>Trend (2d,7d,4w)</th>
-	<th><a href="http://www.investopedia.com/terms/f/fibonaccitimezones.asp">Fibonacci timezone</a></th>	
+	<th>2-day (t0)</th>
+	<th>7-day (t1)</th>
+	<th>4-weekly (t2)</th>
+	<th>Trend (t0-2)</th>
+	<th><a href="http://www.investopedia.com/terms/f/fibonaccitimezones.asp">Fib timezone weekly</a></th>	
+	<th>Fib timezone daily</th>
 </thead>
 <tbody>
 	{% for obj in object_list %}
@@ -60,7 +61,9 @@ Gain/loss is computed by comparing a stock's last trading price vs. its last day
 		<span data-toggle="tooltip" title="4-week">\</span>
 		{% endif %}
 	</td><td class="spark_bar">
-		{{ obj.fib_adjusted_close }}
+		{{ obj.fib_weekly_adjusted_close }}
+	</td><td class="spark_bar">
+		{{ obj.fib_daily_adjusted_close }}
 	</td></tr>
 	{% endfor %}
 </tbody>

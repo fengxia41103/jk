@@ -171,31 +171,33 @@ class MyStockPrevFibYahoo():
 		self.logger = logging.getLogger('jk')
 
 	def parser(self,symbol):
+		stock = MyStock.objects.get(symbol=symbol)
+		fib = [5,8,13,21,34,55,89,144,233,377]
+
 		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
 		now = dt.now()
 		ago = now+relativedelta(months=-180)
 
 		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(ago.month-1,ago.day,ago.year,now.month-1,now.day,now.year)
-		url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=w&ignore=.csv' % (symbol,date_str)
-		self.logger.debug(url)
-		content = self.http_handler.request(url)
+		for interval in ['w','d']:		
+			url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=%s&ignore=.csv' % (symbol,date_str,interval)
+			self.logger.debug(url)
+			content = self.http_handler.request(url)
+			adj_close = []
 
-		stock = MyStock.objects.get(symbol=symbol)
-		adj_close = []
-		fib = [5,8,13,21,34,55,89,144,233,377,610]
-		f = StringIO.StringIO(content)
-		for cnt, vals in enumerate(csv.reader(f)):
-			if len(vals) != 7: 
-				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
-			elif 'Adj' in vals[-1]: continue
-			elif cnt in fib: 
-				adj_close.append(vals[-1])
-			elif cnt > fib[-1]: break # no more need
+			f = StringIO.StringIO(content)
+			for cnt, vals in enumerate(csv.reader(f)):
+				if len(vals) != 7: 
+					self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+				elif 'Adj' in vals[-1]: continue
+				elif cnt in fib: 
+					adj_close.append(vals[-1])
+				elif cnt > fib[-1]: break # no more need
 
-		# persist
-		self.logger.debug(len(adj_close))
-		stock.fib_adjusted_close = ','.join(list(reversed(adj_close)))
-		stock.save()
+			# persist
+			if interval == 'w': stock.fib_weekly_adjusted_close = ','.join(list(reversed(adj_close)))
+			elif interval == 'd': stock.fib_daily_adjusted_close = ','.join(list(reversed(adj_close)))
+			stock.save()
 		self.logger.debug('[%s] complete'%symbol)
 
 @shared_task
