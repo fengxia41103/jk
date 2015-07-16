@@ -278,3 +278,60 @@ def stock_monitor_yahoo_consumer2(symbols):
 	http_agent = PlainUtility()
 	crawler = MyStockMonitorYahoo2(http_agent)
 	crawler.parser(symbols)
+
+import xlrd,xlwt,os,os.path
+class MyChenMin():
+	def __init__(self):
+		self.logger = logging.getLogger('jk')		
+
+	def parser(self,f,output=None):
+		try: book = xlrd.open_workbook(f)
+		except:
+			self.logger.error('%s error' % f)
+			return
+
+		sh = book.sheet_by_index(0)
+		if sh.name != u'账户对账单': self.logger.error(f)
+
+		# range for 账户对账单
+		first_col_vals = [sh.cell_value(rowx=i, colx=0) for i in range(sh.nrows)]
+		start=end=None
+		for idx, val in enumerate(first_col_vals):
+			if val == u'对帐单': start=idx
+			if val == u'当日持仓清单': end = idx
+			if start and end: break
+
+		vals = []
+		for row in xrange(start,end):
+			vals.append([sh.cell_value(rowx=row,colx=c) for c in range(sh.ncols)])
+
+		for row in filter(lambda x: u'20' in x[0], vals):
+			symbol = row[3]
+			transaction_type = row[1]
+			price = float(row[7])
+			vol = int(row[5])
+			total = float(row[8])
+			name = row[4]
+
+			# timestamp
+			yr = int(row[0][:4])
+			m = int(row[0][5:6])
+			d = int(row[0][-2:])
+			executed_on = dt(year=yr,month=m,day=d)
+
+			c = MyChenmin(
+				executed_on = executed_on,
+				transaction_type = transaction_type,
+				symbol=symbol,
+				name=name,
+				price=price,
+				vol=vol,
+				total=total
+				)
+			c.save()
+		self.logger.debug('%s done'%f)
+
+@shared_task
+def chenmin_consumer(files):
+	crawler = MyChenMin()
+	crawler.parser(files)

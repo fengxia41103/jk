@@ -1,6 +1,6 @@
 #!/usr/bin/python  
 # -*- coding: utf-8 -*- 
-import sys,time,os,gc,csv
+import sys,time,os,os.path,gc,csv
 import lxml.html
 import urllib,urllib2
 import simplejson as json
@@ -56,6 +56,60 @@ def crawl_stock_prev_yahoo2():
 		stock_prev_month_yahoo_consumer.delay(s)
 		stock_prev_fib_yahoo_consumer.delay(s)
 
+from stock.tasks import chenmin_consumer
+def crawler_chenmin():
+	root = '/home/fengxia/Downloads/chenmin'
+	files = filter(lambda x: '.xls' in x, os.listdir(root))	
+	for f in [os.path.join(root,f) for f in files]:
+		chenmin_consumer.delay(f)
+
+import csv
+from django.db.models.loading import get_model
+
+def dump(qs, outfile_path):
+	"""
+	Takes in a Django queryset and spits out a CSV file.
+	
+	Usage::
+	
+		>> from utils import dump2csv
+		>> from dummy_app.models import *
+		>> qs = DummyModel.objects.all()
+		>> dump2csv.dump(qs, './data/dump.csv')
+	
+	Based on a snippet by zbyte64::
+		
+		http://www.djangosnippets.org/snippets/790/
+	
+	"""
+        model = qs.model
+	writer = csv.writer(open(outfile_path, 'w'))
+	
+	headers = []
+	for field in model._meta.fields:
+		headers.append(field.name)
+	headers = headers[1:]
+	writer.writerow(headers)
+	
+	for obj in qs:
+		row = []
+		for field in headers:
+			val = getattr(obj, field)
+			if callable(val):
+				val = val()
+			if type(val) == unicode:
+				val = val.encode("utf-8")
+			row.append(val)
+		writer.writerow(row)
+
+def dump_chenmin():
+	root = '/home/fengxia/Desktop/chenmin'
+	total = len(MyChenmin.objects.values_list('symbol',flat=True).distinct())
+
+	for idx, symbol in enumerate(MyChenmin.objects.values_list('symbol',flat=True).distinct()):
+		dump(MyChenmin.objects.filter(symbol=symbol).order_by('executed_on'),os.path.join(root,symbol+'.csv'))
+		print '%d/%d'%(idx, total), symbol
+
 def main():
 	django.setup()
 
@@ -66,6 +120,9 @@ def main():
 
 	crawl_stock_yahoo_spot()
 	crawl_stock_yahoo_spot2()
+
+	# crawler_chenmin()
+	# dump_chenmin()
 
 if __name__ == '__main__':
 	main()

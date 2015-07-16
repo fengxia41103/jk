@@ -393,3 +393,29 @@ def day_change_handler(sender, **kwargs):
 	stock = MyStock.objects.get(id=instance.stock)
 	stock.is_in_play = True
 	stock.save()
+
+class MyChenmin(models.Model):
+	executed_on = models.DateField(
+		verbose_name = u'发生日期'
+	)
+	symbol = models.CharField(
+		max_length = 32,
+		verbose_name = u'证券代码'
+	)
+	name = models.CharField(
+		max_length = 32,
+		verbose_name = u'证券名称'
+	)
+	transaction_type = models.CharField(
+		max_length = 64,
+		verbose_name = u'摘要'
+	)
+	price = models.FloatField(
+		verbose_name = u'成交价格'
+	)
+	vol = models.IntegerField(
+		verbose_name = u'成交股数'
+	)
+	total = models.IntegerField(
+		verbose_name = u'成交金额'
+	)
