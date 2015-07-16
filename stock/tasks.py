@@ -65,9 +65,10 @@ class MyStockPrevYahoo():
 		stock = MyStock.objects.get(symbol=symbol)
 		f = StringIO.StringIO(content)
 		for vals in csv.reader(f):
-			if len(vals) != 7: 
+			if len(vals) != 7:
 				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
-			else:
+			elif 'Open' in vals[1]: continue # title line
+			else: 
 				stock.prev_open = Decimal(vals[1])
 				stock.prev_high = Decimal(vals[2])
 				stock.prev_low = Decimal(vals[3])
@@ -181,7 +182,7 @@ class MyStockPrevFibYahoo():
 
 		stock = MyStock.objects.get(symbol=symbol)
 		adj_close = []
-		fib = [0,1,2,3,5,8,13,21,34,55,89,144]
+		fib = [5,8,13,21,34,55,89,144,233,377,610]
 		f = StringIO.StringIO(content)
 		for cnt, vals in enumerate(csv.reader(f)):
 			if len(vals) != 7: 
