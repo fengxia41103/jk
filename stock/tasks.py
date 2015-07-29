@@ -173,6 +173,7 @@ class MyStockPrevFibYahoo():
 	def parser(self,symbol):
 		stock = MyStock.objects.get(symbol=symbol)
 		fib = [5,8,13,21,34,55,89,144,233,377]
+		fib_ratio = [a/100 for a in [0.0, 23.6, 38.2, 50, 61.8, 100, 161.8, 261.8, 423.6]]
 
 		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
 		now = dt.now()
@@ -194,9 +195,19 @@ class MyStockPrevFibYahoo():
 					adj_close.append(vals[-1])
 				elif cnt > fib[-1]: break # no more need
 
+			# compute diff = T(n+1)-T(n)
+			adj_close = list(reversed(adj_close))
+			tmp = [float(a) for a in adj_close]
+			tmp = [a-b for a,b in zip(tmp[1:],tmp)]
 			# persist
-			if interval == 'w': stock.fib_weekly_adjusted_close = ','.join(list(reversed(adj_close)))
-			elif interval == 'd': stock.fib_daily_adjusted_close = ','.join(list(reversed(adj_close)))
+			if interval == 'w': 
+				stock.fib_weekly_adjusted_close = ','.join(adj_close)
+
+				stock.fib_weekly_score = sum([a*b for a,b in zip(tmp,fib_ratio)])
+			elif interval == 'd': 
+				stock.fib_daily_adjusted_close = ','.join(adj_close)
+				stock.fib_daily_score = sum([a*b for a,b in zip(tmp,fib_ratio)])
+
 			stock.save()
 		self.logger.debug('[%s] complete'%symbol)
 
@@ -205,6 +216,72 @@ def stock_prev_fib_yahoo_consumer(symbol):
 	http_agent = PlainUtility()
 	crawler = MyStockPrevFibYahoo(http_agent)
 	crawler.parser(symbol)		
+
+class MyStockHistoricalYahoo():
+	def __init__(self,handler):
+		self.http_handler = handler
+		self.agent = handler.agent
+		self.logger = logging.getLogger('jk')
+
+	def parser(self,symbol):
+		stock = MyStock.objects.get(symbol=symbol)
+
+		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
+		now = dt.now()
+		ago = now+relativedelta(months=-180)
+
+		date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d'%(ago.month-1,ago.day,ago.year,now.month-1,now.day,now.year)	
+		url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (symbol,date_str)
+		self.logger.debug(url)
+		content = self.http_handler.request(url)
+
+		f = StringIO.StringIO(content)
+		records = []
+		for cnt, vals in enumerate(csv.reader(f)):
+			if len(vals) != 7: 
+				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+			elif 'Adj' in vals[-1]: continue
+
+			stamp = [int(v) for v in vals[0].split('-')]
+			date_stamp = dt(year=stamp[0],month=stamp[1],day=stamp[2])
+			exist = MyStockHistorical.objects.filter(stock=stock,date_stamp=date_stamp)
+
+			if len(exist): continue
+			else:
+				try: open_p=Decimal(vals[1])
+				except: open_p=Decimal(-1)
+				try: high_p=Decimal(vals[2])
+				except: high_p=Decimal(-1)		
+				try: low_p=Decimal(vals[3])
+				except: low_p=Decimal(-1)
+				try: close_p=Decimal(vals[4])
+				except: close_p=Decimal(-1)
+				try: vol=int(vals[5])/1000.0
+				except: vol=-1
+				try: adj_p=Decimal(vals[6])
+				except: adj_p=Decimal(-1)				
+				h = MyStockHistorical(
+						stock=stock,
+						date_stamp=date_stamp,
+						open_price=open_p,
+						high_price=high_p,
+						low_price=low_p,
+						close_price=close_p,
+						vol=vol,
+						adj_close=adj_p
+					)
+				records.append(h)
+				if len(records) >= 1000:
+					MyStockHistorical.objects.bulk_create(records)
+					records = []
+		# persist
+		self.logger.debug('[%s] complete'%symbol)
+
+@shared_task
+def stock_historical_yahoo_consumer(symbol):
+	http_agent = PlainUtility()
+	crawler = MyStockHistoricalYahoo(http_agent)
+	crawler.parser(symbol)	
 
 class MyStockMonitorYahoo():
 	def __init__(self,handler):
@@ -337,3 +414,38 @@ class MyChenMin():
 def chenmin_consumer(files):
 	crawler = MyChenMin()
 	crawler.parser(files)
+
+from influxdb.influxdb08 import InfluxDBClient
+import time
+class MyStockInflux():
+	def __init__(self):
+		self.logger = logging.getLogger('jk')
+
+		db_name = 'stock'
+		self.client = InfluxDBClient('localhost', 8086, 'root', 'root', db_name)		
+		# all_dbs_list = self.client.get_list_database()
+		# that list comes back like: [{u'name': u'hello_world'}]
+		# if db_name not in [str(x['name']) for x in all_dbs_list]:
+		# 	print "Creating db {0}".format(db_name)
+		# 	self.client.create_database(db_name)
+		# else:
+		# 	print "Reusing db {0}".format(db_name)
+		self.client.switch_db(db_name)	
+
+	def parser(self,symbol):
+		points = []
+		for h in MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp'):
+			points=[[h.id,h.date_stamp.strftime('%Y-%m-%d'),time.mktime(h.date_stamp.timetuple()),float(h.open_price),float(h.high_price),float(h.low_price),float(h.close_price),float(h.adj_close),h.vol]]
+
+			self.client.write_points([{
+				'name':symbol,
+				'columns':['id','date','time','open','high','low','close','adj_close','vol'],
+				'points':points
+				}], time_precision='s')
+
+		self.logger.debug('%s completed'%symbol)
+
+@shared_task
+def influx_consumer(symbol):
+	crawler = MyStockInflux()
+	crawler.parser(symbol)

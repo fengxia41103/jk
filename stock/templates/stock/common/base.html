@@ -38,7 +38,7 @@
 	<!--link rel="stylesheet" href="{% static 'bootstrap3/css/bootstrap-theme.min.css' %}"-->
 	
 	<!-- http://fortawesome.github.io/Font-Awesome/get-started/ -->
-	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
 
 	<!-- easyui stylesheets -->
 	<!--link rel="stylesheet" type="text/css" href="{% static 'easyui/themes/default/easyui.css' %}"-->
@@ -189,6 +189,19 @@
 						</li>
 					</ul>
 				</li>
+
+				<li>
+					<a href="{% url 'user_position_list' %}">
+					<i class="fa fa-balance-scale"></i>
+					Positions
+					</a>					
+				</li>
+				<li>
+					<a href="{% url 'candidate_list' %}">
+					<i class="fa fa-thumbs-o-up"></i>
+					Candidates
+					</a>					
+				</li>										
 			</ul>
 
 			<ul class="nav navbar-nav navbar-right visible-md visible-lg">	
@@ -402,7 +415,16 @@
 			j$('table.my-datatable').dataTable({
 				paging: false,
 				info:false,
-				"pagingType": "simple"
+				"pagingType": "simple",
+				"fnInitComplete": function( oSettings ) {
+			        j$('.spark').sparkline('html', {type: 'line',width:'100px'} );	
+			        j$('.spark_bar').sparkline('html', {type: 'bar',barColor:'red'} );	
+
+					j$.each(j$('[data-type="position"]'),function(index,value){
+						var obj_id = j$(value).attr('obj_id');
+						setTimeout(get_stock_position(this,obj_id),500+index*500);
+					});						
+				}
 			});
 
 			// register tab events

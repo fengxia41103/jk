@@ -5,46 +5,66 @@
 {% endblock %}
 
 {% block content %}
-<div class="jumbotron">
-<h1>{{direction}}: <i class="fa fa-info-circle"></i>{{object_list|length}}</h1>
-<p>
-Gain/loss is computed by comparing a stock's last trading price vs. its last day's open price. Consistency is determined by reading a stocks's 2-day, 7-day and 4-week trend. If only all three are in the same direction is the stock considered "consistent".
-</p>
 
+<div class="row">
+	<div class="jumbotron col-md-8">
+	<h1>{{direction}}: <i class="fa fa-info-circle"></i>{{object_list|length}}</h1>
+	<p>
+	Gain/loss is computed by comparing a stock's last trading price vs. its last day's open price. Consistency is determined by reading a stocks's 2-day, 7-day and 4-week trend. If only all three are in the same direction is the stock considered "consistent".
+	</p>
+	</div>
+
+	<div class="jumbotron text-center col-md-4" style="background:#fff;color:#a23;">
+	Asset:
+	<h1 style="font-family: 'Abril Fatface', cursive;text-decoration: underline;">
+	{{ request.user.myuserprofile.asset|floatformat:2 }}</h1>
+
+	<p>Cash: {{ request.user.myuserprofile.cash|floatformat:2 }}</p>
+	<p>Equity: {{ request.user.myuserprofile.equity|floatformat:2 }}</p>
+	</div>	
 </div>
-<table class="table table-striped table-hover">
+
+<table class="table table-striped table-hover my-datatable" id="stock-list">
 <thead>
+	<th></th>
 	<th>Symbol</th>
 	<th>Company Name</th>
-	<th>Prev open</th>
-	<th>Last</th>
 	<th>PE</th>
-	<th>2-day (t0)</th>
-	<th>7-day (t1)</th>
-	<th>4-weekly (t2)</th>
-	<th>Trend (t0-2)</th>
-	<th><a href="http://www.investopedia.com/terms/f/fibonaccitimezones.asp">Fib timezone weekly</a></th>	
+	<th>1-day (t0)</th>
+	<th>2-day (t1)</th>
+	<th>7-day (t2)</th>
+	<th>4-weekly (t3)</th>
+	<th>Trend (t0-3)</th>
+	<th><a href="http://www.investopedia.com/terms/f/fibonaccitimezones.asp">Fib timezone weekly</a></th>
 	<th>Fib timezone daily</th>
+	<th>Fib score weekly</th>
+	<th>Fib score daily</th>
+	<th class="col-sm-2"></th>
 </thead>
 <tbody>
 	{% for obj in object_list %}
 	<tr><td>
+		A{{ obj.ask|floatformat:2 }}, B{{obj.bid|floatformat:2}}, L{{obj.last|floatformat:2}}
+	</td><td>
 	<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.symbol}}</a>
 	</td><td>
 		{{ obj.company_name }}
 	</td><td>
-		{{ obj.prev_open|floatformat:2}}
-	</td><td>
-		{{ obj.last|floatformat:2 }}
-	</td><td>
 		{{ obj.pe|floatformat:2 }}
 	</td><td>
-		{{ obj.twoday_change|floatformat:2}}%
-	</td><td class="spark">
-		{{ obj.week_adjusted_close}}
-	</td><td class="spark">
-		{{ obj.month_adjusted_close }}
+		{{ obj.oneday_change|floatformat:2 }}%
 	</td><td>
+		{{ obj.twoday_change|floatformat:2}}%
+	</td><td>
+		<span class="spark">{{ obj.week_adjusted_close}}</span>
+	</td><td>
+		<span class="spark">{{ obj.month_adjusted_close }}</span>
+	</td><td>
+		{% if obj.oneday_change > 0 %}
+		<span data-toggle="tooltip" title="1-day">/</span>
+		{% else %}
+		<span data-toggle="tooltip" title="1-day">\</span>
+		{% endif %}		
 		{% if obj.twoday_change > 0 %}
 		<span data-toggle="tooltip" title="2-day">/</span>
 		{% else %}
@@ -60,10 +80,24 @@ Gain/loss is computed by comparing a stock's last trading price vs. its last day
 		{% else %}
 		<span data-toggle="tooltip" title="4-week">\</span>
 		{% endif %}
-	</td><td class="spark_bar">
-		{{ obj.fib_weekly_adjusted_close }}
-	</td><td class="spark_bar">
-		{{ obj.fib_daily_adjusted_close }}
+	</td><td>
+		<span class="spark_bar">{{ obj.fib_weekly_adjusted_close }}</span>
+	</td><td>
+		<span class="spark_bar">{{ obj.fib_daily_adjusted_close }}</span>
+	</td><td>
+		{{ obj.fib_weekly_score_pcnt|floatformat:2 }}
+	</td><td>	
+		{{ obj.fib_daily_score_pcnt|floatformat:2 }}
+	</td><td>
+		<div id="stock-{{obj.id}}"
+			obj_id="{{obj.id}}"
+			data-type="position"
+			class="ladda-button" 
+			data-style="expand-right" 
+			data-size="l" data-spinner-color="#333"
+		>Loading....
+			<span class="ladda-label">
+		</div>
 	</td></tr>
 	{% endfor %}
 </tbody>
@@ -73,16 +107,49 @@ Gain/loss is computed by comparing a stock's last trading price vs. its last day
 
 {% block custom_js %}
 <script type="text/javascript">
-	j$(document).ready(function(){
-        j$('.spark').sparkline('html', {type: 'line',width:'100px'} );	
-        j$('.spark_bar').sparkline('html', {type: 'bar',barColor:'red'} );	
+function get_stock_position(html_obj,stock_id){
+	// loading spinner	 			
+	var l = Ladda.create(j$(html_obj)[0]);
+	l.start();
 
-		j$('.table').DataTable({
-			"lengthMenu": [[250, -1], [250, "All"]],
-			"info": false,
-			'pagingType': 'simple'
+    // ajax
+    j$.post("{% url 'position' %}", // passed in from view
+        { 
+            'obj_id':stock_id,
+        }, 
+        function(resp) { // success callback
+            j$(html_obj).html(resp['html']); 
+        },'json'
+    ).always(function(){
+    	l.stop();
+    });  
+}
+
+
+	j$(document).ready(function(){
+		j$(document).on('click','[data-type="transaction"]', function(){
+			console.log('here');
+
+			var obj_id = j$(this).attr('obj-id');
+			var val = j$(this).attr('value');
+			var html_obj = j$(this).closest('[data-type="position"]');
+
+		    // ajax
+		    j$.post("{% url 'transaction' %}", // passed in from view
+		        { 
+		            'obj_id':obj_id,
+		            'type':val
+		        }, 
+		        function(resp) { // success callback
+		        	toastr.success('Your transaction has been executed.');
+
+		        	// update position
+					get_stock_position(html_obj,obj_id);         
+		        },'json'
+		    ).always(function(){
+		    	l.stop();
+		    }); 
 		});		
 	});
 </script>
 {% endblock %}
-

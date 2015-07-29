@@ -280,4 +280,93 @@ class MyStockTrendConsistentLoss(TemplateView):
 		context['direction'] = 'Consistent loss'
 		context['object_list']=filter(lambda x: x.trend_is_consistent_loss, MyStock.objects.filter(prev_open__gt=F('last')))
 
-		return context	
+		return context
+
+@class_view_decorator(login_required)
+class MyStockPosition(TemplateView):
+	template_name = 'stock/stock/position.html'
+	def post(self,request):
+		stock = MyStock.objects.get(id=int(self.request.POST['obj_id']))		
+		pos_open = MyPosition.objects.filter(stock=stock,user=self.request.user, is_open=True)
+		
+		content = loader.get_template(self.template_name)
+		html= content.render(Context({'pos_open':pos_open,'obj_id':stock.id}))
+
+		return HttpResponse(json.dumps({'html':html}), 
+			content_type='application/javascript')	
+
+@class_view_decorator(login_required)
+class MyStockTransaction(TemplateView):
+	template_name = ''	
+
+	def post(self,request):
+		stock = MyStock.objects.get(id=int(self.request.POST['obj_id']))
+		transaction_type = self.request.POST['type']
+
+		# get user property obj
+		user_profile,created = MyUserProfile.objects.get_or_create(owner=request.user)
+
+		# establish a new position
+		if transaction_type == 'bid': # buy 1
+			vol = int(user_profile.per_trade_total/stock.last)
+			pos = MyPosition(stock=stock,position=stock.last,vol=vol,user=request.user)
+			user_profile.cash -= pos.vol*pos.position
+
+			user_profile.save()
+			pos.save()
+
+		elif transaction_type == 'ask': # sell 1, FIFO
+			pos = MyPosition.objects.filter(user=request.user,stock=stock,is_open=True).order_by('created')[0]
+			pos.is_open = False
+			pos.close_position = stock.last
+			user_profile.cash += pos.vol * pos.close_position
+
+			user_profile.save()
+			pos.save()
+		
+		elif transaction_type == 'close': # close positions
+			for pos in MyPosition.objects.filter(user=request.user,stock=stock,is_open=True):
+				pos.is_open = False
+				pos.close_position = stock.last
+				user_profile.cash += pos.vol * pos.close_position
+				pos.save()
+
+		# update records
+		user_profile.save()
+
+		return HttpResponse(json.dumps({'status':'ok'}), 
+			content_type='application/javascript')
+
+@class_view_decorator(login_required)
+class UserPositionList(ListView):
+	template_name = 'stock/stock/trend_gain.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(ListView, self).get_context_data(**kwargs)
+		context['direction'] = 'Positions'
+		return context		
+
+	def get_queryset(self):		
+		stocks = MyPosition.objects.filter(user=self.request.user,is_open = True).values_list('stock',flat=True)
+		return MyStock.objects.filter(id__in=stocks)
+
+@class_view_decorator(login_required)
+class MyStockCandidateList(ListView):
+	template_name ='stock/stock/trend_gain.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(ListView, self).get_context_data(**kwargs)
+		context['direction'] = 'Candidate'
+		return context		
+
+	def get_queryset(self):
+		stocks = MyStock.objects.all()
+		return filter(lambda x: x.trend_is_consistent_loss and # has been on down curve
+			(x.oneday_change < -2 or x.twoday_change < -4) and # 2-day drop greater than 4%
+			x.fib_weekly_score_pcnt>0 and # weekly trending up
+			x.fib_daily_score_pcnt>0 and  # daily trending up
+			x.fib_weekly_score_pcnt+float(x.oneday_change)>0 and # weekly trending up > drops
+			x.fib_weekly_score_pcnt+float(x.twoday_change)>0 and
+			x.fib_daily_score_pcnt+float(x.oneday_change)>0 and # daily trending up > drops
+			x.fib_daily_score_pcnt+float(x.twoday_change)>0,
+			stocks)

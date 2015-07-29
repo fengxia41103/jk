@@ -1,8 +1,9 @@
 #!/usr/bin/python  
 # -*- coding: utf-8 -*- 
 import sys,time,os,os.path,gc,csv
-import lxml.html
+import lxml.html,codecs
 import urllib,urllib2
+import re
 import simplejson as json
 
 # setup Django
@@ -48,13 +49,14 @@ def crawl_stock_yahoo_spot2():
 		stock_monitor_yahoo_consumer2.delay(','.join(symbols[i*step:(i*step+step)]))
 
 
-from stock.tasks import stock_prev_week_yahoo_consumer,stock_prev_month_yahoo_consumer,stock_prev_fib_yahoo_consumer
+from stock.tasks import stock_prev_week_yahoo_consumer,stock_prev_month_yahoo_consumer,stock_prev_fib_yahoo_consumer,stock_historical_yahoo_consumer
 def crawl_stock_prev_yahoo2():
 	symbols = MyStock.objects.all().values_list('symbol',flat=True)
 	for s in symbols:	
-		# stock_prev_week_yahoo_consumer.delay(s)
-		# stock_prev_month_yahoo_consumer.delay(s)
+		stock_prev_week_yahoo_consumer.delay(s)
+		stock_prev_month_yahoo_consumer.delay(s)
 		stock_prev_fib_yahoo_consumer.delay(s)
+		# stock_historical_yahoo_consumer.delay(s)
 
 from stock.tasks import chenmin_consumer
 def crawler_chenmin():
@@ -63,9 +65,15 @@ def crawler_chenmin():
 	for f in [os.path.join(root,f) for f in files]:
 		chenmin_consumer.delay(f)
 
+from stock.tasks import influx_consumer
+from influxdb.influxdb08 import InfluxDBClient
+def crawler_influx():
+	for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol',flat=True))):
+		influx_consumer.delay(symbol)
+		print '%s queued'%symbol
+
 import csv
 from django.db.models.loading import get_model
-
 def dump(qs, outfile_path):
 	"""
 	Takes in a Django queryset and spits out a CSV file.
@@ -82,25 +90,27 @@ def dump(qs, outfile_path):
 		http://www.djangosnippets.org/snippets/790/
 	
 	"""
-        model = qs.model
-	writer = csv.writer(open(outfile_path, 'w'))
+	model = qs.model
+	with codecs.open(outfile_path, "w") as temp:        
+	# writer = csv.writer(open(outfile_path, 'w'))
+		writer = csv.writer(temp)
 	
-	headers = []
-	for field in model._meta.fields:
-		headers.append(field.name)
-	headers = headers[1:]
-	writer.writerow(headers)
-	
-	for obj in qs:
-		row = []
-		for field in headers:
-			val = getattr(obj, field)
-			if callable(val):
-				val = val()
-			if type(val) == unicode:
-				val = val.encode("utf-8")
-			row.append(val)
-		writer.writerow(row)
+		headers = []
+		for field in model._meta.fields:
+			headers.append(field.name)
+		headers = headers[1:]
+		writer.writerow(headers)
+		
+		for obj in qs:
+			row = []
+			for field in headers:
+				val = getattr(obj, field)
+				if callable(val):
+					val = val()
+				if type(val) == unicode:
+					val = val.encode("utf-8")
+				row.append(val)
+			writer.writerow(row)
 
 def dump_chenmin():
 	root = '/home/fengxia/Desktop/chenmin'
@@ -115,7 +125,7 @@ def main():
 
 	# tasks
 	# populate_sp_500	()
-	# crawl_stock_prev_yahoo()
+	crawl_stock_prev_yahoo()
 	crawl_stock_prev_yahoo2()
 
 	crawl_stock_yahoo_spot()
@@ -123,6 +133,7 @@ def main():
 
 	# crawler_chenmin()
 	# dump_chenmin()
+	# crawler_influx()
 
 if __name__ == '__main__':
 	main()

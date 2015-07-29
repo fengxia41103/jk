@@ -29,6 +29,7 @@
 			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
+			<th>Today change</th>
 		</thead>
 		<tbody>
 			{% for obj in up_up %}
@@ -42,6 +43,8 @@
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>
 				{{ obj.last|floatformat:2 }}
+			</td><td>
+				{{ obj.oneday_change|floatformat:2 }}%				
 			</td></tr>
 	    	{% endfor %}
 		</tbody>
@@ -56,6 +59,7 @@
 			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
+			<th>Today change</th>
 		</thead>
 		<tbody>
 			{% for obj in up_down %}
@@ -69,6 +73,8 @@
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>
 				{{ obj.last|floatformat:2 }}
+			</td><td>
+				{{ obj.oneday_change|floatformat:2 }}%
 			</td></tr>
 	    	{% endfor %}
 		</tbody>
@@ -83,6 +89,7 @@
 			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
+			<th>Today change</th>
 		</thead>
 		<tbody>
 			{% for obj in down_up %}
@@ -96,6 +103,8 @@
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>
 				{{ obj.last|floatformat:2 }}
+			</td><td>
+				{{ obj.oneday_change|floatformat:2 }}%				
 			</td></tr>
 	    	{% endfor %}
 		</tbody>
@@ -110,6 +119,7 @@
 			<th>Prev change</th>
 			<th>Day Open</th>
 			<th>Last</th>
+			<th>Today change</th>
 		</thead>
 		<tbody>
 			{% for obj in down_down %}
@@ -123,6 +133,8 @@
 				{{ obj.day_open|floatformat:2 }}
 			</td><td>
 				{{ obj.last|floatformat:2 }}
+			</td><td>
+				{{ obj.oneday_change|floatformat:2 }}%				
 			</td></tr>
 	    	{% endfor %}
 		</tbody>

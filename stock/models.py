@@ -277,6 +277,18 @@ class MyStock(models.Model):
 		default = '',
 		verbose_name = u'Fibonacci timezone adjusted closing price'
 	)		
+	fib_weekly_score = models.FloatField(
+		default = 0,
+		verbose_name = u'Weighed sum of weekly adj close price'
+	)
+	fib_daily_score = models.FloatField(
+		default = 0,
+		verbose_name = u'Weighed sum of daily adj close price'		
+	)
+
+	def _oneday_change(self):
+		return (self.last-self.day_open)/self.day_open*Decimal(100)
+	oneday_change = property(_oneday_change)
 
 	def _twoday_change(self):
 		return (self.last-self.prev_open)/self.prev_open*Decimal(100)
@@ -293,16 +305,24 @@ class MyStock(models.Model):
 	month_change = property(_month_change)
 
 	def _trend_is_consistent_gain(self):
-		if self.twoday_change>0 and self.week_change>0 and self.month_change>0:
+		if self.oneday_change>0 and self.twoday_change>0 and self.week_change>0 and self.month_change>0:
 			return True
 		else: return False
 	trend_is_consistent_gain = property(_trend_is_consistent_gain)
 
 	def _trend_is_consistent_loss(self):
-		if self.twoday_change<0 and self.week_change<0 and self.month_change<0:
+		if self.oneday_change<0 and self.twoday_change<0 and self.week_change<0 and self.month_change<0:
 			return True
 		else: return False
 	trend_is_consistent_loss = property(_trend_is_consistent_loss)
+
+	def _fib_weekly_score_pcnt(self):
+		return self.fib_weekly_score/float(self.last)*100
+	fib_weekly_score_pcnt = property(_fib_weekly_score_pcnt)
+
+	def _fib_daily_score_pcnt(self):
+		return self.fib_daily_score/float(self.last)*100
+	fib_daily_score_pcnt = property(_fib_daily_score_pcnt)
 
 	def __unicode__(self):
 		return '%s (%s)'%(self.symbol,self.company_name)
@@ -326,6 +346,43 @@ def stock_update_handler(sender, **kwargs):
 		if original.vol != instance.vol and instance.float_share:
 			instance.vol_over_float = instance.vol/instance.float_share/10
 
+class MyStockHistorical(models.Model):
+	stock = models.ForeignKey(
+		'MyStock',
+		verbose_name = u'Stock'
+	)
+	date_stamp = models.DateField(
+		verbose_name = u'Date'
+	)
+	open_price = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,		
+		verbose_name = u'Open'
+	)
+	high_price = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,			
+		verbose_name = u'High'
+	)
+	low_price = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,			
+		verbose_name = u'Low'
+	)	
+	close_price = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,			
+		verbose_name = u'Close'
+	)
+	adj_close = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,			
+		verbose_name = u'Adjusted close'
+	)
+	vol = models.FloatField(
+		verbose_name = u'Volume (000)'
+	)
+
 class MyUserProfile(models.Model):	
 	owner = models.OneToOneField (
 		User,
@@ -344,15 +401,27 @@ class MyUserProfile(models.Model):
 		default = '20-100',
 		verbose_name = u'P/E threshold'
 	)
-	exit_percent = models.IntegerField(
-		default = 2,
-		verbose_name = u'Percentage of exit over buy-in price'
+	cash = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,
+		default = 10000,
+		verbose_name = u'Account balance'
 	)
+
+	def _equity(self):
+		pos = [p.total for p in MyPosition.objects.filter(user=self.owner,is_open = True)]
+		return sum(pos)
+	equity = property(_equity)
+
+	def _asset(self):
+		return self.cash+self.equity
+	asset = property(_asset)
 
 class MyPosition(models.Model):
 	created = models.DateTimeField(
 		auto_now_add=True,
 	)
+	user = models.ForeignKey(User)
 	stock = models.ForeignKey(
 		'MyStock',
 		verbose_name = u'Stock'
@@ -361,11 +430,6 @@ class MyPosition(models.Model):
 		max_digits = 20,
 		decimal_places = 15,
 		verbose_name = u'We paid'		
-	)
-	exit_bid = models.DecimalField(		
-		max_digits = 20,
-		decimal_places = 15,				
-		verbose_name = u'Sell at'
 	)
 	vol = models.IntegerField(
 		default = 0,
@@ -378,9 +442,23 @@ class MyPosition(models.Model):
 	last_updated_on = models.DateTimeField(
 		auto_now = True
 	)
+	close_position = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 15,
+		default = 0.0,
+		verbose_name = u'We closed at'
+	)
+
+	def _profit(self):
+		return (self.close_position - self.position)*self.vol
+	profit = property(_profit)
+
+	def _to_last_pcnt(self):
+		return (self.stock.last-self.position)/self.position*100.0
+	to_last_pcnt = property(_to_last_pcnt)
 
 	def _total(self):
-		return self.exit * self.vol
+		return self.stock.last * self.vol
 	total = property(_total)		
 
 	def _elapse_in_days(self):
@@ -394,7 +472,7 @@ class MyPosition(models.Model):
 @receiver(post_save,sender=MyPosition)
 def day_change_handler(sender, **kwargs):
 	instance = kwargs.get('instance')
-	stock = MyStock.objects.get(id=instance.stock)
+	stock = MyStock.objects.get(id=instance.stock.id)
 	stock.is_in_play = True
 	stock.save()
 

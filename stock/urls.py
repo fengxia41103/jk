@@ -19,6 +19,7 @@ urlpatterns = patterns(
 
 		# user related
 		url(r'^user/profile/$', views.UserProfileView.as_view(), name='user_profile'),
+		url(r'^user/position/$', views.UserPositionList.as_view(), name='user_position_list'),
 
 		url(r'^stock/$', views.MyStockList.as_view(), name='stock_list'),
 		url(r'^stock/update/$', views.MyStockUpdate.as_view(), name='stock_update'),
@@ -35,6 +36,11 @@ urlpatterns = patterns(
 		url(r'^trend/2day/loss/$', views.MyStockTrendLoss.as_view(), name='trend_2day_loss'),		
 		url(r'^trend/consistent/gain/$', views.MyStockTrendConsistentGain.as_view(), name='trend_consistent_gain'),		
 		url(r'^trend/consistent/loss/$', views.MyStockTrendConsistentLoss.as_view(), name='trend_consistent_loss'),		
+
+		# transaction
+		url(r'^transaction/$', views.MyStockTransaction.as_view(), name='transaction'),
+		url(r'^position/$', views.MyStockPosition.as_view(), name='position'),
+		url(r'^candidate/$', views.MyStockCandidateList.as_view(), name='candidate_list'),
 
 	)+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
