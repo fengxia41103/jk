@@ -42,5 +42,8 @@ urlpatterns = patterns(
 		url(r'^position/$', views.MyStockPosition.as_view(), name='position'),
 		url(r'^candidate/$', views.MyStockCandidateList.as_view(), name='candidate_list'),
 
+		# backtesting
+		url(r'^backtesting/(?P<symbol>\w+)/$', views.MyStockBacktestingDetail.as_view(), name='backtesting_1'),		
+
 	)+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

@@ -1,0 +1,34 @@
+{% extends "stock/common/base.html" %}
+
+{% block page-header %}
+	{{stock}}
+{% endblock %}
+
+
+{% block content %}
+<p>
+	{{ flag_by_strategy }}
+</p>
+
+<table class="able table-striped table-hover">
+	<thead>
+		<tr><td>Pattern</td><td>Probability</td></tr>
+	</thead>
+	<tbody>
+		<tr><td>GUGUG</td><td>{{ prob_1 }}</td></tr>
+		<tr><td>GUGUL</td><td>{{ prob_2 }}</td></tr>
+		<tr><td>GULUG</td><td>{{ prob_3 }}</td></tr>
+		<tr><td>GULUL</td><td>{{ prob_4 }}</td></tr>
+		<tr><td>LUGUG</td><td>{{ prob_5 }}</td></tr>
+		<tr><td>LUGUL</td><td>{{ prob_6 }}</td></tr>
+		<tr><td>LULUG</td><td>{{ prob_7 }}</td></tr>
+		<tr><td>LULUL</td><td>{{ prob_8 }}</td></tr>
+	</tbody>
+</table>
+
+{% endblock %}
+
+{% block custom_js %}
+
+{% endblock %}
+

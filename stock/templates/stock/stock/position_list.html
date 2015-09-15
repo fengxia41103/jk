@@ -1,0 +1,119 @@
+{% extends "stock/common/base.html" %}
+
+{% block page-header %}
+	Positions
+{% endblock %}
+
+{% block content %}
+
+
+<div class="jumbotron text-center" style="background:#fff;color:#a23;">
+Asset:
+<h1 style="font-family: 'Abril Fatface', cursive;text-decoration: underline;">
+{{ request.user.myuserprofile.asset|floatformat:2 }}</h1>
+
+<p>Cash: {{ request.user.myuserprofile.cash|floatformat:2 }}</p>
+<p>Equity: {{ request.user.myuserprofile.equity|floatformat:2 }}</p>
+</div>	
+
+<table class="table table-striped table-hover my-datatable" id="stock-list">
+<thead>
+	<th></th>
+	<th>Symbol</th>
+	<th>Company Name</th>
+	<th>PE</th>
+	<th>1-day (t0)</th>
+	<th>Potential gain</th>
+	<th>Fib score weekly</th>
+	<th>Fib score daily</th>
+	<th>Life (days)</th>
+	<th>Avg cost</th>
+	<th class="col-sm-2"></th>
+</thead>
+<tbody>
+	{% for obj in object_list %}
+	<tr><td>
+		A{{ obj.stock.ask|floatformat:2 }}, B{{obj.stock.bid|floatformat:2}}, L{{obj.stock.last|floatformat:2}}
+	</td><td>
+		<a href="http://finviz.com/quote.ashx?t={{ obj.symbol }}">{{obj.stock.symbol}}</a>
+	</td><td>
+		{{ obj.stock.company_name }}
+	</td><td>
+		{{ obj.stock.pe|floatformat:2 }}
+	</td><td>
+		{{ obj.stock.oneday_change|floatformat:2 }}%
+	</td><td>
+		{{ obj.potential_gain|floatformat:2 }}
+	</td><td>
+		{{ obj.stock.fib_weekly_score_pcnt|floatformat:2 }}
+	</td><td>	
+		{{ obj.stock.fib_daily_score_pcnt|floatformat:2 }}
+	</td><td>
+		{{ obj.life }}
+	</td><td>
+		{{ obj.avg_cost|floatformat:2 }}
+	</td><td>
+		<div id="stock-{{obj.id}}"
+			obj_id="{{obj.id}}"
+			data-type="position"
+			class="ladda-button" 
+			data-style="expand-right" 
+			data-size="l" data-spinner-color="#333"
+		>Loading....
+			<span class="ladda-label">
+		</div>
+	</td></tr>
+	{% endfor %}
+</tbody>
+</table>
+
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+function get_stock_position(html_obj,stock_id){
+	// loading spinner	 			
+	var l = Ladda.create(j$(html_obj)[0]);
+	l.start();
+
+    // ajax
+    j$.post("{% url 'position' %}", // passed in from view
+        { 
+            'obj_id':stock_id,
+        }, 
+        function(resp) { // success callback
+            j$(html_obj).html(resp['html']); 
+        },'json'
+    ).always(function(){
+    	l.stop();
+    });  
+}
+
+
+	j$(document).ready(function(){
+		j$(document).on('click','[data-type="transaction"]', function(){
+			console.log('here');
+
+			var obj_id = j$(this).attr('obj-id');
+			var val = j$(this).attr('value');
+			var html_obj = j$(this).closest('[data-type="position"]');
+
+		    // ajax
+		    j$.post("{% url 'transaction' %}", // passed in from view
+		        { 
+		            'obj_id':obj_id,
+		            'type':val
+		        }, 
+		        function(resp) { // success callback
+		        	toastr.success('Your transaction has been executed.');
+
+		        	// update position
+					get_stock_position(html_obj,obj_id);         
+		        },'json'
+		    ).always(function(){
+		    	l.stop();
+		    }); 
+		});		
+	});
+</script>
+{% endblock %}

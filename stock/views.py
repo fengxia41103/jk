@@ -337,18 +337,21 @@ class MyStockTransaction(TemplateView):
 		return HttpResponse(json.dumps({'status':'ok'}), 
 			content_type='application/javascript')
 
+from statistics import mean
 @class_view_decorator(login_required)
 class UserPositionList(ListView):
-	template_name = 'stock/stock/trend_gain.html'
-
-	def get_context_data(self, **kwargs):
-		context = super(ListView, self).get_context_data(**kwargs)
-		context['direction'] = 'Positions'
-		return context		
+	template_name = 'stock/stock/position_list.html'	
 
 	def get_queryset(self):		
+		data = []
 		stocks = MyPosition.objects.filter(user=self.request.user,is_open = True).values_list('stock',flat=True)
-		return MyStock.objects.filter(id__in=stocks)
+		for s in stocks:
+			tmp={'id':s,'stock':MyStock.objects.get(id=s)}
+			tmp['potential_gain'] = sum([a.potential_gain for a in MyPosition.objects.filter(user=self.request.user,is_open=True,stock=s)])
+			tmp['life'] = mean([a.elapse_in_days for a in MyPosition.objects.filter(user=self.request.user,is_open=True,stock=s)])
+			tmp['avg_cost'] = sum([a.total for a in MyPosition.objects.filter(user=self.request.user,is_open=True,stock=s)])/sum([a.vol for a in MyPosition.objects.filter(user=self.request.user,is_open=True,stock=s)])
+			data.append(tmp)			
+		return data
 
 @class_view_decorator(login_required)
 class MyStockCandidateList(ListView):
@@ -370,3 +373,53 @@ class MyStockCandidateList(ListView):
 			x.fib_daily_score_pcnt+float(x.oneday_change)>0 and # daily trending up > drops
 			x.fib_daily_score_pcnt+float(x.twoday_change)>0,
 			stocks)
+
+@class_view_decorator(login_required)
+class MyStockBacktestingDetail(TemplateView):
+	model = MyStockHistorical
+	template_name ='stock/backtesting/list.html'
+
+	def occurrences(self, string, sub):
+		count = 0
+		while True:
+			found = re.search(sub, string)
+	    	if found > 0: 
+	    		count+=1
+	    		string=string[found+1:]
+	    		print count
+	    	else: return count
+
+	def get_context_data(self, **kwargs):
+		context = super(TemplateView, self).get_context_data(**kwargs)
+		stock = MyStock.objects.get(symbol__iexact=self.kwargs['symbol'])		
+		context['stock'] = stock
+
+		histories = MyStockHistorical.objects.filter(stock=stock).order_by('date_stamp')
+		tmp = ''.join([h.flag_by_strategy for h in histories])
+		tmp = re.sub('[U]+','U',tmp)
+		tmp = re.sub('[G]+','G',tmp)
+		tmp = re.sub('[L]+','L',tmp)
+		context['flag_by_strategy'] = tmp
+
+		# probabilities
+		total_sample = len(tmp)-5+1
+		prob_1 = self.occurrences(tmp,'GUGUG')		
+		prob_2 = self.occurrences(tmp,'GUGUL')
+		prob_3 = self.occurrences(tmp,'GULUG')
+		prob_4 = self.occurrences(tmp,'GULUL')
+		prob_5 = self.occurrences(tmp,'LUGUG')
+		prob_6 = self.occurrences(tmp,'LUGUL')
+		prob_7 = self.occurrences(tmp,'LULUG')
+		prob_8 = self.occurrences(tmp,'LULUL')
+		
+
+		context['prob_1'] = prob_1/total_sample*1.0
+		context['prob_2'] = prob_2/total_sample*1.0
+		context['prob_3'] = prob_3/total_sample*1.0
+		context['prob_4'] = prob_4/total_sample*1.0
+		context['prob_5'] = prob_5/total_sample*1.0
+		context['prob_6'] = prob_6/total_sample*1.0
+		context['prob_7'] = prob_7/total_sample*1.0
+		context['prob_8'] = prob_8/total_sample*1.0
+
+		return context	

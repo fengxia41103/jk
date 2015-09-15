@@ -1,0 +1,8 @@
+<div class="btn-group btn-group-sm" role="group" aria-label="...">
+	<button type="button" class="btn btn-default" obj-id="{{obj_id}}" title="bid" data-type="transaction" value="bid">B</button>
+
+	{% if pos_open|length > 0 %}
+	<button type="button" class="btn btn-info" obj-id="{{obj_id}}" title="ask" data-type="transaction" value="ask">S({{pos_open|length}})</button>
+	<button type="button" class="btn btn-info" obj-id="{{obj_id}}" title="close" data-type="transaction" value="close">C({{pos_open|length}})</button>	
+	{% endif %}	
+</div>

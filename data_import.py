@@ -56,7 +56,7 @@ def crawl_stock_prev_yahoo2():
 		stock_prev_week_yahoo_consumer.delay(s)
 		stock_prev_month_yahoo_consumer.delay(s)
 		stock_prev_fib_yahoo_consumer.delay(s)
-		# stock_historical_yahoo_consumer.delay(s)
+		stock_historical_yahoo_consumer.delay(s)
 
 from stock.tasks import chenmin_consumer
 def crawler_chenmin():
@@ -72,11 +72,16 @@ def crawler_influx():
 		influx_consumer.delay(symbol)
 		print '%s queued'%symbol
 
+from stock.tasks import backtesting_consumer
+def backtest_1():
+	for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol',flat=True))):
+		backtesting_consumer.delay(symbol)
+
 import csv
 from django.db.models.loading import get_model
 def dump(qs, outfile_path):
 	"""
-	Takes in a Django queryset and spits out a CSV file.
+	Takes in a Django queryset and spits out a CSV file.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
 	
 	Usage::
 	
@@ -126,14 +131,15 @@ def main():
 	# tasks
 	# populate_sp_500	()
 	crawl_stock_prev_yahoo()
-	crawl_stock_prev_yahoo2()
+	#crawl_stock_prev_yahoo2()
 
 	crawl_stock_yahoo_spot()
-	crawl_stock_yahoo_spot2()
+	#crawl_stock_yahoo_spot2()
 
 	# crawler_chenmin()
 	# dump_chenmin()
 	# crawler_influx()
+	#backtest_1()
 
 if __name__ == '__main__':
 	main()

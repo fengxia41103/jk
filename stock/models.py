@@ -382,6 +382,13 @@ class MyStockHistorical(models.Model):
 	vol = models.FloatField(
 		verbose_name = u'Volume (000)'
 	)
+	flag_by_strategy = models.CharField(
+		max_length = 1,
+		null = True,
+		blank = True,		
+		default='U',
+		verbose_name = u'Back testing flag'
+	)
 
 class MyUserProfile(models.Model):	
 	owner = models.OneToOneField (
@@ -449,9 +456,13 @@ class MyPosition(models.Model):
 		verbose_name = u'We closed at'
 	)
 
-	def _profit(self):
+	def _gain(self):
 		return (self.close_position - self.position)*self.vol
-	profit = property(_profit)
+	gain = property(_gain)
+
+	def _potential_gain(self):
+		return (self.stock.last - self.position)*self.vol
+	potential_gain = property(_potential_gain)
 
 	def _to_last_pcnt(self):
 		return (self.stock.last-self.position)/self.position*100.0
