@@ -1,4 +1,5 @@
-import os,os.path
+import os
+import os.path
 
 os.environ['DJANGO_SETTINGS_MODULE'] = 'jk.settings'
 
@@ -9,6 +10,3 @@ BaseMemcachedCache.close = lambda self, **kwargs: None
 
 from django.core.wsgi import get_wsgi_application
 application = get_wsgi_application()
-
-
-

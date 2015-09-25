@@ -374,20 +374,14 @@ class MyStockCandidateList(ListView):
 			x.fib_daily_score_pcnt+float(x.twoday_change)>0,
 			stocks)
 
+from nltk import FreqDist
 @class_view_decorator(login_required)
 class MyStockBacktestingDetail(TemplateView):
 	model = MyStockHistorical
 	template_name ='stock/backtesting/list.html'
 
-	def occurrences(self, string, sub):
-		count = 0
-		while True:
-			found = re.search(sub, string)
-	    	if found > 0: 
-	    		count+=1
-	    		string=string[found+1:]
-	    		print count
-	    	else: return count
+	def occurrences(self, haystack, needle):
+		return sum(haystack[i:i+len(needle)] == needle for i in xrange(len(haystack)-len(needle)+1))
 
 	def get_context_data(self, **kwargs):
 		context = super(TemplateView, self).get_context_data(**kwargs)
@@ -395,31 +389,25 @@ class MyStockBacktestingDetail(TemplateView):
 		context['stock'] = stock
 
 		histories = MyStockHistorical.objects.filter(stock=stock).order_by('date_stamp')
-		tmp = ''.join([h.flag_by_strategy for h in histories])
+		histories = tmp = ''.join([h.flag_by_strategy for h in histories])
 		tmp = re.sub('[U]+','U',tmp)
 		tmp = re.sub('[G]+','G',tmp)
 		tmp = re.sub('[L]+','L',tmp)
-		context['flag_by_strategy'] = tmp
+		context['flag_by_strategy'] = histories
 
 		# probabilities
 		total_sample = len(tmp)-5+1
-		prob_1 = self.occurrences(tmp,'GUGUG')		
-		prob_2 = self.occurrences(tmp,'GUGUL')
-		prob_3 = self.occurrences(tmp,'GULUG')
-		prob_4 = self.occurrences(tmp,'GULUL')
-		prob_5 = self.occurrences(tmp,'LUGUG')
-		prob_6 = self.occurrences(tmp,'LUGUL')
-		prob_7 = self.occurrences(tmp,'LULUG')
-		prob_8 = self.occurrences(tmp,'LULUL')
-		
-
-		context['prob_1'] = prob_1/total_sample*1.0
-		context['prob_2'] = prob_2/total_sample*1.0
-		context['prob_3'] = prob_3/total_sample*1.0
-		context['prob_4'] = prob_4/total_sample*1.0
-		context['prob_5'] = prob_5/total_sample*1.0
-		context['prob_6'] = prob_6/total_sample*1.0
-		context['prob_7'] = prob_7/total_sample*1.0
-		context['prob_8'] = prob_8/total_sample*1.0
+		context['prob_ggg'] = self.occurrences(tmp,'GUGUG')	
+		context['prob_ggl'] = self.occurrences(tmp,'GUGUL')
+		context['prob_glg'] = self.occurrences(tmp,'GULUG')
+		context['prob_gll'] = self.occurrences(tmp,'GULUL')
+		context['prob_lgg'] = self.occurrences(tmp,'LUGUG')
+		context['prob_lgl'] = self.occurrences(tmp,'LUGUL')
+		context['prob_llg'] = self.occurrences(tmp,'LULUG')
+		context['prob_lll'] = self.occurrences(tmp,'LULUL')
+		context['prob_conseq_u'] = FreqDist([str(len(x)) for x in re.findall('[U]+',histories)]).most_common(10)
+		context['prob_conseq_g'] = FreqDist([str(len(x)) for x in re.findall('[G]+',histories)]).most_common(10)
+		context['prob_conseq_l'] = FreqDist([str(len(x)) for x in re.findall('[L]+',histories)]).most_common(10)
+		context['ending_g_over_l'] = sum([context['prob_ggg'],context['prob_glg'],context['prob_lgg'],context['prob_llg']])*1.0/sum([context['prob_ggl'],context['prob_gll'],context['prob_lgl'],context['prob_lll']])
 
 		return context	

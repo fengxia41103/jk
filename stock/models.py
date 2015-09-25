@@ -512,3 +512,23 @@ class MyChenmin(models.Model):
 	total = models.IntegerField(
 		verbose_name = u'成交金额'
 	)
+
+######################################################
+#
+#	RESTful API endpoints
+#
+#####################################################
+
+from rest_framework import serializers, viewsets,filters
+
+# Serializers define the API representation.
+class MyStockSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = MyStock
+
+# ViewSets define the view behavior.
+class MyStockViewSet(viewsets.ModelViewSet):
+    queryset = MyStock.objects.all()
+    serializer_class = MyStockSerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+    filter_fields = ('symbol', )
