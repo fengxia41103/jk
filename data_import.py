@@ -53,9 +53,9 @@ from stock.tasks import stock_prev_week_yahoo_consumer,stock_prev_month_yahoo_co
 def crawl_stock_prev_yahoo2():
 	symbols = MyStock.objects.all().values_list('symbol',flat=True)
 	for s in symbols:	
-		stock_prev_week_yahoo_consumer.delay(s)
-		stock_prev_month_yahoo_consumer.delay(s)
-		stock_prev_fib_yahoo_consumer.delay(s)
+		# stock_prev_week_yahoo_consumer.delay(s)
+		# stock_prev_month_yahoo_consumer.delay(s)
+		# stock_prev_fib_yahoo_consumer.delay(s)
 		stock_historical_yahoo_consumer.delay(s)
 
 from stock.tasks import chenmin_consumer
@@ -130,10 +130,10 @@ def main():
 
 	# tasks
 	# populate_sp_500	()
-	crawl_stock_prev_yahoo()
-	#crawl_stock_prev_yahoo2()
+	# crawl_stock_prev_yahoo()
+	crawl_stock_prev_yahoo2()
 
-	crawl_stock_yahoo_spot()
+	# crawl_stock_yahoo_spot()
 	#crawl_stock_yahoo_spot2()
 
 	# crawler_chenmin()

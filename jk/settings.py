@@ -59,7 +59,8 @@ INSTALLED_APPS = (
     'social.apps.django_app.default',  # python-social-auth
     'localflavor',  # django-localflavor
     'rest_framework',  # djangorestframework
-    'stock',  # intern
+    'djangular', # django-angular
+    'stock',  # stock
 )
 
 MIDDLEWARE_CLASSES = (

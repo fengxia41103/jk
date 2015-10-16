@@ -225,6 +225,7 @@ class MyStockHistoricalYahoo():
 
 	def parser(self,symbol):
 		stock = MyStock.objects.get(symbol=symbol)
+		his = MyStockHistorical.objects.filter(stock=stock).values_list('date_stamp',flat=True)
 
 		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
 		now = dt.now()
@@ -244,9 +245,10 @@ class MyStockHistoricalYahoo():
 
 			stamp = [int(v) for v in vals[0].split('-')]
 			date_stamp = dt(year=stamp[0],month=stamp[1],day=stamp[2])
-			exist = MyStockHistorical.objects.filter(stock=stock,date_stamp=date_stamp)
+			# # exist = MyStockHistorical.objects.filter(stock=stock,date_stamp=date_stamp)
 
-			if len(exist): continue
+			# if len(exist): continue
+			if date_stamp in his: continue # we already have these
 			else:
 				try: open_p=Decimal(vals[1])
 				except: open_p=Decimal(-1)

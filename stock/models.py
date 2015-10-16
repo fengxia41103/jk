@@ -390,6 +390,10 @@ class MyStockHistorical(models.Model):
 		verbose_name = u'Back testing flag'
 	)
 
+	class Meta:
+		unique_together = ('stock','date_stamp')
+		index_together = ['stock', 'date_stamp']
+
 class MyUserProfile(models.Model):	
 	owner = models.OneToOneField (
 		User,
