@@ -225,7 +225,7 @@ class MyStockHistoricalYahoo():
 
 	def parser(self,symbol):
 		stock = MyStock.objects.get(symbol=symbol)
-		his = MyStockHistorical.objects.filter(stock=stock).values_list('date_stamp',flat=True)
+		his = [x.isoformat() for x in MyStockHistorical.objects.filter(stock=stock).values_list('date_stamp',flat=True)]
 
 		# https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
 		now = dt.now()
@@ -248,7 +248,7 @@ class MyStockHistoricalYahoo():
 			# # exist = MyStockHistorical.objects.filter(stock=stock,date_stamp=date_stamp)
 
 			# if len(exist): continue
-			if date_stamp in his: continue # we already have these
+			if date_stamp.date().isoformat() in his: continue # we already have these
 			else:
 				try: open_p=Decimal(vals[1])
 				except: open_p=Decimal(-1)

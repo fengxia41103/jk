@@ -5,6 +5,7 @@ import lxml.html,codecs
 import urllib,urllib2
 import re
 import simplejson as json
+import datetime as dt
 
 # setup Django
 import django
@@ -125,13 +126,67 @@ def dump_chenmin():
 		dump(MyChenmin.objects.filter(symbol=symbol).order_by('executed_on'),os.path.join(root,symbol+'.csv'))
 		print '%d/%d'%(idx, total), symbol
 
+def import_chenmin_csv():
+	root = '/home/fengxia/Desktop/chenmin/alpha'
+	for f in os.listdir(root):
+		symbol,ext = os.path.splitext(os.path.basename(f))
+		stock,created = MyStock.objects.get_or_create(symbol=symbol)
+		his = [x.isoformat() for x in MyStockHistorical.objects.filter(stock=stock).values_list('date_stamp',flat=True)]
+		records = []
+
+		with open(os.path.join(root,f),'rb') as csvfile:
+			for cnt, vals in enumerate(csv.reader(csvfile)):
+				if not vals: continue # handle blank lines
+
+				# some time stamp is in form of "x/x/x", normalized to "x-x-x" format
+				vals[0] = vals[0].replace('/','-')
+				if len(vals) != 6: 
+					print 'error in %s' % symbol
+					print cnt, vals
+					raw_input()
+				elif '-' not in vals[0]: continue # skip these title lines
+
+				stamp = [int(v) for v in vals[0].split('-')]
+				date_stamp = dt(year=stamp[0],month=stamp[1],day=stamp[2])
+
+				if date_stamp.date().isoformat() in his: continue # we already have these
+				else:
+					try: open_p=Decimal(vals[1])
+					except: open_p=Decimal(-1)
+					try: high_p=Decimal(vals[2])
+					except: high_p=Decimal(-1)		
+					try: low_p=Decimal(vals[3])
+					except: low_p=Decimal(-1)
+					try: close_p=Decimal(vals[4])
+					except: close_p=Decimal(-1)
+					try: vol=int(vals[5])/1000.0
+					except: vol=-1
+					try: adj_p=Decimal(vals[6])
+					except: adj_p=Decimal(-1)				
+					h = MyStockHistorical(
+							stock=stock,
+							date_stamp=date_stamp,
+							open_price=open_p,
+							high_price=high_p,
+							low_price=low_p,
+							close_price=close_p,
+							vol=vol,
+							adj_close=adj_p
+						)
+					records.append(h)
+					if len(records) >= 1000:
+						MyStockHistorical.objects.bulk_create(records)
+						records = []
+		# persist
+		print '[%s] complete'%symbol					
+
 def main():
 	django.setup()
 
 	# tasks
 	# populate_sp_500	()
 	# crawl_stock_prev_yahoo()
-	crawl_stock_prev_yahoo2()
+	# crawl_stock_prev_yahoo2()
 
 	# crawl_stock_yahoo_spot()
 	#crawl_stock_yahoo_spot2()
@@ -140,6 +195,7 @@ def main():
 	# dump_chenmin()
 	# crawler_influx()
 	#backtest_1()
+	import_chenmin_csv()	
 
 if __name__ == '__main__':
 	main()
