@@ -517,9 +517,9 @@ class MyPosition(models.Model):
 
 		self.close_position = price
 		self.is_open = False
-		self.save()
+		self.save()		
+		print 'close @ gain: ', self.gain, self.vol, self.is_open
 
-		print 'close @ gain: ', self.gain
 
 	def _gain(self):
 		return (self.close_position - self.position)*self.vol
@@ -548,13 +548,12 @@ class MyPosition(models.Model):
 @receiver(pre_save,sender=MyPosition)
 def day_change_handler(sender, **kwargs):
 	instance = kwargs.get('instance')
-	if instance.vol:
-		instance.is_open = True
+	if not instance.vol or instance.close_position > 0: instance.is_open = False
+	if instance.is_open:
 		stock = MyStock.objects.get(id=instance.stock.id)
 		if not stock.is_in_play:
 			stock.is_in_play = True
 			stock.save()
-	else: instance.is_open = False
 
 class MyChenmin(models.Model):
 	executed_on = models.DateField(
