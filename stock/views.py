@@ -486,9 +486,10 @@ class MyStockStrategy2List(FormView):
 					vol = per_buy/target_price)
 				pos.save()
 
-				self.request.user.myuserprofile.cash -= pos.vol*pos.position
-				self.request.user.myuserprofile.save()
-				print 'create: ',sym, self.request.user.myuserprofile.equity, self.request.user.myuserprofile.cash, self.request.user.myuserprofile.asset
+				profile = MyUserProfile.objects.get(owner = self.request.user)
+				profile.cash -= pos.vol*pos.position
+				profile.save()
+				print 'create: ',sym, profile.equity, profile.cash, profile.asset
 
 			# sell if outside sell_cutoff
 			for sym in d['ranks'][int(total_symbols*sell_cutoff):]:

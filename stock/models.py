@@ -518,8 +518,6 @@ class MyPosition(models.Model):
 		self.close_position = price
 		self.is_open = False
 		self.save()		
-		print 'close @ gain: ', self.gain, self.vol, self.is_open
-
 
 	def _gain(self):
 		return (self.close_position - self.position)*self.vol
