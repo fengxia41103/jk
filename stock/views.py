@@ -49,6 +49,7 @@ import simplejson as json
 import googlemaps
 from itertools import groupby
 import urllib, lxml.html
+from numpy import mean, std 
 from utility import MyUtility
 
 from stock.models import *
@@ -450,9 +451,54 @@ class MyStockStrategy2List(FormView):
 		dates.sort()
 		for on_date in dates:
 			data.append({
-				'on_date':on_date.isoformat(),
-				'ranks': [h.stock.symbol for h in histories.filter(date_stamp=on_date).order_by('-val_by_strategy')]
+				'on_date':on_date,
+				'ranks': [h.stock.symbol for h in histories.filter(date_stamp=on_date).order_by('-val_by_strategy')],
 				})
+
+		# simulate portfolio
+		for h in MyPosition.objects.all(): h.delete()
+		capital = self.request.user.myuserprofile.cash = 100000
+		self.request.user.myuserprofile.save()
+		per_buy = self.request.user.myuserprofile.per_trade_total
+		buy_cutoff = 0.25
+		sell_cutoff = 0.4
+
+		for d in data:
+			print d['on_date'].isoformat()
+
+			positions = MyPosition.objects.filter(is_open=True).values_list('stock__symbol',flat=True)		
+			total_symbols = len(d['ranks'])
+
+			# buy if within buy_cutoff
+			for sym in d['ranks'][:int(total_symbols*buy_cutoff)]:
+				if sym in positions: continue # already in portfolio, hold
+
+				# we buy, assuming knowing the ranking based on OPEN price
+				# so we buy at mean(high,low) on that date
+				his = MyStockHistorical.objects.get(stock__symbol=sym,date_stamp=d['on_date'])
+				stock = MyStock.objects.get(symbol=sym)
+				stock.last = target_price = his.high_price # assuming we buy at daily high
+				stock.save()
+				pos = MyPosition(
+					stock = stock,
+					user = self.request.user,
+					position = target_price, # buy
+					vol = per_buy/target_price)
+				pos.save()
+
+				self.request.user.myuserprofile.cash -= pos.vol*pos.position
+				self.request.user.myuserprofile.save()
+				print 'create: ',sym, self.request.user.myuserprofile.equity, self.request.user.myuserprofile.cash, self.request.user.myuserprofile.asset
+
+			# sell if outside sell_cutoff
+			for sym in d['ranks'][int(total_symbols*sell_cutoff):]:
+				his = MyStockHistorical.objects.get(stock__symbol=sym,date_stamp=d['on_date'])
+				target_price = his.low_price # assuming we sell at daily low
+				if sym in positions: # we sell
+					MyPosition.objects.get(stock__symbol=sym,is_open=True).close(self.request.user,target_price)
+					profile = MyUserProfile.objects.get(owner = self.request.user)
+					print 'close: ',sym, profile.equity, profile.cash, profile.asset
+
 		content = loader.get_template(self.template_name)
 		html= content.render(RequestContext(self.request,{'form':form,'data':data, 'start':data[0]['on_date'],'end':data[-1]['on_date']}))
 		# return super(MyStockStrategy2List, self).form_valid(form)

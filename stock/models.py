@@ -16,6 +16,7 @@ from django.db.models.signals import pre_save,post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from decimal import Decimal
+from math import fabs
 
 class MyBaseModel (models.Model):
 	# fields
@@ -435,7 +436,7 @@ class MyUserProfile(models.Model):
 	)
 	cash = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,
+		decimal_places = 2,
 		default = 10000,
 		verbose_name = u'Account balance'
 	)
@@ -460,10 +461,12 @@ class MyPosition(models.Model):
 	)
 	position = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,
+		decimal_places = 4,
 		verbose_name = u'We paid'		
 	)
-	vol = models.IntegerField(
+	vol = models.DecimalField(
+		max_digits = 20,
+		decimal_places = 4,		
 		default = 0,
 		verbose_name = u'Trade vol'
 	)
@@ -480,6 +483,43 @@ class MyPosition(models.Model):
 		default = 0.0,
 		verbose_name = u'We closed at'
 	)
+
+	def add(self,user,price,vol,source='simulation',on_date=None):
+		"""
+		Utility function to buy or sell.
+		
+		If vol > 0: buy; < 0: sell.
+		If updated vol == 0, this position will be marked "closed".
+
+		User profile's cash will be updated:
+		if buy: cash -= price * vol
+		if sell: cash += price * vol
+		"""
+
+		# new position = weighted avg
+		self.position = (self.position*self.vol+price*vol)/(self.vol+vol)
+		self.vol += vol
+		if not self.vol: self.is_open = False
+		self.save()
+
+		user_profile,created = MyUserProfile.objects.get_or_create(owner = user)
+		user_profile.cash -= price*vol
+		user_profile.save()
+
+	def close(self,user,price,on_date=None):
+		"""
+		Close position.
+		"""
+
+		user_profile,created = MyUserProfile.objects.get_or_create(owner = user)
+		user_profile.cash += price*self.vol
+		user_profile.save()
+
+		self.close_position = price
+		self.is_open = False
+		self.save()
+
+		print 'close @ gain: ', self.gain
 
 	def _gain(self):
 		return (self.close_position - self.position)*self.vol
@@ -505,12 +545,16 @@ class MyPosition(models.Model):
 		return (self.last_updated_on-self.created).days
 	life_in_days = property(_life_in_days)	
 
-@receiver(post_save,sender=MyPosition)
+@receiver(pre_save,sender=MyPosition)
 def day_change_handler(sender, **kwargs):
 	instance = kwargs.get('instance')
-	stock = MyStock.objects.get(id=instance.stock.id)
-	stock.is_in_play = True
-	stock.save()
+	if instance.vol:
+		instance.is_open = True
+		stock = MyStock.objects.get(id=instance.stock.id)
+		if not stock.is_in_play:
+			stock.is_in_play = True
+			stock.save()
+	else: instance.is_open = False
 
 class MyChenmin(models.Model):
 	executed_on = models.DateField(
