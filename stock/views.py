@@ -14,7 +14,7 @@ from django.views.generic import TemplateView, ListView, DetailView
 from django.views.generic.edit import FormView, CreateView, UpdateView, DeleteView
 from django.core.urlresolvers import reverse_lazy, resolve, reverse
 from django.shortcuts import render, render_to_response
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.utils.encoding import smart_text
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Count,Max,Min,Avg
@@ -376,9 +376,9 @@ class MyStockCandidateList(ListView):
 
 from nltk import FreqDist
 @class_view_decorator(login_required)
-class MyStockBacktestingDetail(TemplateView):
+class MyStockStrategy1Detail(TemplateView):
 	model = MyStockHistorical
-	template_name ='stock/backtesting/list.html'
+	template_name ='stock/backtesting/s1_detail.html'
 
 	def occurrences(self, haystack, needle):
 		return sum(haystack[i:i+len(needle)] == needle for i in xrange(len(haystack)-len(needle)+1))
@@ -397,7 +397,7 @@ class MyStockBacktestingDetail(TemplateView):
 
 		# probabilities
 		total_sample = len(tmp)-5+1
-		context['prob_ggg'] = self.occurrences(tmp,'GUGUG')	
+		context['prob_ggg'] = self.occurrences(tmp,'GUGUG')
 		context['prob_ggl'] = self.occurrences(tmp,'GUGUL')
 		context['prob_glg'] = self.occurrences(tmp,'GULUG')
 		context['prob_gll'] = self.occurrences(tmp,'GULUL')
@@ -410,4 +410,50 @@ class MyStockBacktestingDetail(TemplateView):
 		context['prob_conseq_l'] = FreqDist([str(len(x)) for x in re.findall('[L]+',histories)]).most_common(10)
 		context['ending_g_over_l'] = sum([context['prob_ggg'],context['prob_glg'],context['prob_lgg'],context['prob_llg']])*1.0/sum([context['prob_ggl'],context['prob_gll'],context['prob_lgl'],context['prob_lll']])
 
+		context['peers'] = MyStock.objects.all().values_list('symbol',flat=True)
 		return context	
+
+@class_view_decorator(login_required)
+class MyStockStrategy2Detail(TemplateView):
+	model = MyStockHistorical
+	template_name ='stock/backtesting/s2_detail.html'
+
+	def get_context_data(self, **kwargs):
+		context = super(TemplateView, self).get_context_data(**kwargs)
+		stock = MyStock.objects.get(symbol__iexact=self.kwargs['symbol'])		
+		context['stock'] = stock
+
+		context['year'] = selected_year = self.kwargs['year']
+		histories = MyStockHistorical.objects.filter(stock=stock,date_stamp__year=selected_year).order_by('date_stamp')
+		context['ranks'] = [int(h.peer_rank) for h in histories]
+
+		context['peers'] = [{'symbol':s,'url':reverse('backtesting_2_detail',kwargs={'symbol':s,'year':selected_year})} for s in MyStock.objects.filter(is_sp500=False,symbol__startswith="CI").values_list('symbol',flat=True)]
+		return context
+
+from stock.forms import DateSelectionForm
+
+@class_view_decorator(login_required)
+class MyStockStrategy2List(FormView):
+	template_name = 'stock/backtesting/s2_list.html'
+	form_class = DateSelectionForm
+	success_url = '/thanks/'
+
+	def form_valid(self, form):
+		# This method is called when valid form data has been POSTed.
+		# It should return an HttpResponse.
+		start = form.cleaned_data['start']
+		end = form.cleaned_data['end']
+
+		histories = MyStockHistorical.objects.filter(stock__symbol__startswith='CI00',date_stamp__range=[start,end]).order_by('date_stamp')
+		data = []
+		dates = list(set([h.date_stamp for h in histories]))
+		dates.sort()
+		for on_date in dates:
+			data.append({
+				'on_date':on_date.isoformat(),
+				'ranks': [h.stock.symbol for h in histories.filter(date_stamp=on_date).order_by('-val_by_strategy')]
+				})
+		content = loader.get_template(self.template_name)
+		html= content.render(RequestContext(self.request,{'form':form,'data':data, 'start':data[0]['on_date'],'end':data[-1]['on_date']}))
+		# return super(MyStockStrategy2List, self).form_valid(form)
+		return HttpResponse(html)

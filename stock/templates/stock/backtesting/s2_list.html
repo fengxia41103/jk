@@ -1,0 +1,22 @@
+{% extends "stock/common/base.html" %}
+{% load staticfiles %}
+
+{% block page-header %}
+Strategy #2
+{% endblock %}
+
+{% block content %}
+<form action="{% url 'backtesting_2' %}" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <input type="submit" value="Submit" />
+</form>
+
+{% if data %}
+	<h1>{{ start }} - {{ end }}</h1>
+	{% for d in data %}
+	<p>{{ d.on_date }}: {{ d.ranks }}
+	</p>
+	{% endfor %}
+{% endif %}
+{% endblock %}

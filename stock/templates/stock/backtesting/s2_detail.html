@@ -1,0 +1,63 @@
+{% extends "stock/common/base.html" %}
+{% load staticfiles %}
+
+{% block page-header %}
+	{{stock}}
+{% endblock %}
+
+
+{% block content %}
+<div id="container" style="width:100%; height:600px;"></div>
+
+<ul class="list-inline">
+	{% for p in peers %}
+	<li><a href="{{p.url}}">{{p.symbol}}</a></li>
+	{% endfor %}
+</ul>
+{% endblock %}
+
+{% block custom_js %}
+    <script type="text/javascript"
+    	src="{% static 'highcharts/highcharts-custom.js' %}">
+    </script>
+
+    <script type="text/javascript">
+    	var j$ = jQuery.noConflict();
+    	j$(document).ready(function(){
+			j$(function () {
+			    j$('#container').highcharts({
+			        chart: {
+			            type: 'column'
+			        },
+			        title: {
+			            text: 'Strategy #2 Peer Ranking ({{year}})'
+			        },
+			        subtitle: {
+			            text: 'Source: Chenmin'
+			        },
+			        xAxis: {
+			            categories: []
+			        },
+			        yAxis: {
+			            title: {
+			                text: 'Peer ranks'
+			            }
+			        },
+			        plotOptions: {
+			            line: {
+			                dataLabels: {
+			                    enabled: true
+			                },
+			                enableMouseTracking: false
+			            }
+			        },
+			        series: [{
+			            name: '{{stock.symbol}}',
+			            data: {{ranks}}
+			        }]
+			    });
+			});
+    	});
+    </script>
+{% endblock %}
+

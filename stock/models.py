@@ -154,6 +154,15 @@ class MyStock(models.Model):
 		max_length = 8,
 		verbose_name = u'Stock symbol'
 	)
+	sector = models.CharField(
+		max_length = 64,
+		default = 'unknown',
+		verbose_name = 'Sector name'
+	)
+	is_sp500 = models.BooleanField(
+		default = False,
+		verbose_name = 'Is a SP500 stock'
+	)
 	prev_close = models.DecimalField(
 		max_digits = 20,
 		decimal_places = 15,		
@@ -389,6 +398,18 @@ class MyStockHistorical(models.Model):
 		default='U',
 		verbose_name = u'Back testing flag'
 	)
+	val_by_strategy = models.FloatField(
+		null = True,
+		blank = True,
+		default = 0.0,
+		verbose_name = u'Computed value based on a strategy'
+	)
+	peer_rank = models.IntegerField(
+		null = True,
+		blank = True,
+		default = 0,
+		verbose_name = u'Ranking among peers'
+	)
 
 	class Meta:
 		unique_together = ('stock','date_stamp')
@@ -516,6 +537,7 @@ class MyChenmin(models.Model):
 	total = models.IntegerField(
 		verbose_name = u'成交金额'
 	)
+
 
 ######################################################
 #

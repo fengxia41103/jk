@@ -46,6 +46,41 @@ from decimal import Decimal
 import csv, StringIO
 from dateutil.relativedelta import relativedelta
 
+class MyStockFlagSP500():
+	def __init__(self,handler):
+		self.http_handler = handler
+		self.agent = handler.agent
+		self.logger = logging.getLogger('jk')
+
+	def parser(self):
+		# clear is_sp500 flag
+		for s in MyStock.objects.all():
+			s.is_sp500 = False
+			s.save()
+
+		url = 'https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv'
+		content = self.http_handler.request(url)
+		# self.logger.debug(content)
+
+		f = StringIO.StringIO(content)
+		for index,vals in enumerate(csv.reader(f)):
+			if not index: continue
+			if len(vals) != 3: 
+				self.logger.error('[%s] error, %d' % (vals[0], len(vals)))
+				continue
+
+			stock,created = MyStock.objects.get_or_create(symbol=vals[0])
+			stock.is_sp500 = True
+			stock.sector = vals[-1]
+			stock.save()
+			self.logger.debug('[%s] complete'%vals[0])
+
+@shared_task
+def stock_flag_sp500_consumer():
+	http_agent = PlainUtility()
+	crawler = MyStockFlagSP500(http_agent)
+	crawler.parser()
+
 class MyStockPrevYahoo():
 	def __init__(self,handler):
 		self.http_handler = handler
@@ -239,8 +274,11 @@ class MyStockHistoricalYahoo():
 		f = StringIO.StringIO(content)
 		records = []
 		for cnt, vals in enumerate(csv.reader(f)):
-			if len(vals) != 7: 
+			if not vals: continue # protect from blank line or invalid symbol, eg. China stock symbols
+			elif not reduce(lambda x,y: x and y, vals): continue # any empty string, None will be skipped
+			elif len(vals) != 7: 
 				self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+				continue
 			elif 'Adj' in vals[-1]: continue
 
 			stamp = [int(v) for v in vals[0].split('-')]
@@ -452,7 +490,7 @@ def influx_consumer(symbol):
 	crawler = MyStockInflux()
 	crawler.parser(symbol)
 
-class MyStockBacktesting():
+class MyStockBacktesting_1():
 	def __init__(self):
 		self.logger = logging.getLogger('jk')
 
@@ -469,6 +507,7 @@ class MyStockBacktesting():
 			self.logger.error('%s: not enough data'%symbol)
 			return
 
+		t0 = None
 		for i in range(start,len(records)):
 			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
 			prev_d = records[i-1]
@@ -503,7 +542,9 @@ class MyStockBacktesting():
 				trend_is_consistent_loss = True
 			else: trend_is_consistent_loss = False
 
-			# strategy
+			"""
+			Strategy: marked as "G" if trend is consistently gaining, "L" if consistently losing, "U" if otherwise.
+			"""
 			if trend_is_consistent_gain: t0.flag_by_strategy = 'G' # "gain"
 			elif trend_is_consistent_loss: t0.flag_by_strategy = 'L' # "loss"
 			else: t0.flag_by_strategy = 'U' # stands for "unknown"
@@ -514,6 +555,79 @@ class MyStockBacktesting():
 		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
 
 @shared_task
-def backtesting_consumer(symbol):
-	crawler = MyStockBacktesting()
-	crawler.parser(symbol)	
+def backtesting_s1_consumer(symbol):
+	crawler = MyStockBacktesting_1()
+	crawler.parser(symbol)
+
+from numpy import mean, std 
+class MyStockBacktesting_2():
+	"""
+	This strategy is based on Chenmin's email:
+
+	交易思想如下，根据某指标，对每只指数进行排名，排入前25%的，就进行持仓； 一旦持仓，落后到40%以后，则平仓出来。。
+	比如，在9/12,  CI005025 排名从第10跳到第6， 则LONG之（第6名相当于 6/29 =20% ） ；  到9/19, 排名第一次跌出前 12名； 则平仓。。
+
+	为了对冲做多的风险，对应地也对这些指数进行做空，一样，排名后25%， 则做空，返回到 60%以内，则平仓。。
+
+	下面只剩下指标怎么定义： 
+	采用以下进行测试：
+	指标 = ( 价格- （N日均价))/N日价格的标准差     指标值越大，则排名越靠前	
+
+	N = int(M/4), where M is the total number of stocks participating in ranks	
+	"""
+	def __init__(self):
+		self.logger = logging.getLogger('jk')
+
+	def parser(self, symbol, window_length=7):
+		self.logger.debug('%s starting' % symbol)
+		exec_start = time.time()
+
+		records = MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp')
+		start = window_length
+		if window_length > len(records):
+			self.logger.error('%s: not enough data'%symbol)
+			return
+
+		t0 = ''
+		for i in range(window_length,len(records)):
+			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
+			window = records[i-window_length:i]
+			t0 =  records[i] # set T0
+			
+			data = map(lambda x: mean([x.high_price,x.low_price]), window)
+			window_avg = mean(data)
+			window_std = std(data)
+			t0.val_by_strategy = (t0.open_price-window_avg)/window_std
+
+			# save to DB
+			t0.save()
+
+		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
+
+@shared_task
+def backtesting_s2_consumer(symbol):
+	crawler = MyStockBacktesting_2()
+	crawler.parser(symbol)
+
+class MyStockBacktesting_2_rank():
+	"""
+	Based on the score calculated by strategy 2, we rank all stocks per date
+	"""
+	def __init__(self):
+		self.logger = logging.getLogger('jk')
+
+	def parser(self, on_date):
+		self.logger.debug('%s starting' % on_date.isoformat())
+		exec_start = time.time()
+
+		his = MyStockHistorical.objects.filter(stock__symbol__startswith="CI00", date_stamp = on_date).order_by('-val_by_strategy')
+		for i in range(len(his)):
+			his[i].peer_rank = i
+			his[i].save()
+
+		self.logger.debug('%s completed, elapse %f'%(on_date.isoformat(), time.time()-exec_start))
+
+@shared_task
+def backtesting_s2_rank_consumer(on_date):
+	crawler = MyStockBacktesting_2_rank()
+	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date())		
