@@ -461,8 +461,12 @@ class MyStockStrategy2List(FormView):
 		self.request.user.myuserprofile.save()
 		per_buy = self.request.user.myuserprofile.per_trade_total
 		buy_cutoff = 0.25
-		sell_cutoff = 0.4
+		sell_cutoff = 0.25
 
+		# asset simulation result
+		assets = {}
+
+		# trading
 		for d in data:
 			print d['on_date'].isoformat()
 
@@ -470,7 +474,7 @@ class MyStockStrategy2List(FormView):
 			total_symbols = len(d['ranks'])
 
 			# buy if within buy_cutoff
-			for sym in d['ranks'][:int(total_symbols*buy_cutoff)]:
+			for sym in d['ranks'][-1*int(total_symbols*buy_cutoff):]:
 				if sym in positions: continue # already in portfolio, hold
 
 				# we buy, assuming knowing the ranking based on OPEN price
@@ -492,15 +496,25 @@ class MyStockStrategy2List(FormView):
 				print 'create: ',sym, profile.equity, profile.cash, profile.asset
 
 			# sell if outside sell_cutoff
-			for sym in d['ranks'][int(total_symbols*sell_cutoff):]:
+			for sym in filter(lambda x: x in positions, d['ranks'][:int(total_symbols*sell_cutoff)]):
 				his = MyStockHistorical.objects.get(stock__symbol=sym,date_stamp=d['on_date'])
-				target_price = his.low_price # assuming we sell at daily low
-				if sym in positions: # we sell
-					MyPosition.objects.get(stock__symbol=sym,is_open=True).close(self.request.user,target_price)
-					profile = MyUserProfile.objects.get(owner = self.request.user)
-					print 'close: ',sym, profile.equity, profile.cash, profile.asset
+				target_price = his.low_price # assuming we sell at daily low				
+				MyPosition.objects.get(stock__symbol=sym,is_open=True).close(self.request.user,target_price)
+				profile = MyUserProfile.objects.get(owner = self.request.user)
+				print 'close: ',sym, profile.equity, profile.cash, profile.asset
 
+			assets[d['on_date']] = profile.asset
+
+		asset_dates = assets.keys()
+		asset_dates.sort()
+		asset_vals = [float(assets[d]) for d in asset_dates]
 		content = loader.get_template(self.template_name)
-		html= content.render(RequestContext(self.request,{'form':form,'data':data, 'start':data[0]['on_date'],'end':data[-1]['on_date']}))
+		html= content.render(RequestContext(self.request,
+			{'form':form,
+			'data':data, 
+			'start':data[0]['on_date'],
+			'end':data[-1]['on_date'],
+			'asset_dates':[a.isoformat() for a in asset_dates],
+			'asset_vals':asset_vals}))
 		# return super(MyStockStrategy2List, self).form_valid(form)
 		return HttpResponse(html)
