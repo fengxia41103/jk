@@ -52,6 +52,7 @@ import urllib, lxml.html
 from numpy import mean, std 
 from utility import MyUtility
 
+from stock.forms import DateSelectionForm
 from stock.models import *
 
 ###################################################
@@ -431,7 +432,65 @@ class MyStockStrategy2Detail(TemplateView):
 		context['peers'] = [{'symbol':s,'url':reverse('backtesting_2_detail',kwargs={'symbol':s,'year':selected_year})} for s in MyStock.objects.filter(is_sp500=False,symbol__startswith="CI").values_list('symbol',flat=True)]
 		return context
 
-from stock.forms import DateSelectionForm
+def simulate_trading(user,data,historicals,capital=100000,per_buy=1000,buy_cutoff=0.25,sell_cutoff=0.25):
+	"""
+	@param user: request.user
+	@param data: a list of dict, [{'on_date':date obj, 'ranks':['symbol 1','symbol 2']}]
+	@param capital: starting cash amount
+	@param per_buy: per trade total amount, vol = per_buy/stock_price
+	@param buy_cutoff: symbols[: cutoff * total sample number] -> buy these
+	@param sell_cutoff: symbols[cutoff * total sample number: ] -> sell these
+
+	@return: {date: asset value}
+	@rtype: dict
+	"""
+	for h in MyPosition.objects.all(): h.delete()
+	capital = user.myuserprofile.cash = 100000
+	user.myuserprofile.save()
+
+	# asset simulation result
+	assets = {}
+	
+	# trading
+	for d in data:
+		print d['on_date'].isoformat()
+
+		positions = MyPosition.objects.filter(is_open=True).values_list('stock__symbol',flat=True)		
+		total_symbols = len(d['ranks'])
+
+		# buy if within buy_cutoff
+		for sym in d['ranks'][:int(total_symbols*buy_cutoff):]:
+			if sym in positions: continue # already in portfolio, hold
+
+			# we buy, assuming knowing the ranking based on OPEN price
+			# so we buy at mean(high,low) on that date
+			his = historicals.get(stock__symbol=sym,date_stamp=d['on_date'])
+			stock = MyStock.objects.get(symbol=sym)
+			stock.last = target_price = his.high_price # assuming we buy at daily high
+			stock.save()
+			pos = MyPosition(
+				stock = stock,
+				user = user,
+				position = target_price, # buy
+				vol = per_buy/target_price,
+				open_date = d['on_date'])
+			pos.save()
+
+			profile = MyUserProfile.objects.get(owner = user)
+			profile.cash -= pos.vol*pos.position
+			profile.save()
+			print 'create: ',sym, profile.cash
+
+		# sell if outside sell_cutoff
+		for sym in filter(lambda x: x in positions, d['ranks'][int(total_symbols*sell_cutoff):]):
+			his = historicals.get(stock__symbol=sym,date_stamp=d['on_date'])
+			target_price = his.low_price # assuming we sell at daily low				
+			MyPosition.objects.get(stock__symbol=sym,is_open=True).close(user,target_price,on_date=d['on_date'])
+			profile = MyUserProfile.objects.get(owner = user)
+			print 'close: ',sym, profile.cash
+
+		assets[d['on_date']] = profile.asset
+	return assets
 
 @class_view_decorator(login_required)
 class MyStockStrategy2List(FormView):
@@ -445,7 +504,8 @@ class MyStockStrategy2List(FormView):
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
 
-		histories = MyStockHistorical.objects.filter(stock__symbol__startswith='CI00',date_stamp__range=[start,end]).order_by('date_stamp')
+		stocks = MyStock.objects.filter(symbol__startswith="CI00")
+		histories = MyStockHistorical.objects.filter(stock__in=stocks,date_stamp__range=[start,end]).order_by('date_stamp')
 		data = []
 		dates = list(set([h.date_stamp for h in histories]))
 		dates.sort()
@@ -455,56 +515,10 @@ class MyStockStrategy2List(FormView):
 				'ranks': [h.stock.symbol for h in histories.filter(date_stamp=on_date).order_by('-val_by_strategy')],
 				})
 
-		# simulate portfolio
-		for h in MyPosition.objects.all(): h.delete()
-		capital = self.request.user.myuserprofile.cash = 100000
-		self.request.user.myuserprofile.save()
-		per_buy = self.request.user.myuserprofile.per_trade_total
-		buy_cutoff = 0.25
-		sell_cutoff = 0.25
+		# simulate tradings
+		assets = simulate_trading(self.request.user,data,histories,100000,self.request.user.myuserprofile.per_trade_total)
 
-		# asset simulation result
-		assets = {}
-
-		# trading
-		for d in data:
-			print d['on_date'].isoformat()
-
-			positions = MyPosition.objects.filter(is_open=True).values_list('stock__symbol',flat=True)		
-			total_symbols = len(d['ranks'])
-
-			# buy if within buy_cutoff
-			for sym in d['ranks'][-1*int(total_symbols*buy_cutoff):]:
-				if sym in positions: continue # already in portfolio, hold
-
-				# we buy, assuming knowing the ranking based on OPEN price
-				# so we buy at mean(high,low) on that date
-				his = MyStockHistorical.objects.get(stock__symbol=sym,date_stamp=d['on_date'])
-				stock = MyStock.objects.get(symbol=sym)
-				stock.last = target_price = his.high_price # assuming we buy at daily high
-				stock.save()
-				pos = MyPosition(
-					stock = stock,
-					user = self.request.user,
-					position = target_price, # buy
-					vol = per_buy/target_price)
-				pos.save()
-
-				profile = MyUserProfile.objects.get(owner = self.request.user)
-				profile.cash -= pos.vol*pos.position
-				profile.save()
-				print 'create: ',sym, profile.equity, profile.cash, profile.asset
-
-			# sell if outside sell_cutoff
-			for sym in filter(lambda x: x in positions, d['ranks'][:int(total_symbols*sell_cutoff)]):
-				his = MyStockHistorical.objects.get(stock__symbol=sym,date_stamp=d['on_date'])
-				target_price = his.low_price # assuming we sell at daily low				
-				MyPosition.objects.get(stock__symbol=sym,is_open=True).close(self.request.user,target_price)
-				profile = MyUserProfile.objects.get(owner = self.request.user)
-				print 'close: ',sym, profile.equity, profile.cash, profile.asset
-
-			assets[d['on_date']] = profile.asset
-
+		# render HTML
 		asset_dates = assets.keys()
 		asset_dates.sort()
 		asset_vals = [float(assets[d]) for d in asset_dates]

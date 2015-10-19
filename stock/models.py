@@ -483,6 +483,16 @@ class MyPosition(models.Model):
 		default = 0.0,
 		verbose_name = u'We closed at'
 	)
+	open_date = models.DateField(
+		null = True,
+		blank = True,
+		verbose_name = u'Position open date'
+	)
+	close_date = models.DateField(
+		null = True,
+		blank = True,
+		verbose_name = u'Position close date'
+	)
 
 	def add(self,user,price,vol,source='simulation',on_date=None):
 		"""
@@ -500,6 +510,8 @@ class MyPosition(models.Model):
 		self.position = (self.position*self.vol+price*vol)/(self.vol+vol)
 		self.vol += vol
 		if not self.vol: self.is_open = False
+		if on_date: self.open_date = on_date
+		else: self.open_date = dt.now().date()		
 		self.save()
 
 		user_profile,created = MyUserProfile.objects.get_or_create(owner = user)
@@ -517,6 +529,8 @@ class MyPosition(models.Model):
 
 		self.close_position = price
 		self.is_open = False
+		if on_date: self.close_date = on_date
+		else: self.close_date = dt.now().date()
 		self.save()		
 
 	def _gain(self):
@@ -540,7 +554,9 @@ class MyPosition(models.Model):
 	elapse_in_days = property(_elapse_in_days)
 
 	def _life_in_days(self):
-		return (self.last_updated_on-self.created).days
+		if self.open_date and self.close_date:
+			return (self.close_date - self.open-date).days
+		else: return (self.last_updated_on-self.created).days
 	life_in_days = property(_life_in_days)	
 
 @receiver(pre_save,sender=MyPosition)

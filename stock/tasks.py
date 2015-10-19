@@ -594,6 +594,7 @@ class MyStockBacktesting_2():
 			window = records[i-window_length:i]
 			t0 =  records[i] # set T0
 			
+			# compute index value
 			data = map(lambda x: mean([x.high_price,x.low_price]), window)
 			window_avg = mean(data)
 			window_std = std(data)
@@ -630,4 +631,70 @@ class MyStockBacktesting_2_rank():
 @shared_task
 def backtesting_s2_rank_consumer(on_date):
 	crawler = MyStockBacktesting_2_rank()
-	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date())		
+	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date())
+
+class MyStockBacktesting_3():
+	"""
+	For a SP500 stock, we rank them by daily price change (t0's open vs. t-1's close),
+	a negative price change would mean the stock price dropped badly on T0 -> we buy it.
+	When its daily change is positive and ranked high, we sell.
+
+	Scenario #1: it had a steep drop but never a steep rise -> we will be holding this stock for a long time;
+	Scenario #2: 
+	"""	
+	def __init__(self):
+		self.logger = logging.getLogger('jk')
+
+	def parser(self,symbol,window_length=2):
+		self.logger.debug('%s starting' % symbol)
+		exec_start = time.time()
+
+		records = MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp')
+
+		# The starting point is depending on how much past data your strategy is calling for.
+		# For example, if we are to calculate 10 weeks of fib score, we need at least 10 weeks of history data.
+		if window_length > len(records):
+			self.logger.error('%s: not enough data'%symbol)
+			return
+
+		t0 = ''
+		for i in range(window_length,len(records)):
+			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
+			window = records[i-window_length:i]
+			t0 =  records[i] # set T0
+			
+			# compute index value
+			t0.val_by_strategy = (t0.open_price - records[i-1].close_price)/records[i-1].close_price
+
+			# save to DB
+			t0.save()
+
+		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
+
+@shared_task
+def backtesting_s3_consumer(symbol):
+	crawler = MyStockBacktesting_3()
+	crawler.parser(symbol)
+
+class MyStockBacktesting_3_rank():
+	"""
+	Based on the score calculated by strategy 3, we rank all stocks per date
+	"""
+	def __init__(self):
+		self.logger = logging.getLogger('jk')
+
+	def parser(self, on_date):
+		self.logger.debug('%s starting' % on_date.isoformat())
+		exec_start = time.time()
+
+		his = MyStockHistorical.objects.filter(stock__is_sp500 = True, date_stamp = on_date).order_by('-val_by_strategy')
+		for i in range(len(his)):
+			his[i].peer_rank = i
+			his[i].save()
+
+		self.logger.debug('%s completed, elapse %f'%(on_date.isoformat(), time.time()-exec_start))
+
+@shared_task
+def backtesting_s3_rank_consumer(on_date):
+	crawler = MyStockBacktesting_3_rank()
+	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date())	

@@ -7,6 +7,23 @@ Strategy #2
 {% endblock %}
 
 {% block content %}
+<div class="jumbotron">
+<h1>Trading strategy</h1>
+
+	This strategy is based on Chenmin's email:
+
+	交易思想如下，根据某指标，对每只指数进行排名，排入前25%的，就进行持仓； 一旦持仓，落后到40%以后，则平仓出来。。
+	比如，在9/12,  CI005025 排名从第10跳到第6， 则LONG之（第6名相当于 6/29 =20% ） ；  到9/19, 排名第一次跌出前 12名； 则平仓。。
+
+	为了对冲做多的风险，对应地也对这些指数进行做空，一样，排名后25%， 则做空，返回到 60%以内，则平仓。。
+
+	下面只剩下指标怎么定义： 
+	采用以下进行测试：
+	指标 = ( 价格- （N日均价))/N日价格的标准差     指标值越大，则排名越靠前	
+
+	N = int(M/4), where M is the total number of stocks participating in ranks	
+</div>
+
 <form action="{% url 'backtesting_2' %}" method="post">
     {% csrf_token %}
     {{ form }}

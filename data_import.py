@@ -83,6 +83,22 @@ def backtest_s2():
 	for symbol in list(set(MyStockHistorical.objects.filter(stock__symbol__startswith="CI00").values_list('stock__symbol',flat=True))):
 		backtesting_s2_consumer.delay(symbol)
 
+from stock.tasks import backtesting_s2_rank_consumer
+def crawler_s2_rank():
+	dates = MyStockHistorical.objects.filter(stock__is_sp500=False,stock__symbol__startswith='CI00').values_list('date_stamp').distinct()
+	for d in dates: backtesting_s2_rank_consumer.delay(d[0].isoformat())
+
+from stock.tasks import backtesting_s3_consumer
+def backtest_s3():
+	for symbol in list(set(MyStockHistorical.objects.filter(stock__is_sp500=True).values_list('stock__symbol',flat=True))):
+		backtesting_s3_consumer.delay(symbol)
+
+from stock.tasks import backtesting_s3_rank_consumer
+def crawler_s3_rank():
+	dates = MyStockHistorical.objects.filter(stock__is_sp500=True).values_list('date_stamp').distinct()
+	for d in dates: backtesting_s3_rank_consumer.delay(d[0].isoformat())
+
+
 import csv
 from django.db.models.loading import get_model
 def dump(qs, outfile_path):
@@ -191,11 +207,6 @@ from stock.tasks import stock_flag_sp500_consumer
 def crawler_flag_sp500():
 	stock_flag_sp500_consumer.delay()
 
-from stock.tasks import backtesting_s2_rank_consumer
-def crawler_s2_rank():
-	dates = MyStockHistorical.objects.filter(stock__is_sp500=False,stock__symbol__startswith='CI00').values_list('date_stamp').distinct()
-	for d in dates: backtesting_s2_rank_consumer.delay(d[0].isoformat())
-
 def main():
 	django.setup()
 
@@ -214,7 +225,9 @@ def main():
 	# import_chenmin_csv()	
 	#crawler_flag_sp500()
 	# backtest_s2()
-	crawler_s2_rank()
+	# crawler_s2_rank()
+	backtest_s3()
+	# crawler_s3_rank()
 
 if __name__ == '__main__':
 	main()
