@@ -2,20 +2,24 @@
 {% load staticfiles %}
 
 {% block content %}
-	<h2>Strategy details</h2>
 	{% block strategy-intro %}
 	{% endblock %}
 
-	<h2>Select dates</h2>
+	<h1 class="page-header">Simulation</h1>
+	<div class="row">
+	<div class="col-md-2" style="border-width:1px;border-right-style:solid;border-color:#cecece;">
 	{% block strategy-control %}
 	{% endblock %}
+	</div>
 
+	<div class="col-md-10">
 	{% if asset_dates and asset_vals %}
-	<h2>Asset values</h2>
 	<div id="container" style="width:100%; height:600px;"></div>
 	{% block strategy-result %}
 	{% endblock %}
 	{% endif %}
+	</div>
+	</div>{# end of row #}
 
 {% endblock %}{# end of block content #}
 
@@ -23,4 +27,7 @@
     <script type="text/javascript"
     	src="{% static 'highcharts/highcharts-custom.js' %}">
     </script>
+    <script type="text/javascript"
+    	src="{% static 'highcharts/js/modules/boost.js' %}">
+    </script>    
 {% endblock %}

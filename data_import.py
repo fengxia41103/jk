@@ -86,7 +86,7 @@ def backtest_s2():
 from stock.tasks import backtesting_s2_rank_consumer
 def crawler_s2_rank():
 	dates = MyStockHistorical.objects.filter(stock__is_sp500=False,stock__symbol__startswith='CI00').values_list('date_stamp').distinct()
-	for d in dates: backtesting_s2_rank_consumer.delay(d[0].isoformat())
+	for d in dates: backtesting_s2_rank_consumer.delay(d[0].isoformat(),ascending=True)
 
 from stock.tasks import backtesting_s3_consumer
 def backtest_s3():
@@ -225,9 +225,9 @@ def main():
 	# import_chenmin_csv()	
 	#crawler_flag_sp500()
 	# backtest_s2()
-	# crawler_s2_rank()
+	crawler_s2_rank()
 	# backtest_s3()
-	crawler_s3_rank()
+	# crawler_s3_rank()
 
 if __name__ == '__main__':
 	main()

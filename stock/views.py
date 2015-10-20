@@ -445,38 +445,46 @@ class MyStockStrategy2List(FormView):
 		# It should return an HttpResponse.
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
+		buy_cutoff = form.cleaned_data['buy_cutoff']
+		sell_cutoff = form.cleaned_data['sell_cutoff']
+		capital = form.cleaned_data['capital']
 
+		# read in historicals
 		stocks = MyStock.objects.filter(symbol__startswith="CI00").values_list('id',flat=True)
-		histories = MyStockHistorical.objects.filter(stock__in=stocks,date_stamp__range=[start,end])
-		
-		dates = list(set([h.date_stamp for h in histories]))
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','peer_rank')
+
+		# sort by dates
+		dates = list(set([h['date_stamp'] for h in histories]))
 		dates.sort()
+
+		# reconstruct historicals by dates
+		histories_by_date = {}
+		for h in histories:
+			on_date = h['date_stamp']
+			if on_date not in histories_by_date: histories_by_date[on_date]={}
+			histories_by_date[on_date][h['stock__symbol']] = h
 
 		data = []
 		for on_date in dates:
-			ranks = histories.filter(date_stamp=on_date).order_by('-val_by_strategy').values_list("stock__symbol",flat=True)			
-			data.append({
-				'on_date':on_date,
-				'ranks': ranks,
-				})
+			his_by_symbol = histories_by_date[on_date]
+			# rank sorting function
+			tmp = [(symbol,h['peer_rank']) for symbol,h in his_by_symbol.iteritems()]			
+			symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1])] 
+			data.append((on_date,symbols_by_rank))
 
 		# simulate tradings
-		assets = alpha_trading_simulation(self.request.user,data,histories,100000,self.request.user.myuserprofile.per_trade_total,buy_cutoff=0.2,sell_cutoff=0.2)
+		assets = alpha_trading_simulation(self.request.user,data,histories_by_date,capital,self.request.user.myuserprofile.per_trade_total,buy_cutoff=buy_cutoff,sell_cutoff=sell_cutoff)
 
 		# render HTML
 		asset_dates = assets.keys()
 		asset_dates.sort()
 		asset_vals = [float(assets[d]) for d in asset_dates]
-		content = loader.get_template(self.template_name)
-		html= content.render(RequestContext(self.request,
-			{'form':form,
+		return render(self.request, self.template_name, {'form':form,
 			'data':data, 
-			'start':data[0]['on_date'],
-			'end':data[-1]['on_date'],
+			'start':dates[0],
+			'end':dates[-1],
 			'asset_dates':[a.isoformat() for a in asset_dates],
-			'asset_vals':asset_vals}))
-		# return super(MyStockStrategy2List, self).form_valid(form)
-		return HttpResponse(html)
+			'asset_vals':asset_vals})
 
 @class_view_decorator(login_required)
 class MyStockStrategy3List(FormView):
@@ -488,40 +496,46 @@ class MyStockStrategy3List(FormView):
 		# It should return an HttpResponse.
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
+		buy_cutoff = form.cleaned_data['buy_cutoff']
+		sell_cutoff = form.cleaned_data['sell_cutoff']
+		capital = form.cleaned_data['capital']
 
-		stocks = MyStock.objects.filter(is_sp500=True,symbol__startswith="A").values_list('id',flat=True)
-		histories = MyStockHistorical.objects.filter(stock__in=stocks,date_stamp__range=[start,end])
-		
-		dates = list(set([h.date_stamp for h in histories]))
+		# read in historicals
+		stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','oneday_change_pcnt')
+
+		# sort by dates
+		dates = list(set([h['date_stamp'] for h in histories]))
 		dates.sort()
+
+		# reconstruct historicals by dates
+		histories_by_date = {}
+		for h in histories:
+			on_date = h['date_stamp']
+			if on_date not in histories_by_date: histories_by_date[on_date]={}
+			histories_by_date[on_date][h['stock__symbol']] = h
 
 		data = []
 		for on_date in dates:
-			ranks = histories.filter(date_stamp=on_date).order_by('val_by_strategy').values_list("stock__symbol",flat=True)			
-			data.append({
-				'on_date':on_date,
-				'ranks': ranks,
-				})
+			his_by_symbol = histories_by_date[on_date]
+			# rank sorting function
+			tmp = [(symbol,h['oneday_change_pcnt']) for symbol,h in his_by_symbol.iteritems()]			
+			symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1])] 
+			data.append((on_date,symbols_by_rank))
 
 		# simulate tradings
-		assets = alpha_trading_simulation(self.request.user,data,histories,20000,self.request.user.myuserprofile.per_trade_total,buy_cutoff=0.05,sell_cutoff=0.1)
+		assets = alpha_trading_simulation(self.request.user,dates,data,histories_by_date,capital,self.request.user.myuserprofile.per_trade_total,buy_cutoff=buy_cutoff,sell_cutoff=sell_cutoff)
 
 		# render HTML
 		asset_dates = assets.keys()
 		asset_dates.sort()
 		asset_vals = [float(assets[d]) for d in asset_dates]
-		content = loader.get_template(self.template_name)
-		html= content.render(RequestContext(self.request,
-			{'form':form,
+		return render(self.request, self.template_name, {'form':form,
 			'data':data, 
-			'start':data[0]['on_date'],
-			'end':data[-1]['on_date'],
+			'start':dates[0],
+			'end':dates[-1],
 			'asset_dates':[a.isoformat() for a in asset_dates],
-			'asset_vals':asset_vals}))
-		# return super(MyStockStrategy2List, self).form_valid(form)
-		return HttpResponse(html)
-
-
+			'asset_vals':asset_vals})
 
 @class_view_decorator(login_required)
 class MyStockStrategy4List(FormView):
@@ -533,34 +547,44 @@ class MyStockStrategy4List(FormView):
 		# It should return an HttpResponse.
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
+		buy_cutoff = form.cleaned_data['buy_cutoff']
+		sell_cutoff = form.cleaned_data['sell_cutoff']
+		capital = form.cleaned_data['capital']
 
-		stocks = MyStock.objects.filter(is_sp500=True,pe__lt=25).values_list('id',flat=True)
-		histories = MyStockHistorical.objects.filter(stock__in=stocks,date_stamp__range=[start,end])
-		
-		dates = list(set([h.date_stamp for h in histories]))
+		# read in historicals
+		stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','oneday_change_pcnt')
+
+		# sort by dates
+		dates = list(set([h['date_stamp'] for h in histories]))
 		dates.sort()
+
+		# reconstruct historicals by dates
+		histories_by_date = {}
+		for h in histories:
+			on_date = h['date_stamp']
+			if on_date not in histories_by_date: histories_by_date[on_date]={}
+			histories_by_date[on_date][h['stock__symbol']] = h
 
 		data = []
 		for on_date in dates:
-			ranks = histories.filter(date_stamp=on_date).order_by('val_by_strategy').values_list("stock__symbol",flat=True)			
-			data.append({
-				'on_date':on_date,
-				'ranks': ranks,
-				})
+			his_by_symbol = histories_by_date[on_date]
+
+			# rank sorting function
+			tmp = [(symbol,h['oneday_change_pcnt']) for symbol,h in his_by_symbol.iteritems()]			
+			symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1])] 
+			data.append((on_date,symbols_by_rank))
 
 		# simulate tradings
-		assets = jk_trading_simulation(self.request.user,data,histories,20000,self.request.user.myuserprofile.per_trade_total,buy_cutoff=0.05,sell_cutoff=0.1)
+		assets = jk_trading_simulation(self.request.user,data,histories_by_date,capital,self.request.user.myuserprofile.per_trade_total,buy_cutoff=buy_cutoff,sell_cutoff=sell_cutoff)
 
 		# render HTML
 		asset_dates = assets.keys()
 		asset_dates.sort()
 		asset_vals = [float(assets[d]) for d in asset_dates]
-		content = loader.get_template(self.template_name)
-		html= content.render(RequestContext(self.request,
-			{'form':form,
+		return render(self.request, self.template_name, {'form':form,
 			'data':data, 
-			'start':data[0]['on_date'],
-			'end':data[-1]['on_date'],
+			'start':dates[0],
+			'end':dates[-1],
 			'asset_dates':[a.isoformat() for a in asset_dates],
-			'asset_vals':asset_vals}))
-		return HttpResponse(html)		
+			'asset_vals':asset_vals})

@@ -588,17 +588,19 @@ class MyStockBacktesting_2():
 			self.logger.error('%s: not enough data'%symbol)
 			return
 
-		t0 = ''
+		t0 = prev = None
 		for i in range(window_length,len(records)):
 			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
 			window = records[i-window_length:i]
 			t0 =  records[i] # set T0
+			prev = records[i-1] # set to T-1
 			
 			# compute index value
-			data = map(lambda x: mean([x.high_price,x.low_price]), window)
-			window_avg = mean(data)
-			window_std = std(data)
-			t0.val_by_strategy = (t0.open_price-window_avg)/window_std
+			# data = map(lambda x: mean([x.high_price,x.low_price]), window)
+			# window_avg = mean(data)
+			# window_std = std(data)
+			# t0.val_by_strategy = (t0.open_price-window_avg)/window_std
+			t0.val_by_strategy = (t0.close_price-prev.close_price)/prev.close_price
 
 			# save to DB
 			t0.save()
@@ -617,11 +619,14 @@ class MyStockBacktesting_2_rank():
 	def __init__(self):
 		self.logger = logging.getLogger('jk')
 
-	def parser(self, on_date):
+	def parser(self, on_date, ascending=True):
 		self.logger.debug('%s starting' % on_date.isoformat())
 		exec_start = time.time()
 
-		his = MyStockHistorical.objects.filter(stock__symbol__startswith="CI00", date_stamp = on_date).order_by('-val_by_strategy')
+		if ascending:
+			his = MyStockHistorical.objects.filter(stock__symbol__startswith="CI00", date_stamp = on_date).order_by('val_by_strategy')
+		else:
+			his = MyStockHistorical.objects.filter(stock__symbol__startswith="CI00", date_stamp = on_date).order_by('-val_by_strategy')			
 		for i in range(len(his)):
 			his[i].peer_rank = i
 			his[i].save()
@@ -629,9 +634,9 @@ class MyStockBacktesting_2_rank():
 		self.logger.debug('%s completed, elapse %f'%(on_date.isoformat(), time.time()-exec_start))
 
 @shared_task
-def backtesting_s2_rank_consumer(on_date):
+def backtesting_s2_rank_consumer(on_date,ascending):
 	crawler = MyStockBacktesting_2_rank()
-	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date())
+	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date(),ascending)
 
 class MyStockBacktesting_3():
 	"""

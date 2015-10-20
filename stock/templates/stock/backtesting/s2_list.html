@@ -22,7 +22,7 @@ Strategy #2
 {% endblock %}
 
 {% block strategy-control %}
-<form action="{% url 'backtesting_2' %}" method="post">
+<form action="{% url 'backtesting_2' %}" class="uniForm" method="post">
     {% csrf_token %}
     {{ form|crispy }}
     <input type="submit" value="Submit" />
