@@ -389,6 +389,11 @@ class MyStockHistorical(models.Model):
 		decimal_places = 15,			
 		verbose_name = u'Adjusted close'
 	)
+	oneday_change_pcnt = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"(Today's Open - PrevDay's Adj Close)/Adj close*100"
+	)
 	vol = models.FloatField(
 		verbose_name = u'Volume (000)'
 	)
@@ -514,25 +519,20 @@ class MyPosition(models.Model):
 		else: self.open_date = dt.now().date()		
 		self.save()
 
-		user_profile,created = MyUserProfile.objects.get_or_create(owner = user)
-		user_profile.cash -= price*vol
-		user_profile.save()
-
 	def close(self,user,price,on_date=None):
 		"""
 		Close position.
 		"""
-
-		user_profile,created = MyUserProfile.objects.get_or_create(owner = user)
-		user_profile.cash += price*self.vol
-		user_profile.save()
-
 		self.close_position = price
 		self.is_open = False
 		if on_date: self.close_date = on_date
 		else: self.close_date = dt.now().date()
 		self.save()		
 
+	def _cost(self):
+		return self.position*self.vol
+	cost = property(_cost)
+	
 	def _gain(self):
 		return (self.close_position - self.position)*self.vol
 	gain = property(_gain)
@@ -562,7 +562,7 @@ class MyPosition(models.Model):
 @receiver(pre_save,sender=MyPosition)
 def day_change_handler(sender, **kwargs):
 	instance = kwargs.get('instance')
-	if not instance.vol or instance.close_position > 0: instance.is_open = False
+	if instance.close_date: instance.is_open = False
 	if instance.is_open:
 		stock = MyStock.objects.get(id=instance.stock.id)
 		if not stock.is_in_play:

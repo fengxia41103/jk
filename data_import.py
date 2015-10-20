@@ -226,8 +226,8 @@ def main():
 	#crawler_flag_sp500()
 	# backtest_s2()
 	# crawler_s2_rank()
-	backtest_s3()
-	# crawler_s3_rank()
+	# backtest_s3()
+	crawler_s3_rank()
 
 if __name__ == '__main__':
 	main()

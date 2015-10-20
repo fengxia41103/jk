@@ -4,10 +4,10 @@ import datetime as dt
 
 class DateSelectionForm(forms.Form):
     start = forms.DateField (
-    	initial = "2015-01-01",
+    	initial = "2000-01-01",
     	widget = AdminDateWidget
     )
     end = forms.DateField (
-    	initial = "2015-01-10",
+    	initial = "2000-01-10",
     	widget = AdminDateWidget
     )

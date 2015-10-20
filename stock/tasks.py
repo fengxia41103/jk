@@ -664,8 +664,8 @@ class MyStockBacktesting_3():
 			t0 =  records[i] # set T0
 			
 			# compute index value
-			t0.val_by_strategy = (t0.open_price - records[i-1].close_price)/records[i-1].close_price
-
+			t0.val_by_strategy = (t0.open_price - records[i-1].adj_close)/records[i-1].adj_close
+			t0.oneday_change_pcnt = (t0.open_price - records[i-1].adj_close)/records[i-1].adj_close
 			# save to DB
 			t0.save()
 
