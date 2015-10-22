@@ -224,8 +224,8 @@ def main():
 	#backtest_1()
 	# import_chenmin_csv()	
 	#crawler_flag_sp500()
-	# backtest_s2()
-	crawler_s2_rank()
+	backtest_s2()
+	#crawler_s2_rank()
 	# backtest_s3()
 	# crawler_s3_rank()
 

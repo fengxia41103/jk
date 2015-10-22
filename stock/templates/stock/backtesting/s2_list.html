@@ -3,22 +3,33 @@
 {% load crispy_forms_tags %}
 
 {% block page-header %}
-Strategy #2
+Backtesting 2
 {% endblock %}
 
 {% block strategy-intro %}
-	This strategy is based on Chenmin's email:
+<p>
+Backtesting 2 strategies pre-compute a val_by_strategy for each historical record. Based on the strategy and specified cutoff values, it simulates trades and generate a report.
 
-	交易思想如下，根据某指标，对每只指数进行排名，排入前25%的，就进行持仓； 一旦持仓，落后到40%以后，则平仓出来。。
-	比如，在9/12,  CI005025 排名从第10跳到第6， 则LONG之（第6名相当于 6/29 =20% ） ；  到9/19, 排名第一次跌出前 12名； 则平仓。。
+<h3>Data source</h3>
+	<ul>
+		<li> S&P 500
+		<li> Chenmin sector data &larr; stock symbol starts with "CI00"
+	</ul>
 
-	为了对冲做多的风险，对应地也对这些指数进行做空，一样，排名后25%， 则做空，返回到 60%以内，则平仓。。
+<h3>Trading strategy</h3>
+<h4>Strategy 2: by daily ranking</h4>
+<p>
+Given a date, we rank samples by precomputed "val_by_strategy". We buy symbols whose rank is <= buy_cutoff * len(symbols); and we sell symbols whose rank >= sell_cutoff * len(symbols).
 
-	下面只剩下指标怎么定义： 
-	采用以下进行测试：
-	指标 = ( 价格- （N日均价))/N日价格的标准差     指标值越大，则排名越靠前	
+<p>
+Rank defaults to ascending order. The meaning of it depends on how "val_by_strategy" is calculated. Eg. val_by_strategy = (open[t0] - adj_close[t0-1])/adj_close[t0-1], ascending order means we will buy stock whose price has dropped the most on t0 &rarr; we chase losers; descending order would reverse this logic &rarr; we chase winners.
 
-	N = int(M/4), where M is the total number of stocks participating in ranks	
+<h4>Strategy 2: buy low sell high</h4>
+<p>
+Give a date, we precompute its "oneday_change_pcnt = (open[t0] - adj_close[t0-1])/adj_close[t0-1]". If this value is negative and is less than -1*buy_cutoff, we buy; then hold till this stock's price went above "cost*(1+sell_cutoff)". Eg. buy_cutoff=0.04 &rarr; we buy stock whose drop is greater than 4%; sell_cutoff=0.05 &rarr; we sell position when its daily price is > (1+0.05)*cost.
+
+<p>
+For this strategy, sorting is irrelevant.
 {% endblock %}
 
 {% block strategy-control %}
@@ -29,45 +40,3 @@ Strategy #2
 </form>
 {% endblock %}
 
-{% block strategy-result %}
-<script type="text/javascript">
-	var j$ = jQuery.noConflict();
-	var dates = {{ asset_dates|safe }};
-
-	j$(document).ready(function(){
-		j$(function () {
-		    j$('#container').highcharts({
-		        chart: {
-		            type: 'line'
-		        },
-		        title: {
-		            text: 'Strategy #2 Trading Simulation'
-		        },
-		        subtitle: {
-		            text: '{{start}} - {{end}}'
-		        },
-		        xAxis: {
-		            categories: dates
-		        },
-		        yAxis: {
-		            title: {
-		                text: 'Asset value'
-		            }
-		        },
-		        plotOptions: {
-		            line: {
-		                dataLabels: {
-		                    enabled: false
-		                },
-		                enableMouseTracking: false
-		            }
-		        },
-		        series: [{
-		            name: 'Assets',
-		            data: {{asset_vals}}
-		        }]
-		    });
-		});
-	});
-</script>
-{% endblock %}

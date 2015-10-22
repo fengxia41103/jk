@@ -52,7 +52,7 @@ import urllib, lxml.html
 from numpy import mean, std 
 from utility import MyUtility
 
-from stock.forms import DateSelectionForm
+from stock.forms import StrategyControlForm
 from stock.models import *
 from stock.simulations import alpha_trading_simulation, jk_trading_simulation
 
@@ -191,7 +191,7 @@ class MyStockUpdate(TemplateView):
 	def post(self,request):
 		step = 100
 		total = 500
-		symbols = MyStock.objects.all().values_list('symbol',flat=True)
+		symbols = MyStock.objects.filter(is_sp500=True).values_list('symbol',flat=True)
 		for i in xrange(total/step):	
 			stock_monitor_yahoo_consumer.delay(','.join(symbols[i*step:(i*step+step)]))
 			stock_monitor_yahoo_consumer2.delay(','.join(symbols[i*step:(i*step+step)]))
@@ -416,44 +416,29 @@ class MyStockStrategy1Detail(TemplateView):
 		context['peers'] = MyStock.objects.all().values_list('symbol',flat=True)
 		return context	
 
-@class_view_decorator(login_required)
-class MyStockStrategy2Detail(TemplateView):
-	model = MyStockHistorical
-	template_name ='stock/backtesting/s2_detail.html'
-
-	def get_context_data(self, **kwargs):
-		context = super(TemplateView, self).get_context_data(**kwargs)
-		stock = MyStock.objects.get(symbol__iexact=self.kwargs['symbol'])		
-		context['stock'] = stock
-
-		context['year'] = selected_year = self.kwargs['year']
-		histories = MyStockHistorical.objects.filter(stock=stock,date_stamp__year=selected_year).order_by('date_stamp')
-		context['ranks'] = [int(h.peer_rank) for h in histories]
-
-		context['peers'] = [{'symbol':s,'url':reverse('backtesting_2_detail',kwargs={'symbol':s,'year':selected_year})} for s in MyStock.objects.filter(is_sp500=False,symbol__startswith="CI").values_list('symbol',flat=True)]
-		return context
-
-
-
+import sys
 @class_view_decorator(login_required)
 class MyStockStrategy2List(FormView):
 	template_name = 'stock/backtesting/s2_list.html'
-	form_class = DateSelectionForm
+	form_class = StrategyControlForm
 
 	def form_valid(self, form):
-		# This method is called when valid form data has been POSTed.
-		# It should return an HttpResponse.
+		# control variables
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
 		buy_cutoff = form.cleaned_data['buy_cutoff']
 		sell_cutoff = form.cleaned_data['sell_cutoff']
 		capital = form.cleaned_data['capital']
 
-		# read in historicals
-		stocks = MyStock.objects.filter(symbol__startswith="CI00").values_list('id',flat=True)
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','peer_rank')
+		# sample set
+		data_source = form.cleaned_data['data_source']
+		if data_source == '1':
+			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
+		else:
+			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','close_price','val_by_strategy','oneday_change_pcnt')
 
-		# sort by dates
+		# dates
 		dates = list(set([h['date_stamp'] for h in histories]))
 		dates.sort()
 
@@ -467,124 +452,39 @@ class MyStockStrategy2List(FormView):
 		data = []
 		for on_date in dates:
 			his_by_symbol = histories_by_date[on_date]
-			# rank sorting function
-			tmp = [(symbol,h['peer_rank']) for symbol,h in his_by_symbol.iteritems()]			
-			symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1])] 
-			data.append((on_date,symbols_by_rank))
+			
+			if form.cleaned_data['strategy'] in ['1',]:
+				tmp = [(symbol,h['val_by_strategy']) for symbol,h in his_by_symbol.iteritems()]			
+				symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(form.cleaned_data['data_sort'] == '1'))] 
+				data.append((on_date,symbols_by_rank))
+			else:
+				# for JK type trading, we don't need to sort		
+				symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
+				data.append((on_date,symbols))
 
 		# simulate tradings
-		assets = alpha_trading_simulation(self.request.user,data,histories_by_date,capital,self.request.user.myuserprofile.per_trade_total,buy_cutoff=buy_cutoff,sell_cutoff=sell_cutoff)
+		simulation_methods = {
+			'1': 'alpha_trading_simulation',
+			'2': 'jk_trading_simulation'
+		}
+		trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])
+		category = '%s-%s' %(form.cleaned_data['strategy'], data_source)		
+		simulations = trading_method(self.request.user,
+			data,
+			histories_by_date,
+			capital,
+			self.request.user.myuserprofile.per_trade_total,
+			buy_cutoff = buy_cutoff,
+			sell_cutoff = sell_cutoff,
+			category = category)
 
 		# render HTML
-		asset_dates = assets.keys()
-		asset_dates.sort()
-		asset_vals = [float(assets[d]) for d in asset_dates]
-		return render(self.request, self.template_name, {'form':form,
-			'data':data, 
+		return render(self.request, self.template_name, {
+			'strategy': category,
+			'form':form,
 			'start':dates[0],
 			'end':dates[-1],
-			'asset_dates':[a.isoformat() for a in asset_dates],
-			'asset_vals':asset_vals})
-
-@class_view_decorator(login_required)
-class MyStockStrategy3List(FormView):
-	template_name = 'stock/backtesting/s3_list.html'
-	form_class = DateSelectionForm
-
-	def form_valid(self, form):
-		# This method is called when valid form data has been POSTed.
-		# It should return an HttpResponse.
-		start = form.cleaned_data['start']
-		end = form.cleaned_data['end']
-		buy_cutoff = form.cleaned_data['buy_cutoff']
-		sell_cutoff = form.cleaned_data['sell_cutoff']
-		capital = form.cleaned_data['capital']
-
-		# read in historicals
-		stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','oneday_change_pcnt')
-
-		# sort by dates
-		dates = list(set([h['date_stamp'] for h in histories]))
-		dates.sort()
-
-		# reconstruct historicals by dates
-		histories_by_date = {}
-		for h in histories:
-			on_date = h['date_stamp']
-			if on_date not in histories_by_date: histories_by_date[on_date]={}
-			histories_by_date[on_date][h['stock__symbol']] = h
-
-		data = []
-		for on_date in dates:
-			his_by_symbol = histories_by_date[on_date]
-			# rank sorting function
-			tmp = [(symbol,h['oneday_change_pcnt']) for symbol,h in his_by_symbol.iteritems()]			
-			symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1])] 
-			data.append((on_date,symbols_by_rank))
-
-		# simulate tradings
-		assets = alpha_trading_simulation(self.request.user,dates,data,histories_by_date,capital,self.request.user.myuserprofile.per_trade_total,buy_cutoff=buy_cutoff,sell_cutoff=sell_cutoff)
-
-		# render HTML
-		asset_dates = assets.keys()
-		asset_dates.sort()
-		asset_vals = [float(assets[d]) for d in asset_dates]
-		return render(self.request, self.template_name, {'form':form,
-			'data':data, 
-			'start':dates[0],
-			'end':dates[-1],
-			'asset_dates':[a.isoformat() for a in asset_dates],
-			'asset_vals':asset_vals})
-
-@class_view_decorator(login_required)
-class MyStockStrategy4List(FormView):
-	template_name = 'stock/backtesting/s4_list.html'
-	form_class = DateSelectionForm
-
-	def form_valid(self, form):
-		# This method is called when valid form data has been POSTed.
-		# It should return an HttpResponse.
-		start = form.cleaned_data['start']
-		end = form.cleaned_data['end']
-		buy_cutoff = form.cleaned_data['buy_cutoff']
-		sell_cutoff = form.cleaned_data['sell_cutoff']
-		capital = form.cleaned_data['capital']
-
-		# read in historicals
-		stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','oneday_change_pcnt')
-
-		# sort by dates
-		dates = list(set([h['date_stamp'] for h in histories]))
-		dates.sort()
-
-		# reconstruct historicals by dates
-		histories_by_date = {}
-		for h in histories:
-			on_date = h['date_stamp']
-			if on_date not in histories_by_date: histories_by_date[on_date]={}
-			histories_by_date[on_date][h['stock__symbol']] = h
-
-		data = []
-		for on_date in dates:
-			his_by_symbol = histories_by_date[on_date]
-
-			# rank sorting function
-			tmp = [(symbol,h['oneday_change_pcnt']) for symbol,h in his_by_symbol.iteritems()]			
-			symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1])] 
-			data.append((on_date,symbols_by_rank))
-
-		# simulate tradings
-		assets = jk_trading_simulation(self.request.user,data,histories_by_date,capital,self.request.user.myuserprofile.per_trade_total,buy_cutoff=buy_cutoff,sell_cutoff=sell_cutoff)
-
-		# render HTML
-		asset_dates = assets.keys()
-		asset_dates.sort()
-		asset_vals = [float(assets[d]) for d in asset_dates]
-		return render(self.request, self.template_name, {'form':form,
-			'data':data, 
-			'start':dates[0],
-			'end':dates[-1],
-			'asset_dates':[a.isoformat() for a in asset_dates],
-			'asset_vals':asset_vals})
+			'on_dates': [d.isoformat() for d in simulations['on_dates']],
+			'assets': simulations['assets'],
+			'cashes': simulations['cashes'],
+			'equities': simulations['equities']})

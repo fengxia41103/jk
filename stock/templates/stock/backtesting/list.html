@@ -13,9 +13,9 @@
 	</div>
 
 	<div class="col-md-10">
-	{% if asset_dates and asset_vals %}
+	{% if on_dates and assets and cashes and equities %}
 	<div id="container" style="width:100%; height:600px;"></div>
-	{% block strategy-result %}
+	{% block strategy-result %}	
 	{% endblock %}
 	{% endif %}
 	</div>
@@ -29,5 +29,87 @@
     </script>
     <script type="text/javascript"
     	src="{% static 'highcharts/js/modules/boost.js' %}">
-    </script>    
+    </script>   
+	
+	<script type="text/javascript">
+	var j$ = jQuery.noConflict();
+
+	j$(document).ready(function(){
+	    j$('#container').highcharts({
+	        chart: {
+            	zoomType: 'x',
+            	type: 'spline'
+        	},
+	        title: {
+	            text: '{{ strategy }} Trading Simulation'
+	        },
+	        subtitle: {
+	            text: '{{start}} - {{end}}'
+	        },
+	        xAxis: {
+	            categories: {{ on_dates|safe }}
+	        },
+	        yAxis: {
+	            title: {
+	                text: 'Values'
+	            }
+	        },
+			tooltip: {
+			    crosshairs: {
+			        color: 'green',
+			        dashStyle: 'solid'
+			    },
+			    shared: true,
+			    valueDecimals: 2			    
+			},	        
+	        plotOptions: {
+	            line: {
+	                dataLabels: {
+	                    enabled: false
+	                },
+	                enableMouseTracking: false,
+	                lineWidth: 4,
+	                marker: {
+	                	enabled: false
+	                }
+	            },
+				spline: {
+				    marker: {
+				        radius: 1,
+				        lineColor: '#666666',
+				        lineWidth: 1,
+				        enabled: true
+				    },
+					lineWidth: 4,
+					states: {
+					    hover: {
+					        lineWidth: 5
+					    }
+					}				    
+				},		            
+				area: {
+					stacking: 'normal',
+					lineColor: '#666666',
+					lineWidth: 1,
+					marker: {
+						lineWidth: 1,
+						lineColor: '#666666'
+					}
+				}		            
+	        },
+	        series: [{
+	        	name: 'Assets',
+	        	data: {{ assets }}
+	        },{
+	        	type: "line",
+	        	name: 'Cashes',
+	        	data: {{ cashes }},
+	        	step: true
+	        },{ 
+	    		name: 'Equities',
+	    		data: {{ equities }}
+	    	}]
+	    });
+	});
+	</script>    
 {% endblock %}
