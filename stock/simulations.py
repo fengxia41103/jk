@@ -1,6 +1,7 @@
 from numpy import mean, std 
 from stock.models import *
 
+
 def alpha_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_cutoff=0.25,sell_cutoff=0.75,category=''):
 	"""
 	Trading strategy:
