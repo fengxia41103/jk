@@ -600,7 +600,7 @@ class MyStockBacktesting_2():
 			# window_avg = mean(data)
 			# window_std = std(data)
 			# t0.val_by_strategy = (t0.open_price-window_avg)/window_std
-			t0.val_by_strategy = (t0.close_price-prev.close_price)/prev.close_price
+			t0.val_by_strategy = (t0.close_price-prev.close_price)/prev.close_price*100
 
 			# save to DB
 			t0.save()
@@ -667,10 +667,15 @@ class MyStockBacktesting_3():
 			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
 			window = records[i-window_length:i]
 			t0 =  records[i] # set T0
-			
+			prev = records[i-1] # set T-1
+
 			# compute index value
-			t0.val_by_strategy = (t0.open_price - records[i-1].adj_close)/records[i-1].adj_close
-			t0.oneday_change_pcnt = (t0.open_price - records[i-1].adj_close)/records[i-1].adj_close
+			if prev.adj_close and prev.adj_close > 0:
+				t0.val_by_strategy = (t0.close_price - prev.adj_close)/prev.adj_close*100
+				t0.oneday_change = (t0.close_price - prev.adj_close)/prev.adj_close*100
+			elif prev.close_price and prev.close_price > 0:
+				t0.val_by_strategy = (t0.close_price - prev.close_price)/prev.close_price*100
+				t0.oneday_change = (t0.close_price - prev.close_price)/prev.close_price*100
 			# save to DB
 			t0.save()
 

@@ -23,6 +23,8 @@ urlpatterns = patterns(
 
 		url(r'^stock/$', views.MyStockList.as_view(), name='stock_list'),
 		url(r'^stock/update/$', views.MyStockUpdate.as_view(), name='stock_update'),
+		url(r'^historicals/$', views.MyStockHistoricalList.as_view(), name='stock_historicals_list'),
+
 
 		# heat
 		url(r'^heat/prev/change/$', views.MyStockHeatPrevChange.as_view(), name='heat_prev_change'),		

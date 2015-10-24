@@ -1,0 +1,65 @@
+{% extends "stock/common/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block page-header %}
+	{% if data_source %}
+		{{ data_source }} historicals
+	{% else %}
+		Historicals
+	{% endif %}
+{% endblock %}
+
+
+{% block content %}
+<form action="{% url 'stock_historicals_list' %}" class="uniForm" method="post">
+    {% csrf_token %}
+    {{ form|crispy }}
+    <input type="submit" value="Submit" />
+</form>
+
+<h2>{{ on_date }}</h2>
+<table class="table my-datatable">
+	<thead>
+		<th>Symbol</th>
+		<th>Open</th>
+		<th>High</th>
+		<th>Low</th>
+		<th>Close</th>
+		<th>Adj close</th>
+		<th>Vol</th>
+		<th>One day change (%)</th>
+		<th>Computed strategy value</th>
+		<th>Peer rank</th>
+	</thead>
+
+	<tbody>
+	{% for h in historicals %}
+		<tr><td>
+			{{ h.stock.symbol }}
+		</td><td>
+			{{ h.open_price|floatformat:2 }}
+		</td><td>
+			{{ h.high_price|floatformat:2 }}
+		</td><td>
+			{{ h.low_price|floatformat:2 }}
+		</td><td>
+			{{ h.close_price|floatformat:2 }}
+		</td><td>
+			{% if h.adj_close > 0 %}
+				{{ h.adj_close|floatformat:2 }}
+			{% else %}
+				n/a
+			{% endif %}
+		</td><td>
+			{{ h.vol|floatformat:0 }}
+		</td><td>
+			{{ h.oneday_change|floatformat:5 }}
+		</td><td>
+			{{ h.val_by_strategy|floatformat:5 }}
+		</td><td>
+			{{ h.peer_rank|floatformat:0 }}
+		</td>
+	{% endfor %}
+	</tbody>
+</table>
+{% endblock %}

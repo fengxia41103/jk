@@ -7,6 +7,7 @@ Backtesting 2
 {% endblock %}
 
 {% block strategy-intro %}
+<div class="my-multicol-2">
 <p>
 Backtesting 2 strategies pre-compute a val_by_strategy for each historical record. Based on the strategy and specified cutoff values, it simulates trades and generate a report.
 
@@ -30,6 +31,7 @@ Give a date, we precompute its "oneday_change_pcnt = (open[t0] - adj_close[t0-1]
 
 <p>
 For this strategy, sorting is irrelevant.
+</div>
 {% endblock %}
 
 {% block strategy-control %}
@@ -40,3 +42,124 @@ For this strategy, sorting is irrelevant.
 </form>
 {% endblock %}
 
+{% block strategy-result %}
+{% for on_date, sp in snapshots.iteritems %}
+<div>
+<h3 class="my-section-header">{{ on_date }}</h3>
+
+<ul class="list-inline text-center">
+	<li><span class="label label-default">asset</span>{{ sp.asset|floatformat:2 }}</li>
+	<li> = </li>
+	<li><span class="label label-default">cash</span>{{ sp.cash|floatformat:2 }}</li>
+	<li> + </li>
+	<li><span class="label label-default">equity</span>{{ sp.equity|floatformat:2 }}</li>
+	<li> | </li>
+	<li><span class="label label-default">Gain from equity exit</span>
+		{% if sp.gain.sell < 0 %}
+			<font color="red">{{ sp.gain.sell|floatformat:2 }}</font>
+		{% else %}
+			{{ sp.gain.sell|floatformat:2 }}
+		{% endif %}
+	</li>
+	<li><span class="label label-default">Gain from equity portfolio</span>
+		{% if sp.gain.hold < 0 %}
+			<font color="red">{{ sp.gain.hold|floatformat:2 }}</font>
+		{% else %}
+			{{ sp.gain.hold|floatformat:2 }}
+		{% endif %}
+	</li>
+</ul>
+
+<ul class="nav nav-tabs">
+	{% if sp.transaction.buy %}
+    <li class="active"><a data-toggle="tab" href="#{{on_date|date:"Y-m-d"}}-buy">Buy</a></li>
+    {% endif %}
+
+    {% if sp.transaction.sell %}
+    <li><a data-toggle="tab" href="#{{on_date|date:"Y-m-d"}}-sell">Sell</a></li>
+    {% endif %}
+
+    {% if sp.portfolio %}
+    <li><a data-toggle="tab" href="#{{on_date|date:"Y-m-d"}}-portfolio">Portfolio</a></li>
+    {% endif %}    
+</ul>
+
+<div class="tab-content">
+	{% if sp.transaction.buy %}
+	<div id="{{on_date|date:"Y-m-d"}}-buy" class="tab-pane fade in active">
+		<table class="table table-condensed table-hover table-responsive">
+			<thead>
+				<th>Symbol</th>
+				<th>Cost</th>
+				<th>Vol</th>
+			</thead>
+			<tbody>
+				{% for p in sp.transaction.buy %}
+				<tr><td>
+					{{ p.stock.symbol }}
+				</td><td>
+					{{ p.position|floatformat:2 }}
+				</td><td>
+					{{ p.vol|floatformat:2 }}
+				</td></tr>
+				{% endfor %}{# end of buys #}
+			</tbody>
+		</table>
+	</div>
+	{% endif %}
+
+	{% if sp.transaction.sell %}
+	<div id="{{on_date|date:"Y-m-d"}}-sell" class="tab-pane fade in">
+		<table class="table table-condensed table-hover table-responsive">
+			<thead>
+				<th>Symbol</th>
+				<th>Cost</th>
+				<th>Exit</th>
+				<th>Gain</th>
+				<th>Life in days</th>
+			</thead>
+			<tbody>
+				{% for p in sp.transaction.sell %}
+				<tr><td>
+					{{ p.stock.symbol }}
+				</td><td>
+					{{ p.position|floatformat:2 }}
+				</td><td>
+					{{ p.close_position|floatformat:2 }}
+				</td><td>
+					{{ p.gain|floatformat:2 }}
+				</td><td>
+					{{ p.life_in_days }}
+				</td></tr>
+				{% endfor %}{# end of buys #}
+			</tbody>
+		</table>
+	</div>
+	{% endif %}
+
+	{% if sp.portfolio %}
+	<div id="{{on_date|date:"Y-m-d"}}-portfolio" class="tab-pane fade in">
+		<table class="table table-condensed table-hover table-responsive">
+			<thead>
+				<th>Symbol</th>
+				<th>Cost</th>
+				<th>Vol</th>
+			</thead>
+			<tbody>
+				{% for p in sp.portfolio %}
+				<tr><td>
+					{{ p.stock__symbol }}
+				</td><td>
+					{{ p.position|floatformat:2 }}
+				</td><td>
+					{{ p.vol|floatformat:2 }}
+				</td></tr>
+				{% endfor %}{# end of buys #}
+			</tbody>
+		</table>
+	</div>
+	{% endif %}	
+</div>{# end of row #}
+</div>
+{% endfor %}
+{% endblock %}

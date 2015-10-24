@@ -1,8 +1,8 @@
 from numpy import mean, std 
+from collections import OrderedDict
 from stock.models import *
 
-
-def alpha_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_cutoff=0.25,sell_cutoff=0.75,category=''):
+def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cutoff=0.25,sell_cutoff=0.75,category=''):
 	"""
 	Trading strategy:
 
@@ -31,11 +31,22 @@ def alpha_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,b
 	equity = {}
 	cash = {}
 	positions = None
-	
+	snapshot = OrderedDict()
+
 	# trading
 	for on_date,symbols_by_rank in data:
 		print on_date.isoformat()
 		total_symbols = len(symbols_by_rank)
+
+		# record transactions
+		snapshot[on_date] = {
+			'cash': 0,
+			'equity': 0,
+			'asset': 0,
+			'portfolio':[],
+			'transaction':{'buy':[],'sell':[]}, 
+			'gain':{'hold':0,'sell':0}
+		}
 
 		# sell if outside sell_cutoff
 		positions = MyPosition.objects.filter(category = category, is_open = True).values_list("stock__symbol",flat=True).distinct()
@@ -48,7 +59,9 @@ def alpha_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,b
 			pos.close(user,target_price,on_date=on_date)
 
 			capital += pos.vol * target_price
-			print 'close: ',symbol,capital
+			snapshot[on_date]['transaction']['sell'].append(pos)
+			snapshot[on_date]['gain']['sell'] += pos.gain
+			# print 'close: ',symbol,capital
 
 		# buy if within buy_cutoff
 		positions = MyPosition.objects.filter(category = category,is_open = True).values_list("stock__symbol",flat=True).distinct()
@@ -70,10 +83,11 @@ def alpha_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,b
 			pos.save()
 
 			capital -= pos.vol*pos.position
-			print 'create: ',symbol, capital
+			snapshot[on_date]['transaction']['buy'].append(pos)
+			# print 'create: ',symbol, capital
 
 		# compute equity, cash, asset
-		positions = MyPosition.objects.select_related().filter(category = category, is_open = True).values('stock__symbol','vol')
+		positions = MyPosition.objects.select_related().filter(category = category, is_open = True).values('stock__symbol','position','vol')
 		temp = []
 		for p in positions:
 			his = historicals[on_date][p['stock__symbol']]
@@ -83,18 +97,23 @@ def alpha_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,b
 			elif 'close_price' in his: simulated_spot = his['close_price']
 			elif 'high_price' in his and 'low_price' in his: simulated_spot = mean([his['high_price'],his['low_price']])
 			temp.append(p['vol'] * simulated_spot)
+			snapshot[on_date]['gain']['hold'] += p['vol'] * (simulated_spot - p['position'])
 
 		equity[on_date] = sum(temp)
 		cash[on_date] = capital
 		assets[on_date] = equity[on_date] + cash[on_date]
-		print cash[on_date], equity[on_date], assets[on_date]
 		
+		snapshot[on_date]['cash'] = cash[on_date]
+		snapshot[on_date]['equity'] = equity[on_date]
+		snapshot[on_date]['asset'] = assets[on_date]
+		snapshot[on_date]['portfolio'] = positions
+
 	on_dates = [on_date for on_date,symbols in data]
 	cashes = [float(cash[d]) for d in on_dates]
 	equities = [float(equity[d]) for d in on_dates]
 	assets = [float(assets[d]) for d in on_dates]
 
-	return {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets}
+	return {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets, 'snapshots':snapshot}
 
 def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_cutoff=0.25,sell_cutoff=0.25,category=''):
 	"""
@@ -108,10 +127,10 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 	@param data: a list of dict, [{'on_date':date obj, 'ranks':['symbol 1','symbol 2']}]
 	@param capital: starting cash amount
 	@param per_buy: per trade total amount, vol = per_buy/stock_price
-	@param buy_cutoff: symbols[: cutoff * total sample number] -> buy these
-	@param sell_cutoff: price exit @ position price *(1+sell_cutoff)
+	@param buy_cutoff: oneday_change < -1*buy_cutoff, buy
+	@param sell_cutoff: price exit @ cost *(1+sell_cutoff)
 
-	@return: {date: asset value}
+	@return: {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets}
 	@rtype: dict
 	"""
 
@@ -122,11 +141,15 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 	assets = {}
 	equity = {}
 	cash = {}
+	transactions = {}
 	positions = None
 
 	# trading
 	for on_date,symbols in data:
 		print on_date.isoformat()
+
+		# record transactions
+		transactions[on_date] = {'buy':[],'sell':[]}
 
 		# sell if meeting cutoff criteria
 		positions = MyPosition.objects.filter(category = category, is_open = True)
@@ -134,12 +157,13 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 			his = historicals[on_date][p.stock.symbol]
 			simulated_spot = mean([his['high_price'],his['low_price']])
 
-			# if sell_cutoff = 0.1, 
+			# for example, if sell_cutoff = 0.1, 
 			# we sell if daily spot is greater than 110% of our cost
 			if simulated_spot >= (1+sell_cutoff)*float(p.position):
 				p.close(user,simulated_spot,on_date=on_date)
 				capital += p.vol * simulated_spot
-				print 'close: ',p.stock,capital
+				transactions[on_date]['sell'].append(p)
+				# print 'close: ',p.stock,capital
 
 		# buy if within buy_cutoff	
 		positions = MyPosition.objects.filter(category = category, is_open = True).values_list("stock__symbol",flat=True).distinct()
@@ -151,11 +175,11 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 			if capital < per_buy: continue
 
 			# if buy_cutoff = 0.04, 
-			#   - if oneday_change_pcnt > -0.04, we skip
+			#   - if oneday_change > -0.04, we skip
 			#   - if one day drop greater than 4%, we buy
 			his = historicals[on_date][symbol]
-			oneday_change_pcnt = his['oneday_change_pcnt']
-			if oneday_change_pcnt > -1*buy_cutoff: continue
+			oneday_change = his['oneday_change']
+			if oneday_change > -1*buy_cutoff: continue
 
 			target_price = mean([his['high_price'],his['low_price']]) # assuming we buy at daily mean
 			pos = MyPosition(
@@ -168,7 +192,8 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 			pos.save()
 
 			capital -= pos.vol*pos.position
-			print 'create: ',symbol, capital,target_price
+			transactions[on_date]['buy'].append(pos)
+			# print 'create: ',symbol, capital,target_price
 
 		# compute equity, cash, asset
 		positions = MyPosition.objects.select_related().filter(category = category, is_open = True).values('stock__symbol','vol')
@@ -192,4 +217,4 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 	equities = [float(equity[d]) for d in on_dates]
 	assets = [float(assets[d]) for d in on_dates]
 
-	return {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets}
+	return {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets, 'transactions':transactions}

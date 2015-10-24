@@ -41,18 +41,16 @@ import django_filters
 from django.core.mail import send_mail
 
 # so what
-import re,os,os.path,shutil,subprocess, testtools
+import re,os,os.path,shutil,subprocess, testtools,sys
 import random,codecs,unittest,time, tempfile, csv, hashlib
 from datetime import datetime as dt
-from multiprocessing import Process, Queue
 import simplejson as json
-import googlemaps
 from itertools import groupby
 import urllib, lxml.html
 from numpy import mean, std 
 from utility import MyUtility
 
-from stock.forms import StrategyControlForm
+from stock.forms import HistoricalListForm, StrategyControlForm
 from stock.models import *
 from stock.simulations import alpha_trading_simulation, jk_trading_simulation
 
@@ -416,7 +414,6 @@ class MyStockStrategy1Detail(TemplateView):
 		context['peers'] = MyStock.objects.all().values_list('symbol',flat=True)
 		return context	
 
-import sys
 @class_view_decorator(login_required)
 class MyStockStrategy2List(FormView):
 	template_name = 'stock/backtesting/s2_list.html'
@@ -426,8 +423,8 @@ class MyStockStrategy2List(FormView):
 		# control variables
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
-		buy_cutoff = form.cleaned_data['buy_cutoff']
-		sell_cutoff = form.cleaned_data['sell_cutoff']
+		buy_cutoff = form.cleaned_data['buy_cutoff']/100
+		sell_cutoff = form.cleaned_data['sell_cutoff']/100
 		capital = form.cleaned_data['capital']
 
 		# sample set
@@ -436,7 +433,7 @@ class MyStockStrategy2List(FormView):
 			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
 		else:
 			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','close_price','val_by_strategy','oneday_change_pcnt')
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','close_price','val_by_strategy','oneday_change')
 
 		# dates
 		dates = list(set([h['date_stamp'] for h in histories]))
@@ -487,4 +484,32 @@ class MyStockStrategy2List(FormView):
 			'on_dates': [d.isoformat() for d in simulations['on_dates']],
 			'assets': simulations['assets'],
 			'cashes': simulations['cashes'],
-			'equities': simulations['equities']})
+			'equities': simulations['equities'],
+			'snapshots': simulations['snapshots'],
+		})
+
+@class_view_decorator(login_required)
+class MyStockHistoricalList(FormView):
+	template_name = 'stock/stock/list_historicals.html'
+	form_class = HistoricalListForm
+
+	def form_valid(self, form):
+		# control variables
+		on_date = form.cleaned_data['on_date']
+
+		# sample set
+		data_source = form.cleaned_data['data_source']
+		if data_source == '1':
+			data_source = 'S&P 500'
+			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
+		else:
+			data_source = 'Chenmin'
+			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
+		historicals = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp=on_date)
+
+		# render HTML
+		return render(self.request, self.template_name, {
+			'form':form,
+			'data_source': data_source,
+			'on_date': on_date,
+			'historicals': historicals})

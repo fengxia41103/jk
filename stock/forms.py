@@ -2,18 +2,30 @@ from django import forms
 from django.contrib.admin.widgets import AdminDateWidget
 import datetime as dt
 
+DATA_CHOICES = (
+    (1, "S&P500"),
+    (2, "Chenmin"),
+)
+DATA_SORT_CHOICES = (       
+    (0, "ascending"),
+    (1, "descending"),
+)
+
+class HistoricalListForm(forms.Form):
+    data_source = forms.ChoiceField(
+        choices = DATA_CHOICES,
+        initial = 1
+    )        
+    on_date = forms.DateField(
+        initial = "2014-01-01",
+        label = 'On date',
+        widget = AdminDateWidget,        
+    )
+
 class StrategyControlForm(forms.Form):
     STRATEGY_CHOICES = (
         (1, "S1 (by ranking)"),
         (2, "S2 (buy low sell high)"),
-    )
-    DATA_CHOICES = (
-        (1, "S&P500"),
-        (2, "Chenmin"),
-    )
-    DATA_SORT_CHOICES = (       
-        (0, "ascending"),
-        (1, "descending"),
     )
     data_source = forms.ChoiceField(
         choices = DATA_CHOICES,
@@ -43,10 +55,14 @@ class StrategyControlForm(forms.Form):
         label = "Starting cash"
     )    
     buy_cutoff = forms.FloatField(
-    	initial = 0.25,
-        label = "Buy cutoff %"
+    	initial = 25,
+        max_value = 100,
+        min_value = 0,
+        label = "Buy cutoff (%)"
     )
     sell_cutoff = forms.FloatField(
-    	initial = 0.75,
-        label = "Sell cutoff %"
+    	initial = 75,
+        max_value = 100,
+        min_value = 0,
+        label = "Sell cutoff (%)"
     )    

@@ -389,10 +389,10 @@ class MyStockHistorical(models.Model):
 		decimal_places = 15,			
 		verbose_name = u'Adjusted close'
 	)
-	oneday_change_pcnt = models.FloatField(
+	oneday_change = models.FloatField(
 		null = True,
 		blank = True,
-		verbose_name = u"(Today's Open - PrevDay's Adj Close)/Adj close*100"
+		verbose_name = u"(Today's Open - Prev close)/prev close*100"
 	)
 	vol = models.FloatField(
 		verbose_name = u'Volume (000)'
