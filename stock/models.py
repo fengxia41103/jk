@@ -166,25 +166,25 @@ class MyStock(models.Model):
 	)
 	prev_close = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Prev day closing price'
 	)
 	prev_open = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Prev day opening price'
 	)
 	prev_high = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Prev day highest price'
 	)	
 	prev_low = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Prev day lowest price'
 	)
@@ -194,25 +194,25 @@ class MyStock(models.Model):
 	)	
 	day_open = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Today opening price'
 	)
 	pe = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'P/E'
 	)
 	bid = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Bid price'
 	)	
 	ask = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Ask price'
 	)	
@@ -226,20 +226,20 @@ class MyStock(models.Model):
 	)
 	day_high = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Day high'		
 	)
 	day_low = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Day low'		
 	)
 
 	last = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Spot price'
 	)
@@ -263,7 +263,7 @@ class MyStock(models.Model):
 	)
 	spread = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 0.0,
 		verbose_name = u'Bid-ask spread'
 	)
@@ -366,34 +366,61 @@ class MyStockHistorical(models.Model):
 	)
 	open_price = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		verbose_name = u'Open'
 	)
 	high_price = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,			
+		decimal_places = 5,			
 		verbose_name = u'High'
 	)
 	low_price = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,			
+		decimal_places = 5,			
 		verbose_name = u'Low'
 	)	
 	close_price = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,			
+		decimal_places = 5,			
 		verbose_name = u'Close'
 	)
-	adj_close = models.DecimalField(
+	adj_open = models.DecimalField(
+		default = -1,
 		max_digits = 20,
-		decimal_places = 15,			
+		decimal_places = 5,			
+		verbose_name = u'Adjusted open'
+	)
+	adj_high = models.DecimalField(
+		default = -1,
+		max_digits = 20,
+		decimal_places = 5,			
+		verbose_name = u'Adjusted high'
+	)
+	adj_low = models.DecimalField(
+		default = -1,
+		max_digits = 20,
+		decimal_places = 5,			
+		verbose_name = u'Adjusted low'
+	)			
+	adj_close = models.DecimalField(
+		default = -1,
+		max_digits = 20,
+		decimal_places = 5,			
 		verbose_name = u'Adjusted close'
+	)
+	adj_factor = models.FloatField(
+		default = 0,
+		verbose_name = u'Adjustment factor'
 	)
 	oneday_change = models.FloatField(
 		null = True,
 		blank = True,
 		verbose_name = u"(Today's Open - Prev close)/prev close*100"
 	)
+	amount = models.FloatField(
+		default = -1,		
+		verbose_name = u'成交金额 (000)'		
+	)	
 	vol = models.FloatField(
 		verbose_name = u'Volume (000)'
 	)
@@ -416,6 +443,15 @@ class MyStockHistorical(models.Model):
 		default = 0,
 		verbose_name = u'Ranking among peers'
 	)
+	status = models.IntegerField(
+		default = -1,
+		verbose_name = u'Stock trading status, eg. stopped trading on that day'
+	)
+
+	def _avg_price(self):
+		if self.vol and self.amount: return Decimal(self.amount)/Decimal(self.vol)
+		else: return None
+	avg_price = property(_avg_price)
 
 	class Meta:
 		unique_together = ('stock','date_stamp')
@@ -430,7 +466,7 @@ class MyUserProfile(models.Model):
 	)
 	per_trade_total = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,		
+		decimal_places = 5,		
 		default = 1000.0,
 		verbose_name = u'Per trade dollar amount'
 	)
@@ -484,7 +520,7 @@ class MyPosition(models.Model):
 	)
 	close_position = models.DecimalField(
 		max_digits = 20,
-		decimal_places = 15,
+		decimal_places = 5,
 		default = 0.0,
 		verbose_name = u'We closed at'
 	)

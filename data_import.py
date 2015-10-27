@@ -204,6 +204,66 @@ def import_chenmin_csv():
 		# persist
 		print '[%s] complete'%symbol					
 
+def import_chenmin_csv2():
+	f = '/home/fengxia/Desktop/chenmin/d_data1.csv'
+	records = []
+	
+	with open(f,'rb') as csvfile:
+		for cnt, vals in enumerate(csv.reader(csvfile)):
+			if len(vals) < 10: 
+				print 'wrong length', vals
+				raw_input()
+
+			exec_start = time.time()
+
+			if not vals: continue # handle blank lines
+			if not re.search('^\d+',vals[0]): continue
+
+			symbol = vals[0].strip()
+			stock,created = MyStock.objects.get_or_create(symbol=symbol)
+			if created: print 'created symbol %s'%symbol
+
+			his = [x.isoformat() for x in MyStockHistorical.objects.filter(stock=stock).values_list('date_stamp',flat=True)]
+
+			date_stamp = dt(year=int(vals[1][:4]),month=int(vals[1][4:6]),day=int(vals[1][-2:]))
+
+			if date_stamp.date().isoformat() in his: continue # we already have these
+			else:
+				open_p = Decimal(vals[2])
+				high_p = Decimal(vals[3])
+				low_p = Decimal(vals[4])
+				close_p = Decimal(vals[5])
+				vol = Decimal(vals[6])
+				amount = Decimal(vals[7])*Decimal(10.0)
+				adj = Decimal(vals[8])
+				status = int(vals[9])
+			
+				h = MyStockHistorical(
+						stock = stock,
+						date_stamp = date_stamp,
+						open_price = open_p,
+						high_price = high_p,
+						low_price = low_p,
+						close_price = close_p,
+						vol = vol,
+						amount = amount,
+						status = status,
+
+						# adjusted values
+						adj_open = open_p * adj,
+						adj_high = high_p * adj,
+						adj_low = low_p * adj,
+						adj_close = close_p * adj,
+					)
+				records.append(h)
+				if len(records) >= 1000:
+					MyStockHistorical.objects.bulk_create(records)
+					records = []
+
+			print '%d, elapse %f'%(cnt, time.time()-exec_start)
+					
+		if len(records): MyStockHistorical.objects.bulk_create(records)
+
 from stock.tasks import stock_flag_sp500_consumer
 def crawler_flag_sp500():
 	stock_flag_sp500_consumer.delay()
@@ -223,11 +283,11 @@ def main():
 	# dump_chenmin()
 	# crawler_influx()
 	#backtest_1()
-	# import_chenmin_csv()	
+	import_chenmin_csv2()	
 	#crawler_flag_sp500()
 	# backtest_s2()
-	crawler_s2_rank()
-	backtest_s3()
+	# crawler_s2_rank()
+	#backtest_s3()
 	# crawler_s3_rank()
 
 if __name__ == '__main__':

@@ -671,11 +671,11 @@ class MyStockBacktesting_3():
 
 			# compute index value
 			if prev.adj_close and prev.adj_close > 0:
-				t0.val_by_strategy = (t0.close_price - prev.adj_close)/prev.adj_close*100
-				t0.oneday_change = (t0.close_price - prev.adj_close)/prev.adj_close*100
+				t0.val_by_strategy = (t0.open_price - prev.adj_close)/prev.adj_close*100
+				t0.oneday_change = (t0.open_price - prev.adj_close)/prev.adj_close*100
 			elif prev.close_price and prev.close_price > 0:
-				t0.val_by_strategy = (t0.close_price - prev.close_price)/prev.close_price*100
-				t0.oneday_change = (t0.close_price - prev.close_price)/prev.close_price*100
+				t0.val_by_strategy = (t0.open_price - prev.close_price)/prev.close_price*100
+				t0.oneday_change = (t0.open_price - prev.close_price)/prev.close_price*100
 			# save to DB
 			t0.save()
 
