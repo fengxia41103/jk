@@ -164,6 +164,10 @@ class MyStock(models.Model):
 		default = False,
 		verbose_name = 'Is a SP500 stock'
 	)
+	is_china_stock = models.BooleanField(
+		default = False,
+		verbose_name = 'Is a China stock'
+	)
 	prev_close = models.DecimalField(
 		max_digits = 20,
 		decimal_places = 5,		

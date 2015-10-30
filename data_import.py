@@ -207,9 +207,13 @@ def import_chenmin_csv():
 def import_chenmin_csv2():
 	f = '/home/fengxia/Desktop/chenmin/d_data1.csv'
 	records = []
-	
+	# his = [(x['stock__symbol'],x['date_stamp'].isoformat()) for x in MyStockHistorical.objects.values('stock__symbol','date_stamp').order_by('id')]
+	symbols = MyStock.objects.values_list('symbol',flat=True)
+
 	with open(f,'rb') as csvfile:
 		for cnt, vals in enumerate(csv.reader(csvfile)):
+			print 'processing', cnt
+
 			if len(vals) < 10: 
 				print 'wrong length', vals
 				raw_input()
@@ -220,14 +224,21 @@ def import_chenmin_csv2():
 			if not re.search('^\d+',vals[0]): continue
 
 			symbol = vals[0].strip()
-			stock,created = MyStock.objects.get_or_create(symbol=symbol)
-			if created: print 'created symbol %s'%symbol
+			if symbol not in symbols:
+				stock,created = MyStock.objects.get_or_create(symbol=symbol)
+			else: stock = MyStock.objects.get(symbol = symbol)
 
-			his = [x.isoformat() for x in MyStockHistorical.objects.filter(stock=stock).values_list('date_stamp',flat=True)]
+			stock.is_china_stock = True
+			stock.save()
+			print symbol, 'marked'
+			continue
 
 			date_stamp = dt(year=int(vals[1][:4]),month=int(vals[1][4:6]),day=int(vals[1][-2:]))
 
-			if date_stamp.date().isoformat() in his: continue # we already have these
+			if (symbol, date_stamp.date()) != his[-1]: continue # we pick up from last break
+
+			
+			if (stock.id,date_stamp.date().isoformat()) in his: continue # we already have these
 			else:
 				open_p = Decimal(vals[2])
 				high_p = Decimal(vals[3])

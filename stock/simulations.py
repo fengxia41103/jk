@@ -54,7 +54,7 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 			if symbol not in positions: continue # not an open position, next
 
 			his = historicals[on_date][symbol]
-			target_price = his['low_price'] # assuming we sell at daily low				
+			target_price = his['close_price'] # assuming we sell at close			
 			pos = MyPosition.objects.get(stock__symbol=symbol,category = category, is_open=True)
 			pos.close(user,target_price,on_date=on_date)
 
@@ -72,7 +72,7 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 			# we buy, assuming knowing the ranking based on OPEN price
 			# so we buy at mean(high,low) on that date
 			his = historicals[on_date][symbol]
-			target_price = mean([his['high_price'],his['low_price']]) # assuming we buy at daily avg
+			target_price = his['close_price'] # assuming we buy at close
 			pos = MyPosition(
 				stock = MyStock.objects.get(id=int(his['stock'])),
 				user = user,
@@ -95,7 +95,6 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 			# we compute equity value based on daily close price
 			if 'adj_close' in his: simulated_spot = his['adj_close'] 
 			elif 'close_price' in his: simulated_spot = his['close_price']
-			elif 'high_price' in his and 'low_price' in his: simulated_spot = mean([his['high_price'],his['low_price']])
 			temp.append(p['vol'] * simulated_spot)
 			snapshot[on_date]['gain']['hold'] += p['vol'] * (simulated_spot - p['position'])
 
@@ -155,7 +154,7 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 		positions = MyPosition.objects.filter(category = category, is_open = True)
 		for p in positions:
 			his = historicals[on_date][p.stock.symbol]
-			simulated_spot = mean([his['high_price'],his['low_price']])
+			simulated_spot = his['open_price'] # assume we are selling at open
 
 			# for example, if sell_cutoff = 0.1, 
 			# we sell if daily spot is greater than 110% of our cost
@@ -181,7 +180,7 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 			oneday_change = his['oneday_change']
 			if oneday_change > -1*buy_cutoff: continue
 
-			target_price = mean([his['high_price'],his['low_price']]) # assuming we buy at daily mean
+			target_price = his['close_price'] # assuming we buy close
 			pos = MyPosition(
 				stock = MyStock.objects.get(id=int(his['stock'])),
 				user = user,
@@ -204,7 +203,6 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 			# we compute equity value based on daily close price
 			if 'adj_close' in his: simulated_spot = his['adj_close'] 
 			elif 'close_price' in his: simulated_spot = his['close_price']
-			elif 'high_price' in his and 'low_price' in his: simulated_spot = mean([his['high_price'],his['low_price']])
 			temp.append(p['vol'] * simulated_spot)
 
 		equity[on_date] = sum(temp)

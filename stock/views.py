@@ -433,7 +433,7 @@ class MyStockStrategy2List(FormView):
 			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
 		else:
 			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','high_price','low_price','close_price','val_by_strategy','oneday_change')
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','val_by_strategy','oneday_change')
 
 		# dates
 		dates = list(set([h['date_stamp'] for h in histories]))
