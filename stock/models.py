@@ -158,15 +158,15 @@ class MyStock(models.Model):
 	sector = models.CharField(
 		max_length = 64,
 		default = 'unknown',
-		verbose_name = 'Sector name'
+		verbose_name = u'Sector name'
 	)
 	is_sp500 = models.BooleanField(
 		default = False,
-		verbose_name = 'Is a SP500 stock'
+		verbose_name = u'Is a SP500 stock'
 	)
 	is_china_stock = models.BooleanField(
 		default = False,
-		verbose_name = 'Is a China stock'
+		verbose_name = u'Is a China stock'
 	)
 	prev_close = models.DecimalField(
 		max_digits = 20,

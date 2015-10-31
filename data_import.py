@@ -209,10 +209,10 @@ def import_chenmin_csv2():
 	records = []
 	# his = [(x['stock__symbol'],x['date_stamp'].isoformat()) for x in MyStockHistorical.objects.values('stock__symbol','date_stamp').order_by('id')]
 	symbols = MyStock.objects.values_list('symbol',flat=True)
-
+	china = []
 	with open(f,'rb') as csvfile:
 		for cnt, vals in enumerate(csv.reader(csvfile)):
-			print 'processing', cnt
+			# print 'processing', cnt
 
 			if len(vals) < 10: 
 				print 'wrong length', vals
@@ -224,20 +224,17 @@ def import_chenmin_csv2():
 			if not re.search('^\d+',vals[0]): continue
 
 			symbol = vals[0].strip()
-			if symbol not in symbols:
-				stock,created = MyStock.objects.get_or_create(symbol=symbol)
-			else: stock = MyStock.objects.get(symbol = symbol)
+			# if symbol not in symbols:
+			# 	stock,created = MyStock.objects.get_or_create(symbol=symbol)
+			# else: stock = MyStock.objects.get(symbol = symbol)
 
-			stock.is_china_stock = True
-			stock.save()
-			print symbol, 'marked'
+			china.append(symbol)
 			continue
 
 			date_stamp = dt(year=int(vals[1][:4]),month=int(vals[1][4:6]),day=int(vals[1][-2:]))
 
 			if (symbol, date_stamp.date()) != his[-1]: continue # we pick up from last break
 
-			
 			if (stock.id,date_stamp.date().isoformat()) in his: continue # we already have these
 			else:
 				open_p = Decimal(vals[2])
@@ -275,6 +272,11 @@ def import_chenmin_csv2():
 					
 		if len(records): MyStockHistorical.objects.bulk_create(records)
 
+	for symbol in set(china):
+		stock = MyStock.objects.get(symbol=symbol)
+		stock.is_china_stock = True
+		stock.save()
+		print symbol, 'marked'
 from stock.tasks import stock_flag_sp500_consumer
 def crawler_flag_sp500():
 	stock_flag_sp500_consumer.delay()

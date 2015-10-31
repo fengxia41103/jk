@@ -4,7 +4,8 @@ import datetime as dt
 
 DATA_CHOICES = (
     (1, "S&P500"),
-    (2, "Chenmin"),
+    (2, "China sector"),
+    (3, "China stock"),    
 )
 DATA_SORT_CHOICES = (       
     (0, "ascending"),

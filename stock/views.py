@@ -423,16 +423,18 @@ class MyStockStrategy2List(FormView):
 		# control variables
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
-		buy_cutoff = form.cleaned_data['buy_cutoff']/100
-		sell_cutoff = form.cleaned_data['sell_cutoff']/100
+		buy_cutoff = form.cleaned_data['buy_cutoff']/100.0
+		sell_cutoff = form.cleaned_data['sell_cutoff']/100.0
 		capital = form.cleaned_data['capital']
 
 		# sample set
 		data_source = form.cleaned_data['data_source']
 		if data_source == '1':
 			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
-		else:
+		elif data_source == '2':
 			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
+		elif data_source == '3':
+			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
 		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','val_by_strategy','oneday_change')
 
 		# dates

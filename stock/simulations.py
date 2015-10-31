@@ -50,13 +50,13 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 
 		# sell if outside sell_cutoff
 		positions = MyPosition.objects.filter(category = category, is_open = True).values_list("stock__symbol",flat=True).distinct()
-		for symbol in symbols_by_rank[int(total_symbols*sell_cutoff):]:
+		for symbol in symbols_by_rank[-1*int(total_symbols*sell_cutoff)-1:]:
 			if symbol not in positions: continue # not an open position, next
 
 			his = historicals[on_date][symbol]
 			target_price = his['close_price'] # assuming we sell at close			
 			pos = MyPosition.objects.get(stock__symbol=symbol,category = category, is_open=True)
-			pos.close(user,target_price,on_date=on_date)
+			pos.close(user,target_price,on_date=on_date)			
 
 			capital += pos.vol * target_price
 			snapshot[on_date]['transaction']['sell'].append(pos)
@@ -70,7 +70,7 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 			if capital < per_buy: continue # not enough fund
 
 			# we buy, assuming knowing the ranking based on OPEN price
-			# so we buy at mean(high,low) on that date
+			# so we buy at CLOSE on that date
 			his = historicals[on_date][symbol]
 			target_price = his['close_price'] # assuming we buy at close
 			pos = MyPosition(
@@ -79,7 +79,8 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 				position = target_price, # buy
 				vol = per_buy/target_price,
 				open_date = on_date,
-				category = category)
+				category = category,
+				is_open = True)
 			pos.save()
 
 			capital -= pos.vol*pos.position
