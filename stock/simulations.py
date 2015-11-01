@@ -30,12 +30,12 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 	assets = {}
 	equity = {}
 	cash = {}
-	positions = None
 	snapshot = OrderedDict()
 
 	# trading
 	for on_date,symbols_by_rank in data:
 		print on_date.isoformat()
+		positions = None		
 		total_symbols = len(symbols_by_rank)
 
 		# record transactions
@@ -90,8 +90,13 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 		# compute equity, cash, asset
 		positions = MyPosition.objects.select_related().filter(category = category, is_open = True).values('stock__symbol','position','vol')
 		temp = []
-		for p in positions:
-			his = historicals[on_date][p['stock__symbol']]
+		for cnt,p in enumerate(positions):
+			if p['stock__symbol'] in historicals[on_date]:
+				# if symbol's historicals are missing for some reason
+				# eg. stopped trading on that day, compay got bought
+				# this would result some open position at the end of portfolio
+				his = historicals[on_date][p['stock__symbol']]
+			else: continue
 
 			# we compute equity value based on daily close price
 			if 'adj_close' in his: simulated_spot = his['adj_close'] 
