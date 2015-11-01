@@ -52,7 +52,7 @@ from utility import MyUtility
 
 from stock.forms import HistoricalListForm, StrategyControlForm
 from stock.models import *
-from stock.simulations import alpha_trading_simulation, jk_trading_simulation
+from stock.simulations import MySimulationAlpha,MySimulationJK
 
 ###################################################
 #
@@ -463,8 +463,8 @@ class MyStockStrategy2List(FormView):
 
 		# simulate tradings
 		simulation_methods = {
-			'1': 'alpha_trading_simulation',
-			'2': 'jk_trading_simulation'
+			'1': 'MySimulationAlpha',
+			'2': 'MySimulationJK'
 		}
 		trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])
 		category = '%s-%s' %(form.cleaned_data['strategy'], data_source)		
@@ -475,7 +475,7 @@ class MyStockStrategy2List(FormView):
 			self.request.user.myuserprofile.per_trade_total,
 			buy_cutoff = buy_cutoff,
 			sell_cutoff = sell_cutoff,
-			category = category)
+			category = category).run()
 
 		# render HTML
 		return render(self.request, self.template_name, {

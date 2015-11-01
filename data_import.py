@@ -288,7 +288,7 @@ def main():
 	# populate_sp_500	()
 	# crawl_stock_prev_yahoo()
 	# crawl_stock_yahoo_spot2()	
-	# crawl_stock_prev_yahoo2()
+	crawl_stock_prev_yahoo2()
 
 	# crawl_stock_yahoo_spot()
 
@@ -296,7 +296,7 @@ def main():
 	# dump_chenmin()
 	# crawler_influx()
 	#backtest_1()
-	import_chenmin_csv2()	
+	#import_chenmin_csv2()	
 	#crawler_flag_sp500()
 	# backtest_s2()
 	# crawler_s2_rank()
