@@ -88,9 +88,9 @@ def alpha_trading_simulation(user,data,historicals,capital,per_buy=1000,buy_cuto
 			# print 'create: ',symbol, capital
 
 		# compute equity, cash, asset
-		positions = MyPosition.objects.select_related().filter(category = category, is_open = True).values('stock__symbol','position','vol')
+		positions = MyPosition.objects.filter(category = category, is_open = True).values('stock__symbol','position','vol')
 		temp = []
-		for cnt,p in enumerate(positions):
+		for p in positions:
 			if p['stock__symbol'] in historicals[on_date]:
 				# if symbol's historicals are missing for some reason
 				# eg. stopped trading on that day, compay got bought
@@ -159,6 +159,10 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 		# sell if meeting cutoff criteria
 		positions = MyPosition.objects.filter(category = category, is_open = True)
 		for p in positions:
+			# TODO: don't know why a symbol could stop showing up
+			# in historicals. To protect such case, we put a line here.
+			if p.stock.symbol not in historicals[on_date]: continue
+
 			his = historicals[on_date][p.stock.symbol]
 			simulated_spot = his['open_price'] # assume we are selling at open
 
@@ -201,15 +205,24 @@ def jk_trading_simulation(user,data,historicals,capital=100000,per_buy=1000,buy_
 			# print 'create: ',symbol, capital,target_price
 
 		# compute equity, cash, asset
-		positions = MyPosition.objects.select_related().filter(category = category, is_open = True).values('stock__symbol','vol')
+		positions = MyPosition.objects.filter(category = category, is_open = True).values('stock__symbol','vol')
 		temp = []
-		for p in positions:
-			his = historicals[on_date][p['stock__symbol']]
+		for cnt,p in enumerate(positions):
+			print 'start', cnt, len(positions), p
+			if p['stock__symbol'] in historicals[on_date]:
+				# if symbol's historicals are missing for some reason
+				# eg. stopped trading on that day, compay got bought
+				# this would result some open position at the end of portfolio
+				his = historicals[on_date][p['stock__symbol']]
+			else:
+				print 'symbol', p['stock__symbol'], 'not found in historicals @',on_date
+				continue
 
 			# we compute equity value based on daily close price
 			if 'adj_close' in his: simulated_spot = his['adj_close'] 
 			elif 'close_price' in his: simulated_spot = his['close_price']
 			temp.append(p['vol'] * simulated_spot)
+			print 'end', cnt, len(positions), p
 
 		equity[on_date] = sum(temp)
 		cash[on_date] = capital
