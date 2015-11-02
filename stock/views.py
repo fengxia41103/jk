@@ -97,7 +97,7 @@ class HomeView (TemplateView):
 ###################################################
 class LoginView(FormView):
 	template_name = 'registration/login.html'
-	success_url = reverse_lazy('trend_2day_loss')
+	success_url = reverse_lazy('backtesting_2')
 	form_class = AuthenticationForm
 	def form_valid(self,form):
 		username = form.cleaned_data['username']
@@ -435,7 +435,7 @@ class MyStockStrategy2List(FormView):
 			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
 		elif data_source == '3':
 			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','val_by_strategy','oneday_change')
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','val_by_strategy','oneday_change')
 
 		# dates
 		dates = list(set([h['date_stamp'] for h in histories]))

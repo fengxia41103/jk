@@ -288,7 +288,7 @@ def main():
 	# populate_sp_500	()
 	# crawl_stock_prev_yahoo()
 	# crawl_stock_yahoo_spot2()	
-	crawl_stock_prev_yahoo2()
+	# crawl_stock_prev_yahoo2()
 
 	# crawl_stock_yahoo_spot()
 
@@ -300,7 +300,7 @@ def main():
 	#crawler_flag_sp500()
 	# backtest_s2()
 	# crawler_s2_rank()
-	#backtest_s3()
+	backtest_s3()
 	# crawler_s3_rank()
 
 if __name__ == '__main__':

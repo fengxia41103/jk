@@ -14,13 +14,6 @@ class MySimulation(object):
 		self.category = category	
 		self.snapshot = OrderedDict()
 
-	def __hash__(self):
-	    return hash(self.data)
-	def __eq__(self, other):
-	    return self.data == other
-	def __repr__(self):
-	    return repr(self.data)
-
 	def run(self):
 		# clear all positions and reset porfolio cash
 		MyPosition.objects.filter(category=self.category).delete()
@@ -58,11 +51,14 @@ class MySimulation(object):
 					# eg. stopped trading on that day, compay got bought
 					# this would result some open position at the end of portfolio
 					his = self.historicals[on_date][p['stock__symbol']]
-				else: continue
 
-				# we compute equity value based on daily close price
-				if 'adj_close' in his: simulated_spot = his['adj_close'] 
-				elif 'close_price' in his: simulated_spot = his['close_price']
+					# we compute equity value based on daily close price
+					if 'adj_close' in his and his['adj_close'] > 0: simulated_spot = his['adj_close'] 
+					elif 'close_price' in his: simulated_spot = his['close_price']
+				else:
+					print p['stock__symbol'], 'not in historical!'
+					1/0
+
 				temp.append(p['vol'] * simulated_spot)
 				self.snapshot[on_date]['gain']['hold'] += p['vol'] * (simulated_spot - p['position'])
 
@@ -117,16 +113,19 @@ class MySimulationAlpha(MySimulation):
 
 		# sell if outside sell_cutoff
 		positions = MyPosition.objects.filter(category = self.category, is_open = True).values_list("stock__symbol",flat=True).distinct()
-		for symbol in symbols[-1*int(total_symbols*self.sell_cutoff)-1:]:
+
+		for symbol in symbols[-1*int(total_symbols*self.sell_cutoff):]:
 			if symbol not in positions: continue # not an open position, next
 			if symbol not in self.historicals[on_date]: continue # stock stopped trading?
 
 			his = self.historicals[on_date][symbol]
-			target_price = his['close_price'] # assuming we sell at close			
-			pos = MyPosition.objects.get(stock__symbol=symbol,category = self.category, is_open=True)
-			pos.close(self.user,target_price,on_date=on_date)			
+			if 'adj_close' in his and his['adj_close'] > 0: simulated_spot = his['adj_close'] 
+			elif 'close_price' in his: simulated_spot = his['close_price']
 
-			self.capital += pos.vol * target_price
+			pos = MyPosition.objects.get(stock__symbol=symbol,category = self.category, is_open=True)
+			pos.close(self.user,simulated_spot,on_date=on_date)		
+
+			self.capital += pos.vol * simulated_spot
 			self.snapshot[on_date]['transaction']['sell'].append(pos)
 			self.snapshot[on_date]['gain']['sell'] += pos.gain
 			# print 'close: ',symbol,self.capital
@@ -143,12 +142,14 @@ class MySimulationAlpha(MySimulation):
 			# we buy, assuming knowing the ranking based on OPEN price
 			# so we buy at CLOSE on that date
 			his = self.historicals[on_date][symbol]
-			target_price = his['close_price'] # assuming we buy at close
+			if 'adj_close' in his and his['adj_close'] > 0: simulated_spot = his['adj_close'] 
+			elif 'close_price' in his: simulated_spot = his['close_price']
+
 			pos = MyPosition(
 				stock = MyStock.objects.get(id=int(his['stock'])),
 				user = self.user,
-				position = target_price, # buy
-				vol = self.per_buy/target_price,
+				position = simulated_spot, # buy
+				vol = self.per_buy/simulated_spot,
 				open_date = on_date,
 				category = self.category,
 				is_open = True)
@@ -222,12 +223,14 @@ class MySimulationJK(MySimulation):
 			oneday_change = his['oneday_change']
 			if oneday_change > -1*self.buy_cutoff: continue
 
-			target_price = his['close_price'] # assuming we buy close
+			if 'adj_close' in his and his['adj_close'] > 0: simulated_spot = his['adj_close'] 
+			elif 'close_price' in his: simulated_spot = his['close_price']
+
 			pos = MyPosition(
 				stock = MyStock.objects.get(id=int(his['stock'])),
 				user = self.user,
 				position = target_price, # buy
-				vol = self.per_buy/target_price,
+				vol = self.per_buy/simulated_spot,
 				open_date = on_date,
 				category = self.category)
 			pos.save()

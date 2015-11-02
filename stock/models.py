@@ -572,6 +572,7 @@ class MyPosition(models.Model):
 		self.is_open = False
 		if on_date: self.close_date = on_date
 		else: self.close_date = dt.now().date()
+		self._life_in_days()
 		self.save()		
 
 	def _cost(self):
@@ -600,7 +601,7 @@ class MyPosition(models.Model):
 
 	def _life_in_days(self):
 		if self.open_date and self.close_date:
-			return (self.close_date - self.open-date).days
+			return (self.close_date - self.open_date).days
 		else: return (self.last_updated_on-self.created).days
 	life_in_days = property(_life_in_days)	
 

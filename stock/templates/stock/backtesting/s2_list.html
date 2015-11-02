@@ -43,6 +43,7 @@ For this strategy, sorting is irrelevant.
 {% endblock %}
 
 {% block strategy-result %}
+<h1 class="page-header">Traces</h1>
 {% for on_date, sp in snapshots.iteritems %}
 <div>
 <h3 class="my-section-header">{{ on_date }}</h3>
@@ -89,6 +90,7 @@ For this strategy, sorting is irrelevant.
 	<div id="{{on_date|date:"Y-m-d"}}-buy" class="tab-pane fade in active">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
+				<th></th>
 				<th>Symbol</th>
 				<th>Cost</th>
 				<th>Vol</th>
@@ -96,6 +98,8 @@ For this strategy, sorting is irrelevant.
 			<tbody>
 				{% for p in sp.transaction.buy %}
 				<tr><td>
+					{{ forloop.counter }}
+				</td><td>
 					{{ p.stock.symbol }}
 				</td><td>
 					{{ p.position|floatformat:2 }}
@@ -112,6 +116,7 @@ For this strategy, sorting is irrelevant.
 	<div id="{{on_date|date:"Y-m-d"}}-sell" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
+				<th></th>
 				<th>Symbol</th>
 				<th>Cost</th>
 				<th>Exit</th>
@@ -121,6 +126,8 @@ For this strategy, sorting is irrelevant.
 			<tbody>
 				{% for p in sp.transaction.sell %}
 				<tr><td>
+					{{ forloop.counter }}
+				</td><td>
 					{{ p.stock.symbol }}
 				</td><td>
 					{{ p.position|floatformat:2 }}
@@ -141,6 +148,7 @@ For this strategy, sorting is irrelevant.
 	<div id="{{on_date|date:"Y-m-d"}}-portfolio" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
+				<th></th>
 				<th>Symbol</th>
 				<th>Cost</th>
 				<th>Vol</th>
@@ -148,6 +156,8 @@ For this strategy, sorting is irrelevant.
 			<tbody>
 				{% for p in sp.portfolio %}
 				<tr><td>
+					{{ forloop.counter }}
+				</td><td>
 					{{ p.stock__symbol }}
 				</td><td>
 					{{ p.position|floatformat:2 }}

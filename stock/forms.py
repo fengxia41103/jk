@@ -52,9 +52,13 @@ class StrategyControlForm(forms.Form):
     	widget = AdminDateWidget
     )
     capital = forms.IntegerField(
-    	initial = 10000,
+    	initial = 100000,
         label = "Starting cash"
-    )    
+    ) 
+    per_trade = forms.IntegerField(
+        initial = 10000,
+        label = "Per trade amount"
+    )      
     buy_cutoff = forms.FloatField(
     	initial = 25,
         max_value = 100,
