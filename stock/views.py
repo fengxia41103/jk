@@ -48,7 +48,8 @@ import simplejson as json
 from itertools import groupby
 import urllib, lxml.html
 from numpy import mean, std 
-from utility import MyUtility
+import pickle
+from utility import MyUtility, JSONEncoder
 
 from stock.forms import HistoricalListForm, StrategyControlForm
 from stock.models import *
@@ -426,6 +427,7 @@ class MyStockStrategy2List(FormView):
 		buy_cutoff = form.cleaned_data['buy_cutoff']/100.0
 		sell_cutoff = form.cleaned_data['sell_cutoff']/100.0
 		capital = form.cleaned_data['capital']
+		per_trade = form.cleaned_data['per_trade']
 
 		# sample set
 		data_source = form.cleaned_data['data_source']
@@ -472,10 +474,14 @@ class MyStockStrategy2List(FormView):
 			data,
 			histories_by_date,
 			capital,
-			self.request.user.myuserprofile.per_trade_total,
+			per_trade,
 			buy_cutoff = buy_cutoff,
 			sell_cutoff = sell_cutoff,
 			category = category).run()
+		
+		# save result as JSON
+		# temp = json.dumps(simulations, cls=JSONEncoder)
+		temp = pickle.dumps(simulations)
 
 		# render HTML
 		return render(self.request, self.template_name, {

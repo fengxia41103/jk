@@ -560,92 +560,9 @@ def backtesting_s1_consumer(symbol):
 	crawler.parser(symbol)
 
 from numpy import mean, std 
-class MyStockBacktesting_2():
+class MyStockDailyReturn():
 	"""
-	This strategy is based on Chenmin's email:
-
-	交易思想如下，根据某指标，对每只指数进行排名，排入前25%的，就进行持仓； 一旦持仓，落后到40%以后，则平仓出来。。
-	比如，在9/12,  CI005025 排名从第10跳到第6， 则LONG之（第6名相当于 6/29 =20% ） ；  到9/19, 排名第一次跌出前 12名； 则平仓。。
-
-	为了对冲做多的风险，对应地也对这些指数进行做空，一样，排名后25%， 则做空，返回到 60%以内，则平仓。。
-
-	下面只剩下指标怎么定义： 
-	采用以下进行测试：
-	指标 = ( 价格- （N日均价))/N日价格的标准差     指标值越大，则排名越靠前	
-
-	N = int(M/4), where M is the total number of stocks participating in ranks	
-	"""
-	def __init__(self):
-		self.logger = logging.getLogger('jk')
-
-	def parser(self, symbol, window_length=7):
-		self.logger.debug('%s starting' % symbol)
-		exec_start = time.time()
-
-		records = MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp')
-		start = window_length
-		if window_length > len(records):
-			self.logger.error('%s: not enough data'%symbol)
-			return
-
-		t0 = prev = None
-		for i in range(window_length,len(records)):
-			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
-			window = records[i-window_length:i]
-			t0 =  records[i] # set T0
-			prev = records[i-1] # set to T-1
-			
-			# compute index value
-			# data = map(lambda x: mean([x.high_price,x.low_price]), window)
-			# window_avg = mean(data)
-			# window_std = std(data)
-			# t0.val_by_strategy = (t0.open_price-window_avg)/window_std
-			t0.val_by_strategy = (t0.close_price-prev.close_price)/prev.close_price*100
-
-			# save to DB
-			t0.save()
-
-		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
-
-@shared_task
-def backtesting_s2_consumer(symbol):
-	crawler = MyStockBacktesting_2()
-	crawler.parser(symbol)
-
-class MyStockBacktesting_2_rank():
-	"""
-	Based on the score calculated by strategy 2, we rank all stocks per date
-	"""
-	def __init__(self):
-		self.logger = logging.getLogger('jk')
-
-	def parser(self, on_date, ascending=True):
-		self.logger.debug('%s starting' % on_date.isoformat())
-		exec_start = time.time()
-
-		if ascending:
-			his = MyStockHistorical.objects.filter(stock__symbol__startswith="CI00", date_stamp = on_date).order_by('val_by_strategy')
-		else:
-			his = MyStockHistorical.objects.filter(stock__symbol__startswith="CI00", date_stamp = on_date).order_by('-val_by_strategy')			
-		for i in range(len(his)):
-			his[i].peer_rank = i
-			his[i].save()
-
-		self.logger.debug('%s completed, elapse %f'%(on_date.isoformat(), time.time()-exec_start))
-
-@shared_task
-def backtesting_s2_rank_consumer(on_date,ascending):
-	crawler = MyStockBacktesting_2_rank()
-	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date(),ascending)
-
-class MyStockBacktesting_3():
-	"""
-	For a SP500 stock, we rank them by daily price change (t0's open vs. t-1's close),
-	a negative price change would mean the stock price dropped badly on T0 -> we buy it.
-	When its daily change is positive and ranked high, we sell.
-
-	Scenario #1: it had a steep drop but never a steep rise -> we will be holding this stock for a long time;
-	Scenario #2: 
+	Compute historical oneday_change = (today's close - prev's close)/prev's close *100
 	"""	
 	def __init__(self):
 		self.logger = logging.getLogger('jk')
@@ -670,41 +587,58 @@ class MyStockBacktesting_3():
 			prev = records[i-1] # set T-1
 
 			# compute index value
-			if prev.adj_close and prev.adj_close > 0:
-				t0.val_by_strategy = (t0.open_price - prev.adj_close)/prev.adj_close*100
-				t0.oneday_change = (t0.open_price - prev.adj_close)/prev.adj_close*100
-			elif prev.close_price and prev.close_price > 0:
-				t0.val_by_strategy = (t0.open_price - prev.close_price)/prev.close_price*100
-				t0.oneday_change = (t0.open_price - prev.close_price)/prev.close_price*100
+			if t0.adj_close > 0 and prev.adj_close > 0:
+				t0.oneday_change = (t0.adj_close - prev.adj_close)/prev.adj_close*100
+			elif t0.close_price > 0 and prev.close_price > 0:
+				t0.oneday_change = (t0.close_price - prev.close_price)/prev.close_price*100
 			# save to DB
 			t0.save()
 
 		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
 
 @shared_task
-def backtesting_s3_consumer(symbol):
-	crawler = MyStockBacktesting_3()
+def backtesting_daily_return_consumer(symbol):
+	crawler = MyStockDailyReturn()
 	crawler.parser(symbol)
 
-class MyStockBacktesting_3_rank():
+class MyStockRelativeHL():
 	"""
-	Based on the score calculated by strategy 3, we rank all stocks per date
-	"""
+	Relative Position indicator in (H,L) = -100*(Highest(High,Len)-Close)/(Highest(High,Len)-Lowest(Low,Len))+50;   // Len is 40 by default 
+
+	"""	
 	def __init__(self):
 		self.logger = logging.getLogger('jk')
 
-	def parser(self, on_date):
-		self.logger.debug('%s starting' % on_date.isoformat())
+	def parser(self,symbol,window_length=40):
+		self.logger.debug('%s starting' % symbol)
 		exec_start = time.time()
 
-		his = MyStockHistorical.objects.filter(stock__is_sp500 = True, date_stamp = on_date).order_by('-val_by_strategy')
-		for i in range(len(his)):
-			his[i].peer_rank = i
-			his[i].save()
+		records = MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp')
 
-		self.logger.debug('%s completed, elapse %f'%(on_date.isoformat(), time.time()-exec_start))
+		# The starting point is depending on how much past data your strategy is calling for.
+		# For example, if we are to calculate 10 weeks of fib score, we need at least 10 weeks of history data.
+		if window_length > len(records):
+			self.logger.error('%s: not enough data'%symbol)
+			return
+
+		t0 = ''
+		for i in range(window_length,len(records)):
+			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
+			window = records[i-window_length:i]
+			t0 =  records[i] # set T0
+			prev = records[i-1] # set T-1
+
+			# compute index value
+			ref_high = max([r.high_price for r in window])
+			ref_low = min([r.low_price for r in window])
+
+			val = -100*(ref_high-t0.close_price)/(ref_high-ref_low)+50
+			# save to DB
+			t0.save()
+
+		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
 
 @shared_task
-def backtesting_s3_rank_consumer(on_date):
-	crawler = MyStockBacktesting_3_rank()
-	crawler.parser(dt.strptime(on_date, "%Y-%m-%d").date())	
+def backtesting_relative_hl_consumer(symbol):
+	crawler = MyStockRelativeHL()
+	crawler.parser(symbol)

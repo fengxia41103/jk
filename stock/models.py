@@ -224,9 +224,9 @@ class MyStock(models.Model):
 		default = 0.0,
 		verbose_name = u'Volume (in 000)'
 	)
-	float_share = models.FloatField(		
+	floating_share = models.FloatField(		
 		default = 0.0,
-		verbose_name = u'Float share(in million)'
+		verbose_name = u'Floating share(in million)'
 	)
 	day_high = models.DecimalField(
 		max_digits = 20,
@@ -416,11 +416,6 @@ class MyStockHistorical(models.Model):
 		default = 0,
 		verbose_name = u'Adjustment factor'
 	)
-	oneday_change = models.FloatField(
-		null = True,
-		blank = True,
-		verbose_name = u"(Today's Open - Prev close)/prev close*100"
-	)
 	amount = models.FloatField(
 		default = -1,		
 		verbose_name = u'成交金额 (000)'		
@@ -452,6 +447,19 @@ class MyStockHistorical(models.Model):
 		verbose_name = u'Stock trading status, eg. stopped trading on that day'
 	)
 
+	# pre-computed index values
+	daily_return = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"(Today's Close - Today's Open)/Today's Open*100"
+	)
+	relative_hl = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"Relative Position indicator in (H,L)"
+	)
+
+	# live computed properties
 	def _avg_price(self):
 		if self.vol and self.amount: return Decimal(self.amount)/Decimal(self.vol)
 		else: return None

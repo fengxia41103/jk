@@ -57,7 +57,7 @@ class MySimulation(object):
 					elif 'close_price' in his: simulated_spot = his['close_price']
 				else:
 					print p['stock__symbol'], 'not in historical!'
-					1/0
+					continue
 
 				temp.append(p['vol'] * simulated_spot)
 				self.snapshot[on_date]['gain']['hold'] += p['vol'] * (simulated_spot - p['position'])

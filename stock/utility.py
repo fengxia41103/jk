@@ -14,10 +14,19 @@ from selenium.webdriver.support.select import Select
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
 import urllib2, lxml.html, sys
 from itertools import izip_longest
+import simplejson as json
 
 # import models
 #from pi.models import *
 from models import *
+
+class JSONEncoder(json.JSONEncoder):
+    def default(self, obj):
+		#handles both date and datetime objects    	
+        if hasattr(obj, 'isoformat'): 
+            return obj.isoformat()
+        else:
+            return json.JSONEncoder.default(self, obj)
 
 class ParametrizedTestCase(TestCase):
     """ TestCase classes that want to be parametrized should

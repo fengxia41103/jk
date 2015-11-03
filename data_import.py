@@ -78,27 +78,14 @@ def backtest_s1():
 	for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol',flat=True))):
 		backtesting_s1_onsumer.delay(symbol)
 
-from stock.tasks import backtesting_s2_consumer
-def backtest_s2():
-	for symbol in list(set(MyStockHistorical.objects.filter(stock__symbol__startswith="CI00").values_list('stock__symbol',flat=True))):
-		backtesting_s2_consumer.delay(symbol)
+from stock.tasks import backtesting_daily_return_consumer,backtesting_relative_hl_consumer
+def consumer_daily_return():
+	for symbol in MyStock.objects.values_list('symbol',flat=True):
+		backtesting_daily_return_consumer.delay(symbol)
 
-from stock.tasks import backtesting_s2_rank_consumer
-def crawler_s2_rank():
-	dates = MyStockHistorical.objects.filter(stock__is_sp500=False,stock__symbol__startswith='CI00').values_list('date_stamp').distinct()
-	for d in dates: backtesting_s2_rank_consumer.delay(d[0].isoformat(),ascending=False)
-
-from stock.tasks import backtesting_s3_consumer
-def backtest_s3():
-	for symbol in list(set(MyStockHistorical.objects.filter(stock__is_sp500=True).values_list('stock__symbol',flat=True))):
-	# for symbol in list(set(MyStockHistorical.objects.filter(stock__symbol__startswith="CI00").values_list('stock__symbol',flat=True))):
-		backtesting_s3_consumer.delay(symbol)
-
-from stock.tasks import backtesting_s3_rank_consumer
-def crawler_s3_rank():
-	dates = MyStockHistorical.objects.filter(stock__is_sp500=True).values_list('date_stamp').distinct()
-	for d in dates: backtesting_s3_rank_consumer.delay(d[0].isoformat())
-
+def consumer_relative_hl():
+	for symbol in MyStock.objects.values_list('symbol',flat=True):
+		backtesting_relative_hl_consumer.delay(symbol)
 
 import csv
 from django.db.models.loading import get_model
@@ -281,6 +268,23 @@ from stock.tasks import stock_flag_sp500_consumer
 def crawler_flag_sp500():
 	stock_flag_sp500_consumer.delay()
 
+def import_china_stock_floating_share():
+	f = u'/home/fengxia/Desktop/chenmin/study/All_Stock_流通股本.csv'
+	records = []
+
+	with open(f,'rb') as csvfile:
+		for cnt, vals in enumerate(csv.reader(csvfile)):
+			if '.' not in vals[0]: continue
+
+			symbol = vals[0].split('.')[0]
+			floating_share = float(vals[-1])/1000000.0
+			print symbol, floating_share
+
+			stock = MyStock.objects.get(symbol=symbol)
+			stock.floating_share = floating_share
+			stock.save()
+
+
 def main():
 	django.setup()
 
@@ -298,10 +302,10 @@ def main():
 	#backtest_1()
 	#import_chenmin_csv2()	
 	#crawler_flag_sp500()
-	# backtest_s2()
-	# crawler_s2_rank()
-	backtest_s3()
-	# crawler_s3_rank()
+	# consumer_oneday_change()
+	# import_china_stock_floating_share()
+	consumer_daily_return()
+	consumer_relative_hl()
 
 if __name__ == '__main__':
 	main()

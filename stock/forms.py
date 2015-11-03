@@ -28,13 +28,28 @@ class StrategyControlForm(forms.Form):
         (1, "S1 (by ranking)"),
         (2, "S2 (buy low sell high)"),
     )
-    data_source = forms.ChoiceField(
-        choices = DATA_CHOICES,
-        initial = 1
+    STRATEGY_VALUE_CHOICES = (
+        (1, "One day change %"),
+        (2, "Two day change %"),
+        (3, "Relative Position in (H,L)"),
+        (4, 'Relative Position in Moving Average'),
+        (5, 'CCI'),
+        (6, 'SI'),
+        (7, 'Linear Reg Slope'),
+        (8, 'Decycler Oscillator'),
     )    
+    data_source = forms.ChoiceField(
+        choicesRelative Position indicator in (H,L) = DATA_CHOICES,
+        initial = 1
+    )
     strategy = forms.ChoiceField(
         choices = STRATEGY_CHOICES,
         initial = 1
+    )
+    strategy_value = forms.ChoiceField(
+        choices = STRATEGY_VALUE_CHOICES,
+        initial = 2,
+        label = "Strategy value"
     )
     data_sort = forms.ChoiceField(
         choices = DATA_SORT_CHOICES,
