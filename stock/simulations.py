@@ -3,22 +3,78 @@ from collections import OrderedDict
 from stock.models import *
 
 class MySimulation(object):
-	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation):
+	def __init__(self,user,simulation):
 		self.trading_cost = 0.003 # 0.3% of buying amount
 		self.user = user
-		self.data = data
-		self.historicals = historicals
-		self.capital = capital
-		self.per_buy = per_buy
-		self.buy_cutoff = buy_cutoff
-		self.sell_cutoff = sell_cutoff
 		self.simulation = simulation
+		self.data = []
+		self.historicals = None
 		self.snapshot = OrderedDict()
+		self.capital = simulation.capital
+		self.per_trade = simulation.per_trade
+		self.buy_cutoff = simulation.buy_cutoff
+		self.sell_cutoff = simulation.sell_cutoff
 
 		# clear previous-run positions
 		MyPosition.objects.filter(simulation=simulation).delete()
 
+	def setup(self):
+		index_val_mapping = {
+			1:'daily_return',
+			2:'relative_hl',
+			3:'relative_ma',
+			4:'cci',
+			5:'si',
+			6:'lg_slope',
+			7:'decycler_oscillator'
+		}
+
+		# control variables
+		start = self.simulation.start
+		end = self.simulation.end
+		strategy_value = self.simulation.strategy_value
+
+		# sample set
+		data_source = self.simulation.data_source
+		if data_source == 1:
+			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
+		elif data_source == 2:
+			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)			
+		elif data_source == 3:
+			stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
+		elif data_source == 4:
+			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy')
+
+		# dates
+		dates = list(set([h['date_stamp'] for h in histories]))
+		dates.sort()
+		start = dates[0]
+		end = dates[-1]
+
+		# reconstruct historicals by dates
+		self.historicals = {}
+		for h in histories:
+			on_date = h['date_stamp']
+			if on_date not in self.historicals: self.historicals[on_date]={}
+			self.historicals[on_date][h['stock__symbol']] = h
+
+		for on_date in dates:
+			his_by_symbol = self.historicals[on_date]
+			
+			if self.simulation.strategy == 1:
+				tmp = [(symbol,h[index_val_mapping[strategy_value]]) for symbol,h in his_by_symbol.iteritems()]			
+				symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(self.simulation.data_sort == 1))] 				
+				self.data.append((on_date,symbols_by_rank))
+			elif self.simulation.strategy == 2:
+				# for JK type trading, we don't need to sort		
+				symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
+				self.data.append((on_date,symbols))
+
 	def run(self):
+		# set up data points
+		self.setup()
+
 		# asset simulation result
 		assets = {}
 		equity = {}
@@ -95,20 +151,9 @@ class MySimulationAlpha(MySimulation):
 	3. Sell stocks when it falls out the sell_cutoff band, eg. if sell_cutoff = 0.75 and total samples = 20, sell if rank >= (1-0.75)*20 = 5
 
 	We simulate trades based on this strategy, then monitor the porfolio value (equity+cash).
-
-	@param user: request.user
-	@param data: a list of dict, [{'on_date':date obj, 'ranks':['symbol 1','symbol 2']}]
-	@param capital: starting cash amount
-	@param per_buy: per trade total amount, vol = per_buy/stock_price
-	@param buy_cutoff: symbols[: cutoff * total sample number] -> buy these
-	@param sell_cutoff: symbols[-1*cutoff * total sample number: ] -> sell these
-	@param simulation: is the strategy condition ID
-
-	@return: {date: asset value}
-	@rtype: dict
 	"""	
-	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation):
-		super(MySimulationAlpha,self).__init__(user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation)
+	def __init__(self,user,simulation):
+		super(MySimulationAlpha,self).__init__(user,simulation)
 
 	def sell(self, on_date, symbols):
 		total_symbols = len(symbols)
@@ -141,7 +186,7 @@ class MySimulationAlpha(MySimulation):
 		positions = MyPosition.objects.filter(simulation = self.simulation,is_open = True).values_list("stock__symbol",flat=True).distinct()
 		for symbol in symbols[:int(total_symbols*self.buy_cutoff)]:
 			if symbol in positions: continue # already in portfolio, hold
-			if self.capital < self.per_buy: continue # not enough fund
+			if self.capital < self.per_trade: continue # not enough fund
 			if symbol not in self.historicals[on_date]: continue # stock stopped trading?
 
 			# we buy, assuming knowing the ranking based on OPEN price
@@ -154,7 +199,7 @@ class MySimulationAlpha(MySimulation):
 				stock = MyStock.objects.get(id=int(his['stock'])),
 				user = self.user,
 				position = simulated_spot, # buy
-				vol = self.per_buy/simulated_spot,
+				vol = self.per_trade/simulated_spot,
 				open_date = on_date,
 				simulation = self.simulation,
 				is_open = True)
@@ -171,20 +216,10 @@ class MySimulationJK(MySimulation):
 	1. Stocks are ranked by one-day change percentage. If pcnt < 0, price has dropped. The bigger the drop, the higher the rank.
 	2. Buy stocks whose rank is above the buy_cutoff band, eg. if cutoff = 0.25 and total samples = 20, buy if rank <= 0.25*20=5
 	3. Sell if stock's price has recovered more than sell_cutoff, eg. if cutoff = 0.25 and position @ 100, selll if new price >= 100*(1+0.25)
-
-	@param user: request.user
-	@param data: a list of dict, [{'on_date':date obj, 'ranks':['symbol 1','symbol 2']}]
-	@param capital: starting cash amount
-	@param per_buy: per trade total amount, vol = per_buy/stock_price
-	@param buy_cutoff: daily_return < -1*buy_cutoff, buy
-	@param sell_cutoff: price exit @ cost *(1+sell_cutoff)
-
-	@return: {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets}
-	@rtype: dict
 	"""
 
-	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation):
-		super(MySimulationJK,self).__init__(user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation)
+	def __init__(self,user,simulation):
+		super(MySimulationJK,self).__init__(user,simulation)
 
 	def sell(self, on_date, symbols):
 		total_symbols = len(symbols)
@@ -219,7 +254,7 @@ class MySimulationJK(MySimulation):
 			if symbol in positions: continue
 
 			# not enough fund
-			if self.capital < self.per_buy: continue
+			if self.capital < self.per_trade: continue
 
 			# if buy_cutoff = 0.04, 
 			#   - if daily_return > -0.04, we skip
@@ -235,7 +270,7 @@ class MySimulationJK(MySimulation):
 				stock = MyStock.objects.get(id=int(his['stock'])),
 				user = self.user,
 				position = target_price, # buy
-				vol = self.per_buy/simulated_spot,
+				vol = self.per_trade/simulated_spot,
 				open_date = on_date,
 				simulation = self.simulation)
 			pos.save()

@@ -421,81 +421,19 @@ class MyStockStrategy2List(FormView):
 	form_class = StrategyControlForm
 
 	def form_valid(self, form):
-		index_val_mapping = {
-			1:'daily_return',
-			2:'relative_hl',
-			3:'relative_ma',
-			4:'cci',
-			5:'si',
-			6:'lg_slope',
-			7:'decycler_oscillator'
-		}
 
 		# persist simulation conditions
 		condition,created = MySimulationCondition.objects.get_or_create(**form.cleaned_data)
 
-		if created: # run simulation for 1st time
-			# control variables
-			start = condition.start
-			end = condition.end
-			buy_cutoff = condition.buy_cutoff/100.0
-			sell_cutoff = condition.sell_cutoff/100.0
-			capital = condition.capital
-			per_trade = condition.per_trade
-			strategy_value = condition.strategy_value
-
-			# sample set
-			data_source = form.cleaned_data['data_source']
-			if data_source == 1:
-				stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
-			elif data_source == 2:
-				stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)			
-			elif data_source == 3:
-				stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
-			elif data_source == 4:
-				stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
-			histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy')
-
-			# dates
-			dates = list(set([h['date_stamp'] for h in histories]))
-			dates.sort()
-			start = dates[0]
-			end = dates[-1]
-
-			# reconstruct historicals by dates
-			histories_by_date = {}
-			for h in histories:
-				on_date = h['date_stamp']
-				if on_date not in histories_by_date: histories_by_date[on_date]={}
-				histories_by_date[on_date][h['stock__symbol']] = h
-
-			data = []
-			for on_date in dates:
-				his_by_symbol = histories_by_date[on_date]
-				
-				if condition.strategy == 1:
-					tmp = [(symbol,h[index_val_mapping[strategy_value]]) for symbol,h in his_by_symbol.iteritems()]			
-					symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(form.cleaned_data['data_sort'] == '1'))] 				
-					data.append((on_date,symbols_by_rank))
-				elif condition.strategy == 2:
-					# for JK type trading, we don't need to sort		
-					symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
-					data.append((on_date,symbols))
-
+		if not MySimulationResult.objects.filter(condition=condition): # run simulation for 1st time
 			# simulate tradings
 			simulation_methods = {
 				1: 'MySimulationAlpha',
 				2: 'MySimulationJK'
 			}
 			trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])	
-			simulations = trading_method(self.request.user,
-				data,
-				histories_by_date,
-				capital,
-				per_trade,
-				buy_cutoff = buy_cutoff,
-				sell_cutoff = sell_cutoff,
-				simulation = condition).run()
+			simulator = trading_method(self.request.user,simulation=condition)			
+			simulations = simulator.run()
 			
 			# save result as JSON
 			frozen = pickle.dumps(simulations)
@@ -515,8 +453,8 @@ class MyStockStrategy2List(FormView):
 		return render(self.request, self.template_name, {
 			'strategy': condition,
 			'form':form,
-			'start':start,
-			'end':end,
+			'start': condition.start,
+			'end':condition.end,
 			'on_dates': [d.isoformat() for d in simulations['on_dates']],
 			'assets': simulations['assets'],
 			'cashes': simulations['cashes'],
