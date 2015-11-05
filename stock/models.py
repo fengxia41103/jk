@@ -16,6 +16,7 @@ from django.db.models.signals import pre_save,post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
 from decimal import Decimal
+from django.core.validators import MaxValueValidator, MinValueValidator
 from math import fabs
 
 class MyBaseModel (models.Model):
@@ -669,6 +670,89 @@ def day_change_handler(sender, **kwargs):
 		if not stock.is_in_play:
 			stock.is_in_play = True
 			stock.save()
+
+class MySimulationCondition(models.Model):
+	DATA_CHOICES = (
+		(1, "S&P500"),
+		(2, "CI sector"),
+		(3, "WIND sector"), 
+		(4, "China stock"),    
+	)
+	DATA_SORT_CHOICES = (       
+		(0, "ascending"),
+		(1, "descending"),
+	)	
+	STRATEGY_CHOICES = (
+		(1, "S1 (by ranking)"),
+		(2, "S2 (buy low sell high)"),
+	)
+	STRATEGY_VALUE_CHOICES = (
+		(1, "Daily return"),
+		(2, "Relative (H,L)"),
+		(3, 'Relative Moving Avg'),
+		(4, 'CCI'),
+		(5, 'SI'),
+		(6, 'Linear Reg Slope'),
+		(7, 'Decycler Oscillator'),
+	)    
+	data_source = models.IntegerField(
+		choices = DATA_CHOICES,
+		default = 1
+	)
+	strategy = models.IntegerField(
+		choices = STRATEGY_CHOICES,
+		default = 1
+	)
+	strategy_value = models.IntegerField(
+		choices = STRATEGY_VALUE_CHOICES,
+		default = 1,
+		verbose_name = u"Strategy value"
+	)
+	data_sort = models.IntegerField(
+		choices = DATA_SORT_CHOICES,
+		default = 2,
+		verbose_name = u"Sort order"
+	)
+	start = models.DateField (
+		default = "2014-01-01",
+		verbose_name = u'Start date'
+	)
+	end = models.DateField (
+		default = "2014-01-10",
+		verbose_name = u'End date',
+	)
+	capital = models.IntegerField(
+		default = 100000,
+		verbose_name = u"Starting cash"
+	) 
+	per_trade = models.IntegerField(
+		default = 10000,
+		verbose_name = u"Per trade amount"
+	)      
+	buy_cutoff = models.IntegerField(
+		default = 25,
+		validators = [
+			MaxValueValidator(100),
+			MinValueValidator(0)
+		],
+		verbose_name = "Buy cutoff (%)"
+	)
+	sell_cutoff = models.IntegerField(
+		default = 75,
+		validators = [
+			MaxValueValidator(100),
+			MinValueValidator(0)
+		],
+		verbose_name = "Sell cutoff (%)"
+	)
+
+	def __unicode__(self):
+		return '%d-%d-%d' %(self.data_source, self.strategy, self.strategy_value)
+
+class MySimulationResult(models.Model):
+	description = models.TextField()
+	result = models.TextField()
+	condition = models.OneToOneField('MySimulationCondition')
 
 class MyChenmin(models.Model):
 	executed_on = models.DateField(

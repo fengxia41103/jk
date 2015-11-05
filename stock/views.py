@@ -422,86 +422,103 @@ class MyStockStrategy2List(FormView):
 
 	def form_valid(self, form):
 		index_val_mapping = {
-			'1':'daily_return',
-			'2':'relative_hl',
-			'3':'relative_ma',
-			'4':'cci',
-			'5':'si',
-			'6':'lg_slope',
-			'7':'decycler_oscillator'
+			1:'daily_return',
+			2:'relative_hl',
+			3:'relative_ma',
+			4:'cci',
+			5:'si',
+			6:'lg_slope',
+			7:'decycler_oscillator'
 		}
 
-		# control variables
-		start = form.cleaned_data['start']
-		end = form.cleaned_data['end']
-		buy_cutoff = form.cleaned_data['buy_cutoff']/100.0
-		sell_cutoff = form.cleaned_data['sell_cutoff']/100.0
-		capital = form.cleaned_data['capital']
-		per_trade = form.cleaned_data['per_trade']
-		strategy_value = form.cleaned_data['strategy_value']
+		# persist simulation conditions
+		condition,created = MySimulationCondition.objects.get_or_create(**form.cleaned_data)
 
-		# sample set
-		data_source = form.cleaned_data['data_source']
-		if data_source == '1':
-			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
-		elif data_source == '2':
-			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)			
-		elif data_source == '3':
-			stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
-		elif data_source == '4':
-			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy')
+		if created: # run simulation for 1st time
+			# control variables
+			start = form.cleaned_data['start']
+			end = form.cleaned_data['end']
+			buy_cutoff = form.cleaned_data['buy_cutoff']/100.0
+			sell_cutoff = form.cleaned_data['sell_cutoff']/100.0
+			capital = form.cleaned_data['capital']
+			per_trade = form.cleaned_data['per_trade']
+			strategy_value = form.cleaned_data['strategy_value']
 
-		# dates
-		dates = list(set([h['date_stamp'] for h in histories]))
-		dates.sort()
+			# sample set
+			data_source = form.cleaned_data['data_source']
+			if data_source == 1:
+				stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
+			elif data_source == 2:
+				stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)			
+			elif data_source == 3:
+				stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
+			elif data_source == 4:
+				stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
+			histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy')
 
-		# reconstruct historicals by dates
-		histories_by_date = {}
-		for h in histories:
-			on_date = h['date_stamp']
-			if on_date not in histories_by_date: histories_by_date[on_date]={}
-			histories_by_date[on_date][h['stock__symbol']] = h
+			# dates
+			dates = list(set([h['date_stamp'] for h in histories]))
+			dates.sort()
+			start = dates[0]
+			end = dates[-1]
 
-		data = []
-		for on_date in dates:
-			his_by_symbol = histories_by_date[on_date]
+			# reconstruct historicals by dates
+			histories_by_date = {}
+			for h in histories:
+				on_date = h['date_stamp']
+				if on_date not in histories_by_date: histories_by_date[on_date]={}
+				histories_by_date[on_date][h['stock__symbol']] = h
+
+			data = []
+			for on_date in dates:
+				his_by_symbol = histories_by_date[on_date]
+				
+				if form.cleaned_data['strategy'] in ['1',]:
+					tmp = [(symbol,h[index_val_mapping[strategy_value]]) for symbol,h in his_by_symbol.iteritems()]			
+					symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(form.cleaned_data['data_sort'] == '1'))] 
+					data.append((on_date,symbols_by_rank))
+				else:
+					# for JK type trading, we don't need to sort		
+					symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
+					data.append((on_date,symbols))
+
+			# simulate tradings
+			simulation_methods = {
+				1: 'MySimulationAlpha',
+				2: 'MySimulationJK'
+			}
+			trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])
+			category = str(condition)		
+			simulations = trading_method(self.request.user,
+				data,
+				histories_by_date,
+				capital,
+				per_trade,
+				buy_cutoff = buy_cutoff,
+				sell_cutoff = sell_cutoff,
+				category = category).run()
 			
-			if form.cleaned_data['strategy'] in ['1',]:
-				tmp = [(symbol,h[index_val_mapping[strategy_value]]) for symbol,h in his_by_symbol.iteritems()]			
-				symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(form.cleaned_data['data_sort'] == '1'))] 
-				data.append((on_date,symbols_by_rank))
-			else:
-				# for JK type trading, we don't need to sort		
-				symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
-				data.append((on_date,symbols))
+			# save result as JSON
+			frozen = pickle.dumps(simulations)
+			result = MySimulationResult(
+				description = '',
+				condition = condition,
+				result = frozen
+			)
+			result.save()
 
-		# simulate tradings
-		simulation_methods = {
-			'1': 'MySimulationAlpha',
-			'2': 'MySimulationJK'
-		}
-		trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])
-		category = '%s-%s' %(form.cleaned_data['strategy'], data_source)		
-		simulations = trading_method(self.request.user,
-			data,
-			histories_by_date,
-			capital,
-			per_trade,
-			buy_cutoff = buy_cutoff,
-			sell_cutoff = sell_cutoff,
-			category = category).run()
-		
-		# save result as JSON
-		# temp = json.dumps(simulations, cls=JSONEncoder)
-		temp = pickle.dumps(simulations)
+		else: # we skip simulation and pull saved result
+			simulations = pickle.loads(condition.mysimulationresult.result)
+			category = str(condition)
+			start = condition.start
+			end = condition.end
 
 		# render HTML
 		return render(self.request, self.template_name, {
 			'strategy': category,
 			'form':form,
-			'start':dates[0],
-			'end':dates[-1],
+			'start':start,
+			'end':end,
 			'on_dates': [d.isoformat() for d in simulations['on_dates']],
 			'assets': simulations['assets'],
 			'cashes': simulations['cashes'],

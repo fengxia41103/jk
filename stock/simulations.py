@@ -4,6 +4,7 @@ from stock.models import *
 
 class MySimulation(object):
 	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,category):
+		self.trading_cost = 0.003 # 0.3% of buying amount
 		self.user = user
 		self.data = data
 		self.historicals = historicals
@@ -110,7 +111,7 @@ class MySimulationAlpha(MySimulation):
 
 	def sell(self, on_date, symbols):
 		total_symbols = len(symbols)
-		
+
 		# sell if outside sell_cutoff
 		positions = MyPosition.objects.filter(category = self.category, is_open = True).values_list("stock__symbol",flat=True).distinct()
 
