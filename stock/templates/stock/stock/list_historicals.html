@@ -26,10 +26,9 @@
 		<th>Low</th>
 		<th>Close</th>
 		<th>Adj close</th>
-		<th>Vol</th>
+		<th>Vol (000)</th>
 		<th>One day change (%)</th>
-		<th>Computed strategy value</th>
-		<th>Peer rank</th>
+		<th>Relative HL</th>
 	</thead>
 
 	<tbody>
@@ -53,12 +52,10 @@
 		</td><td>
 			{{ h.vol|floatformat:0 }}
 		</td><td>
-			{{ h.oneday_change|floatformat:5 }}
+			{{ h.daily_return|floatformat:2 }}
 		</td><td>
-			{{ h.val_by_strategy|floatformat:5 }}
-		</td><td>
-			{{ h.peer_rank|floatformat:0 }}
-		</td>
+			{{ h.relative_hl|floatformat:2 }}
+		</td></tr>
 	{% endfor %}
 	</tbody>
 </table>

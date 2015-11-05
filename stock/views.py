@@ -421,6 +421,16 @@ class MyStockStrategy2List(FormView):
 	form_class = StrategyControlForm
 
 	def form_valid(self, form):
+		index_val_mapping = {
+			'1':'daily_return',
+			'2':'relative_hl',
+			'3':'relative_ma',
+			'4':'cci',
+			'5':'si',
+			'6':'lg_slope',
+			'7':'decycler_oscillator'
+		}
+
 		# control variables
 		start = form.cleaned_data['start']
 		end = form.cleaned_data['end']
@@ -428,16 +438,19 @@ class MyStockStrategy2List(FormView):
 		sell_cutoff = form.cleaned_data['sell_cutoff']/100.0
 		capital = form.cleaned_data['capital']
 		per_trade = form.cleaned_data['per_trade']
+		strategy_value = form.cleaned_data['strategy_value']
 
 		# sample set
 		data_source = form.cleaned_data['data_source']
 		if data_source == '1':
 			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
 		elif data_source == '2':
-			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
+			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)			
 		elif data_source == '3':
+			stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
+		elif data_source == '4':
 			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','val_by_strategy','oneday_change')
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy')
 
 		# dates
 		dates = list(set([h['date_stamp'] for h in histories]))
@@ -455,7 +468,7 @@ class MyStockStrategy2List(FormView):
 			his_by_symbol = histories_by_date[on_date]
 			
 			if form.cleaned_data['strategy'] in ['1',]:
-				tmp = [(symbol,h['val_by_strategy']) for symbol,h in his_by_symbol.iteritems()]			
+				tmp = [(symbol,h[index_val_mapping[strategy_value]]) for symbol,h in his_by_symbol.iteritems()]			
 				symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(form.cleaned_data['data_sort'] == '1'))] 
 				data.append((on_date,symbols_by_rank))
 			else:
@@ -510,9 +523,16 @@ class MyStockHistoricalList(FormView):
 		if data_source == '1':
 			data_source = 'S&P 500'
 			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
-		else:
-			data_source = 'Chenmin'
+		elif data_source == '2':
+			data_source = 'CI sector'
 			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)
+		elif data_source == '3':
+			data_source = 'WIND sector'
+			stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
+		elif data_source == '4':
+			data_source = 'China stock'
+			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)
+	
 		historicals = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp=on_date)
 
 		# render HTML

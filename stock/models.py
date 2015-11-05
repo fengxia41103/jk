@@ -140,6 +140,33 @@ class MyStockCustomManager(models.Manager):
 		data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0).order_by('-prev_change')
 		return data
 
+class MySector(models.Model):
+	parent = models.ForeignKey(
+		'self',
+		null = True,
+		blank = True,
+		default = None,
+		verbose_name = u'Parent sector'
+	)
+	code = models.CharField(
+		max_length = 8,
+		verbose_name = u'Sector code'
+	)
+	source = models.CharField(
+		max_length = 32,
+		verbose_name = u'Definition source'
+	)
+	name = models.CharField(
+		max_length = 32,
+		null = True,
+		blank = True	
+	)
+	description = models.TextField(
+		null = True,
+		blank = True
+	)
+	stocks = models.ManyToManyField('MyStock')
+	
 class MyStock(models.Model):
 	# custom managers
 	# Note: the 1st one defined will be taken as the default!
@@ -457,6 +484,26 @@ class MyStockHistorical(models.Model):
 		null = True,
 		blank = True,
 		verbose_name = u"Relative Position indicator in (H,L)"
+	)
+	lg_slope = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"Linear regression slope"
+	)
+	si = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"SI indicator"
+	)
+	cci = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"CCI indicator"
+	)
+	decycler_oscillator = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"Decycler oscillator"
 	)
 
 	# live computed properties

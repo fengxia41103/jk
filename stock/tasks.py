@@ -23,6 +23,9 @@ from datetime import timedelta
 import datetime as dt
 from itertools import izip_longest
 from lxml.html.clean import clean_html
+from math import cos, sin
+import numpy as np
+from scipy import stats
 
 from jk.tor_handler import *
 from stock.models import *
@@ -399,6 +402,62 @@ def stock_monitor_yahoo_consumer2(symbols):
 	crawler.parser(symbols)
 
 import xlrd,xlwt,os,os.path
+class MyImportChinaStock():
+	def __init__(self):
+		self.logger = logging.getLogger('jk')		
+
+	def parser(self,symbol,val_list):
+		self.logger.info('processing %s'% symbol)
+		stock = MyStock.objects.get(symbol=symbol)
+		records = []
+		cnt = 0
+		total = len(val_list)
+		for vals in val_list:
+			if len(vals) < 10: 
+				self.logger.error('wrong length %s' % ','.join(vals))
+
+			exec_start = time.time()
+			date_stamp = dt(year=int(vals[1][:4]),month=int(vals[1][4:6]),day=int(vals[1][-2:]))
+			open_p = Decimal(vals[2])
+			high_p = Decimal(vals[3])
+			low_p = Decimal(vals[4])
+			close_p = Decimal(vals[5])
+			vol = Decimal(vals[6])
+			amount = Decimal(vals[7])*Decimal(10.0)
+			adj = Decimal(vals[8])
+			status = int(vals[9])
+		
+			h = MyStockHistorical(
+					stock = stock,
+					date_stamp = date_stamp,
+					open_price = open_p,
+					high_price = high_p,
+					low_price = low_p,
+					close_price = close_p,
+					vol = vol,
+					amount = amount,
+					status = status,
+
+					# adjusted values
+					adj_open = open_p * adj,
+					adj_high = high_p * adj,
+					adj_low = low_p * adj,
+					adj_close = close_p * adj,
+			)
+			records.append(h)
+			if len(records) >= 1000:
+				MyStockHistorical.objects.bulk_create(records)
+				cnt += len(records)
+				records = []
+				self.logger.info('%s inserted %d/%d' %(symbol,cnt,total))
+		if len(records): MyStockHistorical.objects.bulk_create(records)
+		self.logger.info('%s elapse %f'%(symbol, time.time()-exec_start))
+
+@shared_task
+def import_china_stock_consumer(symbol,val_list):
+	crawler = MyImportChinaStock()
+	crawler.parser(symbol,val_list)
+
 class MyChenMin():
 	def __init__(self):
 		self.logger = logging.getLogger('jk')		
@@ -465,7 +524,7 @@ class MyStockInflux():
 		self.client = InfluxDBClient('localhost', 8086, 'root', 'root', db_name)		
 		# all_dbs_list = self.client.get_list_database()
 		# that list comes back like: [{u'name': u'hello_world'}]
-		# if db_name not in [str(x['name']) for x in all_dbs_list]:
+		# if db_name not in [str    (x['name']) for x in all_dbs_list]:
 		# 	print "Creating db {0}".format(db_name)
 		# 	self.client.create_database(db_name)
 		# else:
@@ -559,15 +618,12 @@ def backtesting_s1_consumer(symbol):
 	crawler = MyStockBacktesting_1()
 	crawler.parser(symbol)
 
-from numpy import mean, std 
-class MyStockDailyReturn():
-	"""
-	Compute historical oneday_change = (today's close - prev's close)/prev's close *100
-	"""	
+from numpy import mean, std
+class MyStockStrategyValue(object):
 	def __init__(self):
 		self.logger = logging.getLogger('jk')
 
-	def parser(self,symbol,window_length=2):
+	def run(self,symbol,window_length):
 		self.logger.debug('%s starting' % symbol)
 		exec_start = time.time()
 
@@ -584,61 +640,163 @@ class MyStockDailyReturn():
 			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
 			window = records[i-window_length:i]
 			t0 =  records[i] # set T0
-			prev = records[i-1] # set T-1
+			self.compute_value(t0,window)
 
-			# compute index value
-			if t0.adj_close > 0 and prev.adj_close > 0:
-				t0.oneday_change = (t0.adj_close - prev.adj_close)/prev.adj_close*100
-			elif t0.close_price > 0 and prev.close_price > 0:
-				t0.oneday_change = (t0.close_price - prev.close_price)/prev.close_price*100
 			# save to DB
 			t0.save()
 
 		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
+
+	def compute_value(self,t0,window):
+		pass
+
+class MyStockDailyReturn(MyStockStrategyValue):
+	"""
+	Compute historical oneday_change = (today's close - prev's close)/prev's close *100
+	"""	
+	def __init__(self,):
+		super(MyStockDailyReturn,self).__init__()
+
+	def compute_value(self,t0,window):
+		prev = window[-1]
+
+		# compute index value
+		if t0.adj_close > 0 and prev.adj_close > 0:
+			t0.daily_return = (t0.adj_close - prev.adj_close)/prev.adj_close*100
+		elif t0.close_price > 0 and prev.close_price > 0:
+			t0.daily_return = (t0.close_price - prev.close_price)/prev.close_price*100
 
 @shared_task
 def backtesting_daily_return_consumer(symbol):
 	crawler = MyStockDailyReturn()
-	crawler.parser(symbol)
+	crawler.run(symbol,2)
 
-class MyStockRelativeHL():
+class MyStockRelativeHL(MyStockStrategyValue):
 	"""
 	Relative Position indicator in (H,L) = -100*(Highest(High,Len)-Close)/(Highest(High,Len)-Lowest(Low,Len))+50;   // Len is 40 by default 
 
 	"""	
-	def __init__(self):
-		self.logger = logging.getLogger('jk')
+	def __init__(self,):
+		super(MyStockRelativeHL,self).__init__()
 
-	def parser(self,symbol,window_length=40):
-		self.logger.debug('%s starting' % symbol)
-		exec_start = time.time()
+	def compute_value(self,t0,window):
+		# compute index value
+		ref_high = max([r.high_price for r in window])
+		ref_low = min([r.low_price for r in window])
 
-		records = MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp')
-
-		# The starting point is depending on how much past data your strategy is calling for.
-		# For example, if we are to calculate 10 weeks of fib score, we need at least 10 weeks of history data.
-		if window_length > len(records):
-			self.logger.error('%s: not enough data'%symbol)
-			return
-
-		t0 = ''
-		for i in range(window_length,len(records)):
-			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
-			window = records[i-window_length:i]
-			t0 =  records[i] # set T0
-			prev = records[i-1] # set T-1
-
-			# compute index value
-			ref_high = max([r.high_price for r in window])
-			ref_low = min([r.low_price for r in window])
-
-			val = -100*(ref_high-t0.close_price)/(ref_high-ref_low)+50
-			# save to DB
-			t0.save()
-
-		self.logger.debug('%s completed, elapse %f'%(symbol, time.time()-exec_start))
+		t0.relative_hl = -100*(ref_high-t0.close_price)/(ref_high-ref_low)+50
 
 @shared_task
 def backtesting_relative_hl_consumer(symbol):
 	crawler = MyStockRelativeHL()
-	crawler.parser(symbol)
+	crawler.run(symbol,40)
+
+class MyStockRelativeMovingAvg(MyStockStrategyValue):
+	"""
+	Relative Position Indicator in Moving Average= (Price - Average(Price,Len))/StdDev(Price,Len). // Len is 40 by default. 
+	"""	
+	def __init__(self,):
+		super(MyStockRelativeMovingAvg,self).__init__()
+
+	def compute_value(self,t0,window):
+		ref_ma = mean([r.close_price for r in window])
+		ref_std = std([r.close_price for r in window])
+
+		# compute index value
+		t0.val_by_strategy = (t0.close_price-ref_ma)/ref_std
+
+@shared_task
+def backtesting_relative_ma_consumer(symbol):
+	crawler = MyStockRelativeMovingAvg()
+	crawler.run(symbol,40)	
+
+class MyStockCCI(MyStockStrategyValue):
+	"""
+	CCI Indicator :
+	    MA = Average(Price,Len); 
+	    value1=0; 
+	    for i=0 to Len-1 
+	            value1+ = |Price[i]-MA|;
+	    value1=value1/Len; 
+	    CCI = (Price-MA)/(0.015*value1); 
+	"""	
+	def __init__(self,):
+		super(MyStockCCI,self).__init__()
+
+	def compute_value(self,t0,window):
+		ref_ma = mean([r.close_price for r in window])
+		val = [r.close_price-ref_ma for r in window]
+		cci = (t0.close_price-ref_ma)/(0.015*val/len(window))
+
+		# compute index value
+		t0.val_by_strategy = cci
+
+@shared_task
+def backtesting_cci_consumer(symbol):
+	crawler = MyStockCCI()
+	crawler.run(symbol,40)
+
+class MyStockSI(MyStockStrategyValue):
+	"""
+		K = max( |H - C[1]|, |L-C[1]|);
+		R = the largest of :
+		        if H-C[1],  then  |H-C[1]|-0.5|L-C[1]|+0.25|C[1]-O[1]| 
+		        if L-C[1],  then  |L-C[1]|-0.5|H-C[1]|+0.25|C[1]-O[1]| 
+		        if H-L,         then  H-L+0.25|C[1]-O[1]| 
+		SI Indicator = 50*(C-C[1] + 0.5*(C-O) + 0.25*(C[1]-O[1])*K/R
+	"""	
+	def __init__(self,):
+		super(MyStockSI,self).__init__()
+
+	def compute_value(self,t0,window):
+		pass
+
+@shared_task
+def backtesting_si_consumer(symbol):
+	crawler = MyStockSI()
+	crawler.run(symbol,40)
+
+class MyStockLinearSlope(MyStockStrategyValue):
+	"""
+	LinearRegSlope(Price, Len); // Len=3 by default
+	"""	
+	def __init__(self,):
+		super(MyStockLinearSlope,self).__init__()
+
+	def compute_value(self,t0,window):
+		y = np.array([r.close_price for r in window].append(t0.close_price))
+		x = np.array(range(1,len(y)))
+		slope, intercept, r_value, p_value, std_err = stats.linregress(x,y)
+		t0.lg_slope = slope
+		t0.save()
+				
+@shared_task
+def backtesting_linear_slope_consumer(symbol):
+	crawler = MyStockLinearSlope()
+	crawler.run(symbol,3)
+
+class MyStockDecyclerOscillator(MyStockStrategyValue):
+	"""
+	Decycler Oscillator (Price, HPPeriod, K);  HPPeriod=10, K=1
+    Alpha1= (Cos(0.707*360/HPPeriod) + Sin(0.707*360/HPPeriod)-1)/Cos(0.707*360/HPPeriod)
+    HP = (1-Alpha1/2) * (1-alpha1/2)*(Price-2*Price[1]+Price[2]) + 
+                    2*(1-Alpha1)*HP[1] -(1-Alpha1)*(1-alpha1)*HP[2];
+    Decycle = Price-HP; 
+    Alpha2 = (Cos(0.707*360/(0.5*HPPeriod)) + Sin(0.707*360/(0.5*HPPeriod))-1)/Cos(0.707*360/(0.5*HPPeriod))
+    DecycleOsc = (1-Alpha2/2) * (1-alpha2/2)*(Decycle-2*Decycle[1]+Decycle[2]) + 
+                    2*(1-Alpha2)*DecycleOsc[1] -(1-Alpha2)*(1-alpha2)*DecycleOsc[2];
+    Indicator= 100*K*DecycleOsc/Price; 
+	"""	
+	def __init__(self,):
+		super(MyStockDecyclerOscillator,self).__init__()
+
+	def compute_value(self,t0,window):
+		period = 10
+		k = 1
+		price = t0.close_price
+		alpha1 = (cos(0.707*360/period)+sin(0.707*360/period)-1)/cos(0.707*360/period)
+		
+@shared_task
+def backtesting_decycler_oscillator_consumer(symbol):
+	crawler = MyStockDecyclerOscillator()
+	crawler.run(symbol,3)		

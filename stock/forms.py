@@ -4,8 +4,9 @@ import datetime as dt
 
 DATA_CHOICES = (
     (1, "S&P500"),
-    (2, "China sector"),
-    (3, "China stock"),    
+    (2, "CI sector"),
+    (3, "WIND sector"), 
+    (4, "China stock"),    
 )
 DATA_SORT_CHOICES = (       
     (0, "ascending"),
@@ -29,17 +30,16 @@ class StrategyControlForm(forms.Form):
         (2, "S2 (buy low sell high)"),
     )
     STRATEGY_VALUE_CHOICES = (
-        (1, "One day change %"),
-        (2, "Two day change %"),
-        (3, "Relative Position in (H,L)"),
-        (4, 'Relative Position in Moving Average'),
-        (5, 'CCI'),
-        (6, 'SI'),
-        (7, 'Linear Reg Slope'),
-        (8, 'Decycler Oscillator'),
+        (1, "Daily return"),
+        (2, "Relative (H,L)"),
+        (3, 'Relative Moving Avg'),
+        (4, 'CCI'),
+        (5, 'SI'),
+        (6, 'Linear Reg Slope'),
+        (7, 'Decycler Oscillator'),
     )    
     data_source = forms.ChoiceField(
-        choicesRelative Position indicator in (H,L) = DATA_CHOICES,
+        choices = DATA_CHOICES,
         initial = 1
     )
     strategy = forms.ChoiceField(
@@ -48,7 +48,7 @@ class StrategyControlForm(forms.Form):
     )
     strategy_value = forms.ChoiceField(
         choices = STRATEGY_VALUE_CHOICES,
-        initial = 2,
+        initial = 1,
         label = "Strategy value"
     )
     data_sort = forms.ChoiceField(

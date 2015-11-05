@@ -110,7 +110,7 @@ class MySimulationAlpha(MySimulation):
 
 	def sell(self, on_date, symbols):
 		total_symbols = len(symbols)
-
+		
 		# sell if outside sell_cutoff
 		positions = MyPosition.objects.filter(category = self.category, is_open = True).values_list("stock__symbol",flat=True).distinct()
 
@@ -171,7 +171,7 @@ class MySimulationJK(MySimulation):
 	@param data: a list of dict, [{'on_date':date obj, 'ranks':['symbol 1','symbol 2']}]
 	@param capital: starting cash amount
 	@param per_buy: per trade total amount, vol = per_buy/stock_price
-	@param buy_cutoff: oneday_change < -1*buy_cutoff, buy
+	@param buy_cutoff: daily_return < -1*buy_cutoff, buy
 	@param sell_cutoff: price exit @ cost *(1+sell_cutoff)
 
 	@return: {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets}
@@ -217,11 +217,11 @@ class MySimulationJK(MySimulation):
 			if self.capital < self.per_buy: continue
 
 			# if buy_cutoff = 0.04, 
-			#   - if oneday_change > -0.04, we skip
+			#   - if daily_return > -0.04, we skip
 			#   - if one day drop greater than 4%, we buy
 			his = self.historicals[on_date][symbol]
-			oneday_change = his['oneday_change']
-			if oneday_change > -1*self.buy_cutoff: continue
+			daily_return = his['daily_return']
+			if daily_return > -1*self.buy_cutoff: continue
 
 			if 'adj_close' in his and his['adj_close'] > 0: simulated_spot = his['adj_close'] 
 			elif 'close_price' in his: simulated_spot = his['close_price']

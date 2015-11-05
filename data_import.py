@@ -3,7 +3,7 @@
 import sys,time,os,os.path,gc,csv
 import lxml.html,codecs
 import urllib,urllib2
-import re
+import re, xlrd
 import simplejson as json
 import datetime as dt
 
@@ -78,14 +78,20 @@ def backtest_s1():
 	for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol',flat=True))):
 		backtesting_s1_onsumer.delay(symbol)
 
-from stock.tasks import backtesting_daily_return_consumer,backtesting_relative_hl_consumer
+from stock.tasks import backtesting_daily_return_consumer
 def consumer_daily_return():
-	for symbol in MyStock.objects.values_list('symbol',flat=True):
+	for symbol in MyStock.objects.filter(symbol__startswith = '8821').values_list('symbol',flat=True):
 		backtesting_daily_return_consumer.delay(symbol)
 
+from stock.tasks import backtesting_relative_hl_consumer
 def consumer_relative_hl():
-	for symbol in MyStock.objects.values_list('symbol',flat=True):
+	for symbol in MyStock.objects.filter(symbol__startswith = '8821').values_list('symbol',flat=True):
 		backtesting_relative_hl_consumer.delay(symbol)
+
+from stock.tasks import backtesting_relative_ma_consumer
+def consumer_relative_ma():
+	for symbol in MyStock.objects.values_list('symbol',flat=True):
+		backtesting_relative_ma_consumer.delay(symbol)
 
 import csv
 from django.db.models.loading import get_model
@@ -191,79 +197,26 @@ def import_chenmin_csv():
 		# persist
 		print '[%s] complete'%symbol					
 
+from stock.tasks import import_china_stock_consumer
 def import_chenmin_csv2():
 	f = '/home/fengxia/Desktop/chenmin/d_data1.csv'
 	records = []
-	# his = [(x['stock__symbol'],x['date_stamp'].isoformat()) for x in MyStockHistorical.objects.values('stock__symbol','date_stamp').order_by('id')]
-	symbols = MyStock.objects.values_list('symbol',flat=True)
-	china = []
+	for china in MyStock.objects.filter(is_china_stock=True):
+		MyStockHistorical.objects.filter(stock=china).delete()
+
+	historicals = {}
 	with open(f,'rb') as csvfile:
 		for cnt, vals in enumerate(csv.reader(csvfile)):
-			# print 'processing', cnt
-
-			if len(vals) < 10: 
-				print 'wrong length', vals
-				raw_input()
-
-			exec_start = time.time()
-
 			if not vals: continue # handle blank lines
 			if not re.search('^\d+',vals[0]): continue
 
 			symbol = vals[0].strip()
-			# if symbol not in symbols:
-			# 	stock,created = MyStock.objects.get_or_create(symbol=symbol)
-			# else: stock = MyStock.objects.get(symbol = symbol)
+			if symbol in historicals: historicals[symbol].append(vals)
+			else: historicals[symbol] = [vals]
 
-			china.append(symbol)
-			continue
+	for symbol, val_list in historicals.iteritems():
+		import_china_stock_consumer.delay(symbol,val_list)
 
-			date_stamp = dt(year=int(vals[1][:4]),month=int(vals[1][4:6]),day=int(vals[1][-2:]))
-
-			if (symbol, date_stamp.date()) != his[-1]: continue # we pick up from last break
-
-			if (stock.id,date_stamp.date().isoformat()) in his: continue # we already have these
-			else:
-				open_p = Decimal(vals[2])
-				high_p = Decimal(vals[3])
-				low_p = Decimal(vals[4])
-				close_p = Decimal(vals[5])
-				vol = Decimal(vals[6])
-				amount = Decimal(vals[7])*Decimal(10.0)
-				adj = Decimal(vals[8])
-				status = int(vals[9])
-			
-				h = MyStockHistorical(
-						stock = stock,
-						date_stamp = date_stamp,
-						open_price = open_p,
-						high_price = high_p,
-						low_price = low_p,
-						close_price = close_p,
-						vol = vol,
-						amount = amount,
-						status = status,
-
-						# adjusted values
-						adj_open = open_p * adj,
-						adj_high = high_p * adj,
-						adj_low = low_p * adj,
-						adj_close = close_p * adj,
-					)
-				records.append(h)
-				if len(records) >= 1000:
-					MyStockHistorical.objects.bulk_create(records)
-					records = []
-
-			print '%d, elapse %f'%(cnt, time.time()-exec_start)
-					
-		if len(records): MyStockHistorical.objects.bulk_create(records)
-
-	for symbol in set(china):
-		stock = MyStock.objects.get(symbol=symbol)
-		stock.is_china_stock = True
-		stock.save()
-		print symbol, 'marked'
 from stock.tasks import stock_flag_sp500_consumer
 def crawler_flag_sp500():
 	stock_flag_sp500_consumer.delay()
@@ -284,6 +237,161 @@ def import_china_stock_floating_share():
 			stock.floating_share = floating_share
 			stock.save()
 
+def import_wind_sector():
+	f = u'/home/fengxia/Desktop/chenmin/sector/sector.xls'
+	workbook = xlrd.open_workbook(f)
+	sheet = workbook.sheet_by_index(0)
+	s1 = s2 = s3 = s4 = None
+
+	for row_idx in range(4,274):
+		level_1 = sheet.cell_value(row_idx,0)
+		if level_1: level_1 = str(int(level_1))
+		level_1_desp = sheet.cell_value(row_idx,1).strip()
+
+		level_2 = sheet.cell_value(row_idx,2)
+		if level_2: level_2 = str(int(level_2))
+		level_2_desp = sheet.cell_value(row_idx,3).strip()
+
+		level_3 = sheet.cell_value(row_idx,4)
+		if level_3: level_3 = str(int(level_3))
+		level_3_desp = sheet.cell_value(row_idx,5).strip()
+
+		level_4 = sheet.cell_value(row_idx,6)
+		if level_4: level_4 = str(int(level_4))
+		level_4_desp = sheet.cell_value(row_idx,7).strip()
+
+		if not level_4_desp: continue # blank cell
+
+		if level_1 and level_1_desp:
+			s1 = MySector(
+				code = level_1,
+				name = level_1_desp,
+				source = 'wind',
+			)
+			s1.save()
+			print 'level 1 %s created' % level_1
+
+		if level_2 and level_2_desp and s1:
+			s2 = MySector(
+				code = level_2,
+				name = level_2_desp,
+				source = 'wind',
+				parent = s1
+			)
+			s2.save()
+			print 'level 2 %s created' % level_2
+
+		if level_3 and level_3_desp and s2:
+			s3 = MySector(
+				code = level_3,
+				name = level_3_desp,
+				source = 'wind',
+				parent = s2
+			)
+			s3.save()
+			print 'level 3 %s created' % level_3
+
+		# level-4 description line
+		if s4 and level_4_desp:
+			s4.description = level_4_desp
+			s4.save()
+			print 'level 4 description saved'
+
+		# level-4 name line
+		if level_4_desp and level_4 and s3:
+			s4 = MySector(
+				code = level_4,
+				name = level_4_desp,
+				source = 'wind',
+				parent = s3
+			)
+			s4.save()
+			print 'level 4 %s created' % level_4
+
+def import_wind_sector_stock():
+	root = '/home/fengxia/Desktop/chenmin/sector/wind'
+	missing_sectors = []
+	missing_symbols = []
+	for f in os.listdir(root):
+		sector,ext = os.path.splitext(os.path.basename(f))
+		try:
+			sector = MySector.objects.get(code=sector)
+		except:
+			missing_sectors.append(sector)
+			continue
+
+		with open(os.path.join(root,f),'rb') as csvfile:
+			for cnt, vals in enumerate(csv.reader(csvfile)):
+				symbol = vals[2].split('.')[0]
+				if not re.search('^\d+',symbol): continue
+				try:
+					stock = MyStock.objects.get(symbol=symbol)
+					sector.stocks.add(stock)
+					print 'sector %s add stock %s'%(sector.name,stock.symbol)
+				except: missing_symbols.append(symbol)
+
+	print 'missing sectors', missing_sectors
+	print 'missing symbols:', missing_symbols
+
+def import_wind_sector_index():
+	sectors = {
+		'882112':'3030',
+		'882111':'3020',
+		'882116':'4020',
+		'882119':'4510',
+		'882101':'1510',
+		'882117':'4030',
+		'882121':'4530',
+		'882108':'2540',
+		'882110':'2550',
+		'882115':'4010',
+		'882100':'1010',
+		'882118':'4040',
+		'882103':'2020',
+		'882120':'4520',
+		'882106':'2520',
+		'882113':'3510',
+		'882104':'2030',
+		'882102':'2010',
+		'882105':'2510',
+		'882107':'2530',
+		'882114':'3520',
+		'882123':'5510',
+		'882122':'5010',
+		'882109':'3010',	
+	}
+	f = u'/home/fengxia/Desktop/chenmin/sector/Wind_index_historical_2005-2015.xlsx'
+	workbook = xlrd.open_workbook(f)
+	for sheet in workbook.sheets():
+		symbol = sheet.name.strip()
+		stock,created = MyStock.objects.get_or_create(symbol=symbol)
+		print 'stock symbol', symbol
+
+		print 'sector code', sectors[symbol]
+		sector = MySector.objects.get(code = sectors[symbol])
+		sector.stocks.add(stock)
+
+		records = []
+		print 'rows', sheet.nrows
+		for r_idx in range(sheet.nrows):
+			vals = sheet.row_values(r_idx)[:6]
+			if reduce(lambda x,y: x or y, map(lambda x: not x,vals[:-1])): continue
+			try: int(vals[0]) # for date stamp line, vals[0] is a floating number
+			except: continue
+
+			date_stamp = xlrd.xldate.xldate_as_datetime(vals[0],workbook.datemode)
+			h = MyStockHistorical(
+					stock=stock,
+					date_stamp=date_stamp,
+					open_price=vals[1],
+					high_price=vals[2],
+					low_price=vals[3],
+					close_price=vals[4],
+					vol=vals[5]/1000,
+				)
+			records.append(h)
+		MyStockHistorical.objects.bulk_create(records)
+		# print 'done', symbol, len(records)
 
 def main():
 	django.setup()
@@ -300,12 +408,20 @@ def main():
 	# dump_chenmin()
 	# crawler_influx()
 	#backtest_1()
-	#import_chenmin_csv2()	
+	# import_chenmin_csv2()	
 	#crawler_flag_sp500()
 	# consumer_oneday_change()
 	# import_china_stock_floating_share()
-	consumer_daily_return()
-	consumer_relative_hl()
+	# import_wind_sector()
+	# import_wind_sector_stock()
+	# import_wind_sector_index()
+
+	'''
+	Compute strategy index values
+	'''
+	# consumer_daily_return()
+	# consumer_relative_hl()
+	consumer_relative_ma()
 
 if __name__ == '__main__':
 	main()
