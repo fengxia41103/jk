@@ -436,13 +436,13 @@ class MyStockStrategy2List(FormView):
 
 		if created: # run simulation for 1st time
 			# control variables
-			start = form.cleaned_data['start']
-			end = form.cleaned_data['end']
-			buy_cutoff = form.cleaned_data['buy_cutoff']/100.0
-			sell_cutoff = form.cleaned_data['sell_cutoff']/100.0
-			capital = form.cleaned_data['capital']
-			per_trade = form.cleaned_data['per_trade']
-			strategy_value = form.cleaned_data['strategy_value']
+			start = condition.start
+			end = condition.end
+			buy_cutoff = condition.buy_cutoff/100.0
+			sell_cutoff = condition.sell_cutoff/100.0
+			capital = condition.capital
+			per_trade = condition.per_trade
+			strategy_value = condition.strategy_value
 
 			# sample set
 			data_source = form.cleaned_data['data_source']
@@ -473,11 +473,11 @@ class MyStockStrategy2List(FormView):
 			for on_date in dates:
 				his_by_symbol = histories_by_date[on_date]
 				
-				if form.cleaned_data['strategy'] in ['1',]:
+				if condition.strategy == 1:
 					tmp = [(symbol,h[index_val_mapping[strategy_value]]) for symbol,h in his_by_symbol.iteritems()]			
-					symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(form.cleaned_data['data_sort'] == '1'))] 
+					symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(form.cleaned_data['data_sort'] == '1'))] 				
 					data.append((on_date,symbols_by_rank))
-				else:
+				elif condition.strategy == 2:
 					# for JK type trading, we don't need to sort		
 					symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
 					data.append((on_date,symbols))
@@ -487,8 +487,7 @@ class MyStockStrategy2List(FormView):
 				1: 'MySimulationAlpha',
 				2: 'MySimulationJK'
 			}
-			trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])
-			category = str(condition)		
+			trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])	
 			simulations = trading_method(self.request.user,
 				data,
 				histories_by_date,
@@ -496,7 +495,7 @@ class MyStockStrategy2List(FormView):
 				per_trade,
 				buy_cutoff = buy_cutoff,
 				sell_cutoff = sell_cutoff,
-				category = category).run()
+				simulation = condition).run()
 			
 			# save result as JSON
 			frozen = pickle.dumps(simulations)
@@ -509,13 +508,12 @@ class MyStockStrategy2List(FormView):
 
 		else: # we skip simulation and pull saved result
 			simulations = pickle.loads(condition.mysimulationresult.result)
-			category = str(condition)
 			start = condition.start
 			end = condition.end
 
 		# render HTML
 		return render(self.request, self.template_name, {
-			'strategy': category,
+			'strategy': condition,
 			'form':form,
 			'start':start,
 			'end':end,

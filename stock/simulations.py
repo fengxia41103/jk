@@ -3,7 +3,7 @@ from collections import OrderedDict
 from stock.models import *
 
 class MySimulation(object):
-	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,category):
+	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation):
 		self.trading_cost = 0.003 # 0.3% of buying amount
 		self.user = user
 		self.data = data
@@ -12,13 +12,13 @@ class MySimulation(object):
 		self.per_buy = per_buy
 		self.buy_cutoff = buy_cutoff
 		self.sell_cutoff = sell_cutoff
-		self.category = category	
+		self.simulation = simulation
 		self.snapshot = OrderedDict()
 
-	def run(self):
-		# clear all positions and reset porfolio cash
-		MyPosition.objects.filter(category=self.category).delete()
+		# clear previous-run positions
+		MyPosition.objects.filter(simulation=simulation).delete()
 
+	def run(self):
 		# asset simulation result
 		assets = {}
 		equity = {}
@@ -44,7 +44,7 @@ class MySimulation(object):
 			self.buy(on_date, symbols_by_rank)
 
 			# compute equity, cash, asset
-			positions = MyPosition.objects.filter(category = self.category, is_open = True).values('stock__symbol','position','vol')
+			positions = MyPosition.objects.filter(simulation = self.simulation, is_open = True).values('stock__symbol','position','vol')
 			temp = []
 			for p in positions:
 				if p['stock__symbol'] in self.historicals[on_date]:
@@ -55,7 +55,8 @@ class MySimulation(object):
 
 					# we compute equity value based on daily close price
 					if 'adj_close' in his and his['adj_close'] > 0: simulated_spot = his['adj_close'] 
-					elif 'close_price' in his: simulated_spot = his['close_price']
+					elif 'close_price' in his and 'close_price' > 0: simulated_spot = his['close_price']
+					else: simulated_spot = p['position'] # we don't have a close value, use cost
 				else:
 					print p['stock__symbol'], 'not in historical!'
 					continue
@@ -101,29 +102,32 @@ class MySimulationAlpha(MySimulation):
 	@param per_buy: per trade total amount, vol = per_buy/stock_price
 	@param buy_cutoff: symbols[: cutoff * total sample number] -> buy these
 	@param sell_cutoff: symbols[-1*cutoff * total sample number: ] -> sell these
-	@param category: is the strategy ID
+	@param simulation: is the strategy condition ID
 
 	@return: {date: asset value}
 	@rtype: dict
 	"""	
-	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,category):
-		super(MySimulationAlpha,self).__init__(user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,category)
+	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation):
+		super(MySimulationAlpha,self).__init__(user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation)
 
 	def sell(self, on_date, symbols):
 		total_symbols = len(symbols)
 
 		# sell if outside sell_cutoff
-		positions = MyPosition.objects.filter(category = self.category, is_open = True).values_list("stock__symbol",flat=True).distinct()
-
+		positions = MyPosition.objects.filter(simulation = self.simulation, is_open = True).values_list("stock__symbol",flat=True).distinct()
 		for symbol in symbols[-1*int(total_symbols*self.sell_cutoff):]:
-			if symbol not in positions: continue # not an open position, next
-			if symbol not in self.historicals[on_date]: continue # stock stopped trading?
+			if symbol not in positions: 
+				# print 'symbol not in positions'
+				continue # not an open position, next
+			if symbol not in self.historicals[on_date]: 
+				# print 'symbol not in historical'
+				continue # stock stopped trading?
 
 			his = self.historicals[on_date][symbol]
 			if 'adj_close' in his and his['adj_close'] > 0: simulated_spot = his['adj_close'] 
-			elif 'close_price' in his: simulated_spot = his['close_price']
+			elif 'close_price' in his and 'close_price' > 0: simulated_spot = his['close_price']
 
-			pos = MyPosition.objects.get(stock__symbol=symbol,category = self.category, is_open=True)
+			pos = MyPosition.objects.get(stock__symbol=symbol,simulation = self.simulation, is_open=True)
 			pos.close(self.user,simulated_spot,on_date=on_date)		
 
 			self.capital += pos.vol * simulated_spot
@@ -134,7 +138,7 @@ class MySimulationAlpha(MySimulation):
 	def buy(self, on_date, symbols):
 		total_symbols = len(symbols)
 
-		positions = MyPosition.objects.filter(category = self.category,is_open = True).values_list("stock__symbol",flat=True).distinct()
+		positions = MyPosition.objects.filter(simulation = self.simulation,is_open = True).values_list("stock__symbol",flat=True).distinct()
 		for symbol in symbols[:int(total_symbols*self.buy_cutoff)]:
 			if symbol in positions: continue # already in portfolio, hold
 			if self.capital < self.per_buy: continue # not enough fund
@@ -152,7 +156,7 @@ class MySimulationAlpha(MySimulation):
 				position = simulated_spot, # buy
 				vol = self.per_buy/simulated_spot,
 				open_date = on_date,
-				category = self.category,
+				simulation = self.simulation,
 				is_open = True)
 			pos.save()
 
@@ -179,14 +183,14 @@ class MySimulationJK(MySimulation):
 	@rtype: dict
 	"""
 
-	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,category):
-		super(MySimulationJK,self).__init__(user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,category)
+	def __init__(self,user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation):
+		super(MySimulationJK,self).__init__(user,data,historicals,capital,per_buy,buy_cutoff,sell_cutoff,simulation)
 
 	def sell(self, on_date, symbols):
 		total_symbols = len(symbols)
 
 		# sell if outside sell_cutoff
-		positions = MyPosition.objects.filter(category = self.category, is_open = True)
+		positions = MyPosition.objects.filter(simulation = self.simulation, is_open = True)
 		for p in positions:
 			# TODO: don't know why a symbol could stop showing up
 			# in historicals. To protect such case, we put a line here.
@@ -209,7 +213,7 @@ class MySimulationJK(MySimulation):
 		total_symbols = len(symbols)
 
 		# buy if within buy_cutoff	
-		positions = MyPosition.objects.filter(category = self.category, is_open = True).values_list("stock__symbol",flat=True).distinct()
+		positions = MyPosition.objects.filter(simulation = self.simulation, is_open = True).values_list("stock__symbol",flat=True).distinct()
 		for symbol in symbols:
 			# already in portfolio, hold
 			if symbol in positions: continue
@@ -233,7 +237,7 @@ class MySimulationJK(MySimulation):
 				position = target_price, # buy
 				vol = self.per_buy/simulated_spot,
 				open_date = on_date,
-				category = self.category)
+				simulation = self.simulation)
 			pos.save()
 
 			self.capital -= pos.vol*pos.position

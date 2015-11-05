@@ -594,11 +594,8 @@ class MyPosition(models.Model):
 		blank = True,
 		verbose_name = u'Position close date'
 	)
-	category = models.CharField(
-		max_length = 128,
-		null = True,
-		blank = True,
-		verbose_name = u'Category tag'
+	simulation = models.ForeignKey(
+		'MySimulationCondition'
 	)
 	def add(self,user,price,vol,source='simulation',on_date=None):
 		"""
