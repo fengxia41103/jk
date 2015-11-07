@@ -7,6 +7,7 @@ import re, xlrd, cPickle, time
 import simplejson as json
 import datetime as dt
 from decimal import Decimal
+import itertools
 
 # setup Django
 import django
@@ -396,65 +397,37 @@ def import_wind_sector_index():
 		MyStockHistorical.objects.bulk_create(records)
 		# print 'done', symbol, len(records)
 
-from django.contrib.auth.models import User
-from stock.serialize_json import data_to_json, json_to_data
-import jsonpickle
+from stock.tasks import backtesting_simulation_consumer
 def batch_simulation_daily_return():
-	user = User.objects.filter(username__contains="feng")[0]
-
 	step = 25
 	conditions = []
-	for i in range(0,100,25):
-		condition,created = MySimulationCondition.objects.get_or_create(
-			data_source = 1,
-			data_sort = 1,
-			strategy_value = 1,
-			start = "1990-01-01",
-			end = "2016-01-10",
-			capital = 500000,
-			per_trade = 10000,
-			buy_cutoff = i,
-			sell_cutoff = i + step
-		)
-		conditions.append(condition)
 
-	# simulate
-	records = []
-	for condition in conditions:
-		if not MySimulationResult.objects.filter(condition=condition): # run simulation for 1st time
-			print 'simulation starting', condition
+	sources = [2,3]
+	strategies = [1,2]
+	strategy_values = [1,2]
+	start = ['2010-01-01','2011-01-01','2012-01-01','2013-01-01','2014-01-01','2015-01-01']
+	end = ['2016-01-01']
+	for (source,strategy,strategy_value,start,end) in itertools.product(sources,strategies,strategy_values,start,end):
+		print source,strategy,strategy_value,start,end
 
-			# simulate tradings
-			exec_start = time.time()
-			simulation_methods = {
-				1: 'MySimulationAlpha',
-				2: 'MySimulationJK'
-			}
-			trading_method = getattr(sys.modules[__name__], simulation_methods[condition.strategy])	
-			simulator = trading_method(user,simulation=condition)			
-			simulations = simulator.run()
-			print 'simulation end %f' %(time.time()-exec_start), condition
+		for i in range(0,100,25):
+			condition,created = MySimulationCondition.objects.get_or_create(
+				data_source = source,
+				data_sort = 1,
+				strategy = strategy,
+				strategy_value = strategy_value,
+				start = start,
+				end = end,
+				capital = 100000,
+				per_trade = 1000,
+				buy_cutoff = i,
+				sell_cutoff = i + step
+			)
+			conditions.append(condition)
 
-			result = MySimulationResult(
-				description = '',
-				condition = condition,
-				on_dates = list(simulations['on_dates']),
-				asset = list(simulations['assets']),
-				cash = list(simulations['cashes']),
-				equity = list(simulations['equities']),
-				portfolio = list(simulations['portfolios']),
-				transaction = list(simulations['transactions']),
-				snapshot = list(simulations['snapshots']),
-			)		
-			try:
-				result.save()
-				print 'simulation persisted %f' %(time.time()-exec_start), condition
-			except:
-				print 'simulation save timeout %f' %(time.time()-exec_start), condition
-				# db.connection.close()
-				result.save()
-				print 'simulation saved! %f' %(time.time()-exec_start), condition
-				raw_input()
+		# simulate
+		for condition in conditions:
+			backtesting_simulation_consumer.delay(cPickle.dumps(condition))
 
 def main():
 	django.setup()

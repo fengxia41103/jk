@@ -51,7 +51,7 @@ from numpy import mean, std
 import pickle, cPickle
 from utility import MyUtility, JSONEncoder
 
-from stock.forms import HistoricalListForm, StrategyControlForm
+from stock.forms import *
 from stock.models import *
 from stock.simulations import MySimulationAlpha,MySimulationJK
 
@@ -98,7 +98,7 @@ class HomeView (TemplateView):
 ###################################################
 class LoginView(FormView):
 	template_name = 'registration/login.html'
-	success_url = reverse_lazy('backtesting_2')
+	success_url = reverse_lazy('simulation_exec')
 	form_class = AuthenticationForm
 	def form_valid(self,form):
 		username = form.cleaned_data['username']
@@ -415,8 +415,9 @@ class MyStockStrategy1Detail(TemplateView):
 		context['peers'] = MyStock.objects.all().values_list('symbol',flat=True)
 		return context	
 
+from stock.tasks import backtesting_simulation_consumer
 @class_view_decorator(login_required)
-class MyStockStrategy2List(FormView):
+class MySimulationExec(FormView):
 	template_name = 'stock/backtesting/s2_list.html'
 	form_class = StrategyControlForm
 
@@ -518,3 +519,37 @@ class MyStockHistoricalList(FormView):
 			'data_source': data_source,
 			'on_date': on_date,
 			'historicals': historicals})
+
+class MySimulationConditionDelete(DeleteView):
+    model = MySimulationCondition
+    template_name = 'stock/common/delete_form.html'
+    success_url = reverse_lazy('simulation_result_list')
+
+@class_view_decorator(login_required)
+class MySimulationResultList(ListView):
+	template_name = 'stock/backtesting/simulation_result_list.html'
+
+	def get_queryset(self):
+		return MySimulationCondition.objects.filter(mysimulationresult__isnull=False)
+
+	def post(self, request, *args, **kwargs):
+		conditions = []
+		for cond_id in self.request.POST.getlist('conditions'):
+			condition = MySimulationCondition.objects.get(id = int(cond_id))
+			conditions.append(condition)
+		all_dates = list(set(reduce(lambda x,y: x+y, [c.mysimulationresult.on_dates for c in conditions])))
+		all_dates = sorted(all_dates)
+
+		assets = []
+		for cond in conditions:
+			start_date = cond.mysimulationresult.on_dates[0]
+			end_date = cond.mysimulationresult.on_dates[-1]
+
+			padding_start = all_dates.index(start_date)
+			padding_end = len(all_dates) - all_dates.index(end_date) - 1 # 0-index
+			assets.append({'name':cond, 'values':[0]*padding_start+cond.mysimulationresult.asset+[0]*padding_end})
+
+		return render(request, self.template_name, {
+			'object_list': conditions,
+			'on_dates':[str(d) for d in all_dates],
+			'assets':assets})

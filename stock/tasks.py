@@ -13,12 +13,14 @@ import hashlib
 import urllib, urllib2
 from tempfile import NamedTemporaryFile
 from django.core.files import File
+from django.contrib.auth.models import User
+
 import codecs
 from selenium.webdriver.support.ui import WebDriverWait # available since 2.4.0
 from selenium.webdriver.support import expected_conditions as EC # available since 2.26.0
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
-import re
+import re,cPickle,sys
 from datetime import timedelta
 import datetime as dt
 from itertools import izip_longest
@@ -29,6 +31,7 @@ from scipy import stats
 
 from jk.tor_handler import *
 from stock.models import *
+from stock.simulations import *
 
 # create logger with 'spam_application'
 logger = logging.getLogger('jk')
@@ -618,6 +621,54 @@ def backtesting_s1_consumer(symbol):
 	crawler = MyStockBacktesting_1()
 	crawler.parser(symbol)
 
+class MyStockBacktestingSimulation():
+	def __init__(self, condition):
+		self.logger = logging.getLogger('jk')
+		self.condition = cPickle.loads(str(condition))
+
+	def run(self):
+		# pick a user
+		user = User.objects.all()[0]
+
+		# simulate
+		if MySimulationResult.objects.filter(condition=self.condition): return
+		
+		self.logger.debug('%s simulation starting' %self.condition)
+
+		# simulate tradings
+		exec_start = time.time()
+		simulation_methods = {
+			1: 'MySimulationAlpha',
+			2: 'MySimulationJK'
+		}
+		trading_method = getattr(sys.modules[__name__], simulation_methods[self.condition.strategy])	
+		simulator = trading_method(user,simulation=self.condition)			
+		simulations = simulator.run()
+		self.logger.debug(' %s simulation end %f' %(self.condition, time.time()-exec_start))
+
+		result = MySimulationResult(
+			description = '',
+			condition = self.condition,
+			on_dates = list(simulations['on_dates']),
+			asset = list(simulations['assets']),
+			cash = list(simulations['cashes']),
+			equity = list(simulations['equities']),
+			portfolio = list(simulations['portfolios']),
+			transaction = list(simulations['transactions']),
+			snapshot = list(simulations['snapshots']),
+		)		
+		result.save()
+
+@shared_task
+def backtesting_simulation_consumer(condition):
+	crawler = MyStockBacktestingSimulation(condition)
+	crawler.run()		
+
+#################################
+#
+#	Alpha strategy values
+#
+#################################
 from numpy import mean, std
 class MyStockStrategyValue(object):
 	def __init__(self):
@@ -799,4 +850,4 @@ class MyStockDecyclerOscillator(MyStockStrategyValue):
 @shared_task
 def backtesting_decycler_oscillator_consumer(symbol):
 	crawler = MyStockDecyclerOscillator()
-	crawler.run(symbol,3)		
+	crawler.run(symbol,3)

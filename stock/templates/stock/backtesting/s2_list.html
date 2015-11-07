@@ -35,7 +35,7 @@ Based on "daily return", if buy_cutoff is 0.04, we buy stocks whose has seen a d
 {% endblock %}
 
 {% block strategy-control %}
-<form action="{% url 'backtesting_2' %}" class="uniForm" method="post">
+<form action="{% url 'simulation_exec' %}" class="uniForm" method="post">
     {% csrf_token %}
     {{ form|crispy }}
     <input type="submit" value="Submit" />

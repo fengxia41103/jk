@@ -676,8 +676,8 @@ def day_change_handler(sender, **kwargs):
 class MySimulationCondition(models.Model):
 	DATA_CHOICES = (
 		(1, "S&P500"),
-		(2, "CI sector"),
-		(3, "WIND sector"), 
+		(2, "CI00"),
+		(3, "WIND 8821"), 
 		(4, "China stock"),    
 	)
 	DATA_SORT_CHOICES = (       
@@ -749,7 +749,13 @@ class MySimulationCondition(models.Model):
 	)
 
 	def __unicode__(self):
-		return '%d-%d-%d (%d-%d)' %(self.data_source, self.strategy, self.strategy_value,self.buy_cutoff,self.sell_cutoff)
+		return '%s-%s-%s (%d-%d), %s - %s' %(self.get_data_source_display(), 
+			self.get_strategy_display(), 
+			self.get_strategy_value_display(),
+			self.buy_cutoff,
+			self.sell_cutoff,
+			self.start,
+			self.end)
 
 class MySimulationResult(models.Model):
 	description = models.TextField()

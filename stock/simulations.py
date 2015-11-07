@@ -46,7 +46,7 @@ class MySimulation(object):
 			stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
 		elif data_source == 4:
 			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
-		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy')
+		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy','relative_ma')
 
 		# dates
 		dates = list(set([h['date_stamp'] for h in histories]))

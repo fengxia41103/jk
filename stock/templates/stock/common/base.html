@@ -217,6 +217,18 @@
 					</a>
 					<ul class="dropdown-menu">
 						<li>
+							<a href="{% url 'simulation_exec' %}">
+							<i class="fa fa-pencil"></i>
+							Simulation
+							</a>					
+						</li>
+						<li>
+							<a href="{% url 'simulation_result_list' %}">
+							<i class="fa fa-pencil"></i>
+							Sim results
+							</a>					
+						</li>												
+						<li>
 							<a href="{% url 'stock_historicals_list' %}">
 							<i class="fa fa-pencil"></i>
 							Historicals
@@ -227,13 +239,7 @@
 							<i class="fa fa-pencil"></i>
 							Strategy #1
 							</a>					
-						</li>
-						<li>
-							<a href="{% url 'backtesting_2' %}">
-							<i class="fa fa-pencil"></i>
-							Test 2
-							</a>					
-						</li>																		
+						</li>										
 					</ul>
 				</li>													
 			</ul>
