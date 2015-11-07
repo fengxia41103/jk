@@ -9,28 +9,28 @@ Backtesting 2
 {% block strategy-intro %}
 <div class="my-multicol-2">
 <p>
-Backtesting 2 strategies pre-compute a val_by_strategy for each historical record. Based on the strategy and specified cutoff values, it simulates trades and generate a report.
+The core of backtesting 2 strategies is to compute a "factor value" for each historical record. Based on the strategy and specified cutoff values, it simulates trades and generate a report.
 
 <h3>Data source</h3>
 	<ul>
-		<li> S&P 500
-		<li> Chenmin sector data &larr; stock symbol starts with "CI00"
+		<li> S&P 500 stocks</li>
+		<li> "CI00" sector</li>
+		<li> "8821" WIND sector</li>
+		<li> China stocks</li>
 	</ul>
+Special symbol "000001" is the China equivalent of S&P500 index.
 
 <h3>Trading strategy</h3>
-<h4>Strategy 2: by daily ranking</h4>
+<h4>by daily ranking</h4>
 <p>
-Given a date, we rank samples by precomputed "val_by_strategy". We buy symbols whose rank is <= buy_cutoff * len(symbols); and we sell symbols whose rank >= sell_cutoff * len(symbols).
+Given a date, we rank samples by precomputed "factor value". We buy symbols whose rank falls into a band defined by "buy_cutoff" and "sell_cutoff".
 
 <p>
-Rank defaults to ascending order. The meaning of it depends on how "val_by_strategy" is calculated. Eg. val_by_strategy = (open[t0] - adj_close[t0-1])/adj_close[t0-1], ascending order means we will buy stock whose price has dropped the most on t0 &rarr; we chase losers; descending order would reverse this logic &rarr; we chase winners.
+Rank defaults to ascending order. The meaning of it depends on how the factor value is calculated. Eg. factor value using daily return = (close[t0] - close[t-1])/close[t-1], ascending order means we will buy stock whose price has dropped the most on t0 &rarr; we chase losers; descending order would reverse this logic &rarr; we chase winners.
 
-<h4>Strategy 2: buy low sell high</h4>
+<h4>buy low sell high</h4>
 <p>
-Give a date, we precompute its "oneday_change_pcnt = (open[t0] - adj_close[t0-1])/adj_close[t0-1]". If this value is negative and is less than -1*buy_cutoff, we buy; then hold till this stock's price went above "cost*(1+sell_cutoff)". Eg. buy_cutoff=0.04 &rarr; we buy stock whose drop is greater than 4%; sell_cutoff=0.05 &rarr; we sell position when its daily price is > (1+0.05)*cost.
-
-<p>
-For this strategy, sorting is irrelevant.
+Based on "daily return", if buy_cutoff is 0.04, we buy stocks whose has seen a daily price DROP greater than 0.04; if sell_cutoff is 0.05, we sell stocks whose daily price INCREASE is greater than 0.05. For this strategy, sorting is irrelevant.
 </div>
 {% endblock %}
 

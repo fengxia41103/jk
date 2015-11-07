@@ -48,7 +48,7 @@ import simplejson as json
 from itertools import groupby
 import urllib, lxml.html
 from numpy import mean, std 
-import pickle
+import pickle, cPickle
 from utility import MyUtility, JSONEncoder
 
 from stock.forms import HistoricalListForm, StrategyControlForm
@@ -431,23 +431,41 @@ class MyStockStrategy2List(FormView):
 				1: 'MySimulationAlpha',
 				2: 'MySimulationJK'
 			}
-			trading_method = getattr(sys.modules[__name__], simulation_methods[form.cleaned_data['strategy']])	
+			trading_method = getattr(sys.modules[__name__], simulation_methods[condition.strategy])	
 			simulator = trading_method(self.request.user,simulation=condition)			
 			simulations = simulator.run()
 			
 			# save result as JSON
-			frozen = pickle.dumps(simulations)
 			result = MySimulationResult(
 				description = '',
 				condition = condition,
-				result = frozen
-			)
+				on_dates = simulations['on_dates'],
+				asset = simulations['assets'],
+				cash = simulations['cashes'],
+				equity = simulations['equities'],
+				portfolio = simulations['portfolios'],
+				transaction = simulations['transactions'],
+				snapshot = list(simulations['snapshots']),
+			)	
 			result.save()
 
+			# view data
+			on_dates = [d.isoformat() for d in simulations['on_dates']]
+			assets = simulations['assets']
+			cashes = simulations['cashes']
+			equities = simulations['equities']
+			snapshots = simulations['snapshots']
+
 		else: # we skip simulation and pull saved result
-			simulations = pickle.loads(condition.mysimulationresult.result)
 			start = condition.start
 			end = condition.end
+
+			# view data
+			on_dates = [str(d) for d in condition.mysimulationresult.on_dates]
+			assets = condition.mysimulationresult.asset
+			cashes = condition.mysimulationresult.cash
+			equities = condition.mysimulationresult.equity
+			snapshots = condition.mysimulationresult.snapshot
 
 		# render HTML
 		return render(self.request, self.template_name, {
@@ -455,11 +473,17 @@ class MyStockStrategy2List(FormView):
 			'form':form,
 			'start': condition.start,
 			'end':condition.end,
-			'on_dates': [d.isoformat() for d in simulations['on_dates']],
-			'assets': simulations['assets'],
-			'cashes': simulations['cashes'],
-			'equities': simulations['equities'],
-			'snapshots': simulations['snapshots'],
+
+			# graph x-axis
+			'on_dates': on_dates,
+
+			# graph y-axises
+			'assets': assets,
+			'cashes': cashes,
+			'equities': equities,
+
+			# trading trace
+			'snapshots': snapshots,
 		})
 
 @class_view_decorator(login_required)

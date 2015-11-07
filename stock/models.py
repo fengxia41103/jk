@@ -484,8 +484,13 @@ class MyStockHistorical(models.Model):
 	relative_hl = models.FloatField(
 		null = True,
 		blank = True,
-		verbose_name = u"Relative Position indicator in (H,L)"
+		verbose_name = u"Relative Position (H,L)"
 	)
+	relative_ma = models.FloatField(
+		null = True,
+		blank = True,
+		verbose_name = u"Relative Position Moving Average"
+	)	
 	lg_slope = models.FloatField(
 		null = True,
 		blank = True,
@@ -687,10 +692,10 @@ class MySimulationCondition(models.Model):
 		(1, "Daily return"),
 		(2, "Relative (H,L)"),
 		(3, 'Relative Moving Avg'),
-		(4, 'CCI'),
-		(5, 'SI'),
-		(6, 'Linear Reg Slope'),
-		(7, 'Decycler Oscillator'),
+		# (4, 'CCI'),
+		# (5, 'SI'),
+		# (6, 'Linear Reg Slope'),
+		# (7, 'Decycler Oscillator'),
 	)    
 	data_source = models.IntegerField(
 		choices = DATA_CHOICES,
@@ -744,11 +749,17 @@ class MySimulationCondition(models.Model):
 	)
 
 	def __unicode__(self):
-		return '%d-%d-%d' %(self.data_source, self.strategy, self.strategy_value)
+		return '%d-%d-%d (%d-%d)' %(self.data_source, self.strategy, self.strategy_value,self.buy_cutoff,self.sell_cutoff)
 
 class MySimulationResult(models.Model):
 	description = models.TextField()
-	result = models.TextField()
+	on_dates = JSONField()
+	asset = JSONField()
+	cash = JSONField()
+	equity = JSONField()
+	portfolio = JSONField()
+	transaction = JSONField()
+	snapshot = JSONField()
 	condition = models.OneToOneField('MySimulationCondition')
 
 class MyChenmin(models.Model):

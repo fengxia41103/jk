@@ -1,5 +1,7 @@
-from numpy import mean, std 
+import time
+from numpy import mean, std
 from collections import OrderedDict
+import simplejson as json
 from stock.models import *
 
 class MySimulation(object):
@@ -12,8 +14,8 @@ class MySimulation(object):
 		self.snapshot = OrderedDict()
 		self.capital = simulation.capital
 		self.per_trade = simulation.per_trade
-		self.buy_cutoff = simulation.buy_cutoff
-		self.sell_cutoff = simulation.sell_cutoff
+		self.buy_cutoff = simulation.buy_cutoff/100.0
+		self.sell_cutoff = simulation.sell_cutoff/100.0
 
 		# clear previous-run positions
 		MyPosition.objects.filter(simulation=simulation).delete()
@@ -82,7 +84,7 @@ class MySimulation(object):
 		
 		# trading
 		for on_date,symbols_by_rank in self.data:
-			print on_date.isoformat()
+			print self.simulation, on_date.isoformat()
 			positions = None		
 			total_symbols = len(symbols_by_rank)
 
@@ -123,18 +125,27 @@ class MySimulation(object):
 			equity[on_date] = sum(temp)
 			cash[on_date] = self.capital
 			assets[on_date] = equity[on_date] + cash[on_date]
-			
+
 			self.snapshot[on_date]['cash'] = cash[on_date]
 			self.snapshot[on_date]['equity'] = equity[on_date]
-			self.snapshot[on_date]['asset'] = assets[on_date]
-			self.snapshot[on_date]['portfolio'] = positions
+			self.snapshot[on_date]['asset'] = assets[on_date]	
+			self.snapshot[on_date]['portfolio'] = list(positions)
 
 		on_dates = [on_date for on_date,symbols in self.data]
 		cashes = [float(cash[d]) for d in on_dates]
 		equities = [float(equity[d]) for d in on_dates]
 		assets = [float(assets[d]) for d in on_dates]
+		portfolios = [self.snapshot[d]['portfolio'] for d in on_dates]
+		transactions = [self.snapshot[d]['transaction'] for d in on_dates]
 
-		return {'on_dates':on_dates, 'cashes':cashes,'equities':equities, 'assets':assets, 'snapshots':self.snapshot}
+		return {'on_dates':on_dates, 
+			'cashes':cashes,
+			'equities':equities,
+			'assets':assets, 
+			'portfolios': portfolios,
+			'transactions': transactions,
+			'snapshots':self.snapshot
+		}
 
 	def buy(self, **kargs):
 		pass
@@ -160,7 +171,14 @@ class MySimulationAlpha(MySimulation):
 
 		# sell if outside sell_cutoff
 		positions = MyPosition.objects.filter(simulation = self.simulation, is_open = True).values_list("stock__symbol",flat=True).distinct()
-		for symbol in symbols[-1*int(total_symbols*self.sell_cutoff):]:
+
+		# In this strategy, buy_cutoff defines the starting index, 
+		# sell_cutoff defines the ending index. Everything outside this band is a sell.	
+		start_cutoff = max(int(total_symbols*self.buy_cutoff)-1,0)
+		end_cutoff = int(total_symbols*self.sell_cutoff)
+		buys = symbols[start_cutoff:end_cutoff]
+		sells = filter(lambda x: x not in buys, symbols)
+		for symbol in sells:
 			if symbol not in positions: 
 				# print 'symbol not in positions'
 				continue # not an open position, next
@@ -176,7 +194,14 @@ class MySimulationAlpha(MySimulation):
 			pos.close(self.user,simulated_spot,on_date=on_date)		
 
 			self.capital += pos.vol * simulated_spot
-			self.snapshot[on_date]['transaction']['sell'].append(pos)
+			self.snapshot[on_date]['transaction']['sell'].append({
+				'symbol':pos.stock.symbol,
+				'position':pos.position,
+				'close_position':pos.close_position,
+				'gain':pos.gain,
+				'life_in_days':pos.life_in_days,
+				'vol':pos.vol
+			})
 			self.snapshot[on_date]['gain']['sell'] += pos.gain
 			# print 'close: ',symbol,self.capital
 
@@ -184,7 +209,14 @@ class MySimulationAlpha(MySimulation):
 		total_symbols = len(symbols)
 
 		positions = MyPosition.objects.filter(simulation = self.simulation,is_open = True).values_list("stock__symbol",flat=True).distinct()
-		for symbol in symbols[:int(total_symbols*self.buy_cutoff)]:
+
+		# In this strategy, buy_cutoff defines the starting index, 
+		# sell_cutoff defines the ending index. Everything within this band is a buy.
+		start_cutoff = max(int(total_symbols*self.buy_cutoff)-1,0)
+		end_cutoff = int(total_symbols*self.sell_cutoff)
+		buys = symbols[start_cutoff:end_cutoff]
+		sells = filter(lambda x: x not in buys, symbols)
+		for symbol in buys:		
 			if symbol in positions: continue # already in portfolio, hold
 			if self.capital < self.per_trade: continue # not enough fund
 			if symbol not in self.historicals[on_date]: continue # stock stopped trading?
@@ -206,7 +238,11 @@ class MySimulationAlpha(MySimulation):
 			pos.save()
 
 			self.capital -= pos.vol*pos.position
-			self.snapshot[on_date]['transaction']['buy'].append(pos)		
+			self.snapshot[on_date]['transaction']['buy'].append({
+				'symbol': symbol,
+				'position': simulated_spot,
+				'vol': pos.vol
+			})		
 			# print 'create: ',symbol, self.capital
 
 class MySimulationJK(MySimulation):
