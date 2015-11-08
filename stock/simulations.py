@@ -305,7 +305,7 @@ class MySimulationJK(MySimulation):
 			pos = MyPosition(
 				stock = MyStock.objects.get(id=int(his['stock'])),
 				user = self.user,
-				position = target_price, # buy
+				position = simulated_spot, # buy
 				vol = self.per_trade/simulated_spot,
 				open_date = on_date,
 				simulation = self.simulation)

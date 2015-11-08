@@ -655,7 +655,7 @@ class MyStockBacktestingSimulation():
 			equity = list(simulations['equities']),
 			portfolio = list(simulations['portfolios']),
 			transaction = list(simulations['transactions']),
-			snapshot = list(simulations['snapshots']),
+			snapshot = simulations['snapshots'].items(), # to serialize OrderedDict
 		)		
 		result.save()
 

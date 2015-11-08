@@ -403,10 +403,13 @@ def batch_simulation_daily_return():
 	conditions = []
 
 	sources = [2,3]
-	strategies = [1,2]
-	strategy_values = [1,2]
-	start = ['2010-01-01','2011-01-01','2012-01-01','2013-01-01','2014-01-01','2015-01-01']
-	end = ['2016-01-01']
+	strategies = [2]
+	strategy_values = [1]
+	# start = ['2010-01-01','2011-01-01','2012-01-01','2013-01-01','2014-01-01','2015-01-01']
+	# end = ['2016-01-01']
+	start = ['2015-01-01']
+	end = ['2015-01-10']
+
 	for (source,strategy,strategy_value,start,end) in itertools.product(sources,strategies,strategy_values,start,end):
 		print source,strategy,strategy_value,start,end
 
@@ -419,7 +422,7 @@ def batch_simulation_daily_return():
 				start = start,
 				end = end,
 				capital = 100000,
-				per_trade = 1000,
+				per_trade = 10000,
 				buy_cutoff = i,
 				sell_cutoff = i + step
 			)

@@ -2,136 +2,16 @@
 {% load staticfiles %}
 
 {% block content %}
-	{% block strategy-intro %}
-	{% endblock %}
-
-	<h1 class="page-header">Simulation</h1>
-	<div class="row">
-	<div class="col-md-2" style="border-width:1px;border-right-style:solid;border-color:#cecece;">
-	{% block strategy-control %}
-	{% endblock %}
+<div class="row">
+	<div class="col-md-6 col-sm-3">
+		{% block strategy-intro %}
+		{% endblock %}
 	</div>
-
-	<div class="col-md-10">
-		<div id="container" style="width:100%; height:700px;"></div>
-		</div>
-	</div>{# end of row #}
-
-	{% block strategy-result %}	
-	{% endblock %}		
+	<div class="col-md-6 col-sm-3">	
+		{% block strategy-control %}
+		{% endblock %}
+	</div>
+</div>
+{% block strategy-result %}	
+{% endblock %}		
 {% endblock %}{# end of block content #}
-
-{% block custom_js %}
-    <script type="text/javascript"
-    	src="{% static 'highcharts/highcharts-custom.js' %}">
-    </script>
-    <script type="text/javascript"
-    	src="{% static 'highcharts/js/modules/boost.js' %}">
-    </script>   
-	
-	<script type="text/javascript">
-	var j$ = jQuery.noConflict();
-
-	j$(document).ready(function(){
-	    j$('#container').highcharts({
-	        chart: {
-            	zoomType: 'x',
-            	type: 'spline'
-        	},
-	        title: {
-	            text: '{{ strategy }} Trading Simulation'
-	        },
-	        subtitle: {
-	            text: '{{start}} - {{end}}'
-	        },
-	        xAxis: {
-	            categories: {{ on_dates|safe }}
-	        },
-	        yAxis: {
-	            title: {
-	                text: 'Values'
-	            }
-	        },
-			tooltip: {
-			    crosshairs: {
-			        color: 'green',
-			        dashStyle: 'solid'
-			    },
-			    shared: true,
-			    valueDecimals: 2			    
-			},	        
-	        plotOptions: {	        	
-	            line: {
-	                dataLabels: {
-	                    enabled: false
-	                },
-	                enableMouseTracking: false,
-	                lineWidth: 4,
-	                marker: {
-	                	enabled: false
-	                }
-	            },
-				spline: {
-				    marker: {
-				        radius: 1,
-				        lineColor: '#666666',
-				        lineWidth: 1,
-				        enabled: false
-				    },
-					lineWidth: 4,
-					states: {
-					    hover: {
-					        lineWidth: 5
-					    }
-					}				    
-				},		            
-				area: {
-					stacking: 'normal',
-					lineColor: '#666666',
-					lineWidth: 1,
-					marker: {
-						lineWidth: 1,
-						lineColor: '#666666'
-					}
-				},
-        area: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        arearange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        areaspline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        areasplinerange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        bar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        boxplot: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        bubble: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        column: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        columnrange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        errorbar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        funnel: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        gauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        heatmap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        line: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        pie: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        polygon: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        pyramid: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        scatter: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        series: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        solidgauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        spline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        treemap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        waterfall: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-
-	        },
-	        series: [{
-	        	name: 'Assets',
-	        	data: {{ assets }},	    	
-	        },{
-	        	type: "line",
-	        	name: 'Cashes',
-	        	data: {{ cashes }},
-	        	step: true
-	        },{ 
-	    		name: 'Equities',
-	    		data: {{ equities }}
-	    	}]
-	    });
-	});
-	</script>    
-{% endblock %}

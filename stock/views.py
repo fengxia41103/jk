@@ -418,74 +418,20 @@ class MyStockStrategy1Detail(TemplateView):
 from stock.tasks import backtesting_simulation_consumer
 @class_view_decorator(login_required)
 class MySimulationExec(FormView):
-	template_name = 'stock/backtesting/s2_list.html'
+	template_name = 'stock/backtesting/simulation_exec.html'
 	form_class = StrategyControlForm
 
 	def form_valid(self, form):
-
 		# persist simulation conditions
 		condition,created = MySimulationCondition.objects.get_or_create(**form.cleaned_data)
 
 		if not MySimulationResult.objects.filter(condition=condition): # run simulation for 1st time
-			# simulate tradings
-			simulation_methods = {
-				1: 'MySimulationAlpha',
-				2: 'MySimulationJK'
-			}
-			trading_method = getattr(sys.modules[__name__], simulation_methods[condition.strategy])	
-			simulator = trading_method(self.request.user,simulation=condition)			
-			simulations = simulator.run()
-			
-			# save result as JSON
-			result = MySimulationResult(
-				description = '',
-				condition = condition,
-				on_dates = simulations['on_dates'],
-				asset = simulations['assets'],
-				cash = simulations['cashes'],
-				equity = simulations['equities'],
-				portfolio = simulations['portfolios'],
-				transaction = simulations['transactions'],
-				snapshot = list(simulations['snapshots']),
-			)	
-			result.save()
-
-			# view data
-			on_dates = [d.isoformat() for d in simulations['on_dates']]
-			assets = simulations['assets']
-			cashes = simulations['cashes']
-			equities = simulations['equities']
-			snapshots = simulations['snapshots']
-
-		else: # we skip simulation and pull saved result
-			start = condition.start
-			end = condition.end
-
-			# view data
-			on_dates = [str(d) for d in condition.mysimulationresult.on_dates]
-			assets = condition.mysimulationresult.asset
-			cashes = condition.mysimulationresult.cash
-			equities = condition.mysimulationresult.equity
-			snapshots = condition.mysimulationresult.snapshot
-
-		# render HTML
-		return render(self.request, self.template_name, {
-			'strategy': condition,
-			'form':form,
-			'start': condition.start,
-			'end':condition.end,
-
-			# graph x-axis
-			'on_dates': on_dates,
-
-			# graph y-axises
-			'assets': assets,
-			'cashes': cashes,
-			'equities': equities,
-
-			# trading trace
-			'snapshots': snapshots,
-		})
+			# MySimulationCondition is not JSON serializable
+			# so we use cPickle to pass object to background queue task
+			backtesting_simulation_consumer.delay(cPickle.dumps(condition))
+			return HttpResponseRedirect(reverse_lazy('simulation_result_list'))
+		else:
+			return HttpResponseRedirect (reverse_lazy('condition_detail',kwargs={'pk':condition.id}))
 
 @class_view_decorator(login_required)
 class MyStockHistoricalList(FormView):
@@ -552,4 +498,24 @@ class MySimulationResultList(ListView):
 		return render(request, self.template_name, {
 			'object_list': conditions,
 			'on_dates':[str(d) for d in all_dates],
+			'start': all_dates[0],
+			'end': all_dates[-1],
 			'assets':assets})
+
+@class_view_decorator(login_required)
+class MySimulationConditionDetail(DetailView):
+	template_name = 'stock/backtesting/simulation_result_detail.html'
+	model = MySimulationCondition
+
+	def get_context_data(self, **kwargs):
+		context = super(DetailView, self).get_context_data(**kwargs)
+		result = self.object.mysimulationresult
+		context['strategy'] = self.object
+		context['start'] = self.object.start
+		context['end'] = self.object.end
+		context['on_dates'] = [str(d) for d in result.on_dates]
+		context['assets'] = result.asset
+		context['cashes'] = result.cash
+		context['equities'] = result.equity
+		context['snapshots'] = result.snapshot
+		return context

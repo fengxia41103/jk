@@ -47,6 +47,8 @@ urlpatterns = patterns(
 		# backtesting
 
 		url(r'^condition/delete/(?P<pk>\d+)/$', views.MySimulationConditionDelete.as_view(), name='condition_delete'),
+		url(r'^condition/detail/(?P<pk>\d+)/$', views.MySimulationConditionDetail.as_view(), name='condition_detail'),
+
 		url(r'^backtesting/s1/(?P<symbol>\w+)/$', views.MyStockStrategy1Detail.as_view(), name='backtesting_1'),		
 		url(r'^backtesting/simulation/$', views.MySimulationExec.as_view(), name='simulation_exec'),
 		url(r'^backtesting/result/$', views.MySimulationResultList.as_view(), name='simulation_result_list'),
