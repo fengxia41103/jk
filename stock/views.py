@@ -518,4 +518,16 @@ class MySimulationConditionDetail(DetailView):
 		context['cashes'] = result.cash
 		context['equities'] = result.equity
 		context['snapshots'] = result.snapshot
+
+		# if viewing a China data, we pull China SP500 index
+		# value for comparison purpose
+		if self.object.data_source in [2,3,4,5]:
+			context['asset_cumulative'] = result.asset_cumulative_return
+
+			# compute china index cumulative return for selected time period
+			china_index = MyStock.objects.get(symbol = "000001")
+			china_historicals = MyStockHistorical.objects.filter(stock = china_index, date_stamp__in = result.on_dates).values('close_price').order_by('date_stamp')
+			china_t0 = china_historicals[0]['close_price']
+			context['china_index_cumulative'] = [float(china_historicals[x]['close_price']/china_t0) for x in range(1,len(china_historicals))]
+
 		return context

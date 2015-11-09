@@ -38,14 +38,17 @@ class MySimulation(object):
 
 		# sample set
 		data_source = self.simulation.data_source
+		sector = self.simulation.sector
 		if data_source == 1:
-			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id',flat=True)
+			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id', flat=True)
 		elif data_source == 2:
-			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id',flat=True)			
+			stocks = MyStock.objects.filter(symbol__startswith = "CI00").values_list('id', flat=True)			
 		elif data_source == 3:
-			stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id',flat=True)
+			stocks = MyStock.objects.filter(symbol__startswith = "8821").values_list('id', flat=True)
 		elif data_source == 4:
-			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id',flat=True)					
+			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id', flat=True)
+		elif data_source == 5 and sector:
+			stocks = [s.id for s in sector.stocks]
 		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy','relative_ma')
 
 		# dates
@@ -276,7 +279,14 @@ class MySimulationJK(MySimulation):
 				p.close(self.user,simulated_spot,on_date=on_date)
 
 				self.capital += p.vol * simulated_spot
-				self.snapshot[on_date]['transaction']['sell'].append(p)
+				self.snapshot[on_date]['transaction']['sell'].append({
+					'symbol':p.stock.symbol,
+					'position':p.position,
+					'close_position':p.close_position,
+					'gain':p.gain,
+					'life_in_days':p.life_in_days,
+					'vol':p.vol
+				})
 				self.snapshot[on_date]['gain']['sell'] += p.gain
 				# print 'close: ',symbol,self.capital
 
@@ -312,5 +322,9 @@ class MySimulationJK(MySimulation):
 			pos.save()
 
 			self.capital -= pos.vol*pos.position
-			self.snapshot[on_date]['transaction']['buy'].append(pos)		
+			self.snapshot[on_date]['transaction']['buy'].append({
+				'symbol': symbol,
+				'position': simulated_spot,
+				'vol': pos.vol
+			})	
 			# print 'create: ',symbol, self.capital

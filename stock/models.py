@@ -167,7 +167,10 @@ class MySector(models.Model):
 		blank = True
 	)
 	stocks = models.ManyToManyField('MyStock')
-	
+
+	def __unicode__(self):
+		return self.code
+
 class MyStock(models.Model):
 	# custom managers
 	# Note: the 1st one defined will be taken as the default!
@@ -676,9 +679,10 @@ def day_change_handler(sender, **kwargs):
 class MySimulationCondition(models.Model):
 	DATA_CHOICES = (
 		(1, "S&P500"),
-		(2, "CI00"),
-		(3, "WIND 8821"), 
-		(4, "China stock"),    
+		(2, "CI00*"),
+		(3, "WIND 8821*"), 
+		(4, "China stock"),
+		(5, 'WIND 2nd-tier sector'),
 	)
 	DATA_SORT_CHOICES = (       
 		(0, "ascending"),
@@ -700,6 +704,13 @@ class MySimulationCondition(models.Model):
 	data_source = models.IntegerField(
 		choices = DATA_CHOICES,
 		default = 1
+	)
+	sector = models.ForeignKey(
+		'MySector',
+		null = True,
+		blank = True,
+		default = None,
+		verbose_name = u'Data source sector'
 	)
 	strategy = models.IntegerField(
 		choices = STRATEGY_CHOICES,
@@ -767,6 +778,24 @@ class MySimulationResult(models.Model):
 	transaction = JSONField()
 	snapshot = JSONField()
 	condition = models.OneToOneField('MySimulationCondition')
+
+	def _num_of_buys(self):
+		return sum([len(t['buy'] for t in self.transaction)])
+	num_of_buys = property(_num_of_buys)
+
+	def _num_of_sells(self):
+		return sum([len(t['sell'] for t in self.transaction)])
+	num_of_sells = property(_num_of_sells)
+
+	def _asset_daily_return(self):
+		return [1]+[(self.asset[x]-self.asset[x-1])/self.asset[x-1]*100 for x in range(1,len(self.asset))]
+	asset_daily_return = property(_asset_daily_return)
+
+	def _asset_cumulative_return(self):
+		cumulative = []
+		t0 = self.asset[0]
+		return [self.asset[x]/t0 for x in range(1,len(self.asset))]
+	asset_cumulative_return = property(_asset_cumulative_return)
 
 class MyChenmin(models.Model):
 	executed_on = models.DateField(

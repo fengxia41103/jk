@@ -399,32 +399,45 @@ def import_wind_sector_index():
 
 from stock.tasks import backtesting_simulation_consumer
 def batch_simulation_daily_return():
+	sources = [2,3,5]
+	strategies = [1]
+	strategy_values = [1]
+
+	# get 8211 related sectors
+	stock_8211 = MyStock.objects.filter(symbol__startswith="8821")
+	sectors = reduce(lambda x,y:x+y, [list(s.mysector_set.all()) for s in stock_8211])
+	
+	start = ['2010-01-01','2011-01-01','2012-01-01','2013-01-01','2014-01-01','2015-01-01']
+	end = ['2016-01-01']
+	# start = ['2015-01-01']
+	# end = ['2015-01-10']
+
 	step = 25
 	conditions = []
+	for (source,strategy,strategy_value,start,end,sector) in itertools.product(sources,strategies,strategy_values,start,end,sectors):
+		print source,strategy,strategy_value,start,end,sector
 
-	sources = [2,3]
-	strategies = [2]
-	strategy_values = [1]
-	# start = ['2010-01-01','2011-01-01','2012-01-01','2013-01-01','2014-01-01','2015-01-01']
-	# end = ['2016-01-01']
-	start = ['2015-01-01']
-	end = ['2015-01-10']
+		# cutoffs have different meanings based on strategy
+		if strategy == 1:
+			buy_cutoff = range(0,100,25)
+			sell_cutoff = [b+25 for b in buy_cutoff]
+			cutoffs = zip(buy_cutoff,sell_cutoff)
+		elif strategy == 2:
+			cutoffs = itertools.product(range(1,10),range(1,10))
 
-	for (source,strategy,strategy_value,start,end) in itertools.product(sources,strategies,strategy_values,start,end):
-		print source,strategy,strategy_value,start,end
-
-		for i in range(0,100,25):
+		for (buy_cutoff,sell_cutoff) in cutoffs:
 			condition,created = MySimulationCondition.objects.get_or_create(
 				data_source = source,
-				data_sort = 1,
+				sector = sector,
+				data_sort = 1, # descending
 				strategy = strategy,
 				strategy_value = strategy_value,
 				start = start,
 				end = end,
 				capital = 100000,
 				per_trade = 10000,
-				buy_cutoff = i,
-				sell_cutoff = i + step
+				buy_cutoff = buy_cutoff,
+				sell_cutoff = sell_cutoff
 			)
 			conditions.append(condition)
 

@@ -47,7 +47,12 @@ Result details
 </table>
 
 <h2 class="page-header">Performance</h2>
-<div id="container" style="width:100%; height:580px;"></div>
+<div id="simulation" style="width:100%; height:580px;"></div>
+
+{# asset vs. china #}
+{% if china_index_cumulative %}
+<div id="comp-index" style="width:100%; height:580px;"></div>
+{% endif %}
 
 <h2 class="page-header">Traces</h1>
 {% for on_date, sp in snapshots %}
@@ -79,21 +84,21 @@ Result details
 
 <ul class="nav nav-tabs">
 	{% if sp.transaction.buy %}
-    <li class="active"><a data-toggle="tab" href="#{{on_date|date:"Y-m-d"}}-buy">Buy</a></li>
+    <li class="active"><a data-toggle="tab" href="#{{on_date}}-buy">Buy</a></li>
     {% endif %}
 
     {% if sp.transaction.sell %}
-    <li><a data-toggle="tab" href="#{{on_date|date:"Y-m-d"}}-sell">Sell</a></li>
+    <li><a data-toggle="tab" href="#{{on_date}}-sell">Sell</a></li>
     {% endif %}
 
     {% if sp.portfolio %}
-    <li><a data-toggle="tab" href="#{{on_date|date:"Y-m-d"}}-portfolio">Portfolio</a></li>
+    <li><a data-toggle="tab" href="#{{on_date}}-portfolio">Portfolio</a></li>
     {% endif %}    
 </ul>
 
 <div class="tab-content">
 	{% if sp.transaction.buy %}
-	<div id="{{on_date|date:"Y-m-d"}}-buy" class="tab-pane fade in active">
+	<div id="{{on_date}}-buy" class="tab-pane fade in active">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
 				<th></th>
@@ -119,7 +124,7 @@ Result details
 	{% endif %}
 
 	{% if sp.transaction.sell %}
-	<div id="{{on_date|date:"Y-m-d"}}-sell" class="tab-pane fade in">
+	<div id="{{on_date}}-sell" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
 				<th></th>
@@ -134,7 +139,7 @@ Result details
 				<tr><td>
 					{{ forloop.counter }}
 				</td><td>
-					{{ p.stock.symbol }}
+					{{ p.symbol }}
 				</td><td>
 					{{ p.position|floatformat:2 }}
 				</td><td>
@@ -151,7 +156,7 @@ Result details
 	{% endif %}
 
 	{% if sp.portfolio %}
-	<div id="{{on_date|date:"Y-m-d"}}-portfolio" class="tab-pane fade in">
+	<div id="{{on_date}}-portfolio" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
 				<th></th>
@@ -181,103 +186,103 @@ Result details
 {% endblock %}
 
 {% block custom_js %}
-    <script type="text/javascript"
-    	src="{% static 'highcharts/highcharts-custom.js' %}">
-    </script>
-    <script type="text/javascript"
-    	src="{% static 'highcharts/js/modules/boost.js' %}">
-    </script>   
-	
-	<script type="text/javascript">
-	var j$ = jQuery.noConflict();
+<script type="text/javascript"
+	src="{% static 'highcharts/highcharts-custom.js' %}">
+</script>
+<script type="text/javascript"
+	src="{% static 'highcharts/js/modules/boost.js' %}">
+</script>   
 
-	j$(document).ready(function(){
-	    j$('#container').highcharts({
-	        chart: {
-            	zoomType: 'x',
-            	type: 'spline'
-        	},
-	        title: {
-	            text: '{{ strategy }} Trading Simulation'
-	        },
-	        subtitle: {
-	            text: '{{start}} - {{end}}'
-	        },
-	        xAxis: {
-	            categories: {{ on_dates|safe }}
-	        },
-	        yAxis: {
-	            title: {
-	                text: 'Values'
-	            }
-	        },
-			tooltip: {
-			    crosshairs: {
-			        color: 'green',
-			        dashStyle: 'solid'
+<script type="text/javascript">
+var j$ = jQuery.noConflict();
+
+j$(document).ready(function(){
+    j$('#simulation').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'spline'
+    	},
+        title: {
+            text: '{{ strategy }} Trading Simulation'
+        },
+        subtitle: {
+            text: '{{start}} - {{end}}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: 'Values'
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+            line: {
+                dataLabels: {
+                    enabled: false
+                },
+                enableMouseTracking: false,
+                lineWidth: 4,
+                marker: {
+                	enabled: false
+                }
+            },
+			spline: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
 			    },
-			    shared: true,
-			    valueDecimals: 2			    
-			},	        
-	        plotOptions: {	        	
-	            line: {
-	                dataLabels: {
-	                    enabled: false
-	                },
-	                enableMouseTracking: false,
-	                lineWidth: 4,
-	                marker: {
-	                	enabled: false
-	                }
-	            },
-				spline: {
-				    marker: {
-				        radius: 1,
-				        lineColor: '#666666',
-				        lineWidth: 1,
-				        enabled: false
-				    },
-					lineWidth: 4,
-					states: {
-					    hover: {
-					        lineWidth: 5
-					    }
-					}				    
-				},		            
-				area: {
-					stacking: 'normal',
-					lineColor: '#666666',
+				lineWidth: 1,
+				states: {
+				    hover: {
+				        lineWidth: 5
+				    }
+				}				    
+			},		            
+			area: {
+				stacking: 'normal',
+				lineColor: '#666666',
+				lineWidth: 1,
+				marker: {
 					lineWidth: 1,
-					marker: {
-						lineWidth: 1,
-						lineColor: '#666666'
-					}
-				},
-        area: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        arearange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        areaspline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        areasplinerange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        bar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        boxplot: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        bubble: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        column: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        columnrange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        errorbar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        funnel: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        gauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        heatmap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        line: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        pie: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        polygon: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        pyramid: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        scatter: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        series: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        solidgauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        spline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        treemap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-        waterfall: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+					lineColor: '#666666'
+				}
+			},
+			area: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			arearange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			areaspline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			areasplinerange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			bar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			boxplot: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			bubble: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			column: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			columnrange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			errorbar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			funnel: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			gauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			heatmap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			line: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			pie: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			polygon: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			pyramid: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			scatter: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			series: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			solidgauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			spline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			treemap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
+			waterfall: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
 
-	        },
+	        }, // end of plot option
 	        series: [{
 	        	name: 'Assets',
 	        	data: {{ assets }},	    	
@@ -292,7 +297,71 @@ Result details
 	    		data: {{ equities }},
 	    		visible: false
 	    	}]
-	    });
-	});
+	}); // end of highchart
+
+	{% if china_index_cumulative %}
+    j$('#comp-index').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'spline'
+    	},
+        title: {
+            text: '{{ strategy }} vs. China index'
+        },
+        subtitle: {
+            text: '{{start}} - {{end}}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: 'Values'
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+            line: {
+                dataLabels: {
+                    enabled: false
+                },
+                enableMouseTracking: false,
+                lineWidth: 4,
+                marker: {
+                	enabled: false
+                }
+            },
+			spline: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
+			    },
+				lineWidth: 3,
+				states: {
+				    hover: {
+				        lineWidth: 4
+				    }
+				}				    
+			}
+	    }, // end of option
+        series: [{
+        	name: 'Simulation asset cumulative',
+        	data: {{ asset_cumulative }},	    	
+        },{ 
+    		name: 'China index cumulative',
+    		data: {{ china_index_cumulative }}
+    	}]
+	});// end of highcharts
+	{% endif %}
+});// end of document.ready
 	</script>    
 {% endblock %}
