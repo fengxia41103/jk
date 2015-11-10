@@ -1,0 +1,178 @@
+{% extends "stock/backtesting/list.html" %}
+{% load humanize %} 
+{% load staticfiles %}
+
+{% block page-header %}
+	Simulation comparison
+{% endblock %}
+
+{% block strategy-result %}
+<table class="table table-striped">
+	<caption>Simulation conditions</caption>
+    <thead>
+    	<th>Index</th>
+    	<th>Data source</th>
+    	<th>Strategy value</th>
+    	<th>Strategy</th>
+    	<th>Start</th>
+    	<th>End</th>
+    	<th>Cutoffs</th>
+    	<th>Capital</th>
+    	<th>Per trade</th>
+    </thead>
+    <tbody>
+    {% for object in object_list %}
+		<tr><td>
+			{{ object.id }}
+		</td><td>
+			{{ object.get_data_source_display }}
+		</td><td>
+			{{ object.get_strategy_value_display }}
+		</td><td>
+			{{ object.get_strategy_display }}
+		</td><td>
+			{{ object.start }}
+		</td><td>
+			{{ object.end }}
+		</td><td>
+			{{ object.buy_cutoff }}% &mdash; {{ object.sell_cutoff }}%
+		</td><td>
+			{{ object.capital|intcomma }}
+		</td><td>
+			{{ object.per_trade|intcomma }}
+		</td</tr>
+	{% endfor %}
+    </tbody>
+</table>
+
+<h2 class="page-header">Performance</h2>
+<div id="container" style="width:100%; height:700px;"></div>
+
+<h2 class="page-header">Analysis</h2>
+<table class="table table-striped">
+    <thead>	   
+    	<th>Index</th>
+    	<th>Data source</th>
+    	<th>Cutoffs</th>
+    	<th>End return</th>   	
+    	<th>Max return</th>
+    	<th>Min return</th>
+    	<th>Avg return</th>
+    	<th>STD return</th>
+    	<th>Buys</th>
+    	<th>Sells</th>
+    </thead>
+    <tbody>
+    	{% for cond in object_list %}
+    		<tr><td>
+    			{{ cond.id }}
+    		</td><td>
+    			{{ cond.get_data_source_display }}
+			</td><td>
+				{{ cond.buy_cutoff }}% &mdash; {{ cond.sell_cutoff }}%
+			</td><td>
+				{{ cond.mysimulationresult.asset_end_return|floatformat:"2" }}
+    		</td><td>
+    			{{ cond.mysimulationresult.asset_max_return|floatformat:"2" }}
+    		</td><td>
+    			{{ cond.mysimulationresult.asset_min_return|floatformat:"2" }}
+    		</td><td>
+    			{{ cond.mysimulationresult.asset_cumulative_return_mean|floatformat:"2" }}
+    		</td><td>
+    			{{ cond.mysimulationresult.asset_cumulative_return_std|floatformat:"4" }}
+    		</td><td>
+    			{{ cond.mysimulationresult.num_of_buys|intcomma }}
+    		</td><td>
+    			{{ cond.mysimulationresult.num_of_sells|intcomma }}
+    		</td</tr>
+    	{% endfor %}
+    </tbody>
+</table>
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript"
+	src="{% static 'highcharts/highcharts-custom.js' %}">
+</script>
+<script type="text/javascript"
+	src="{% static 'highcharts/js/modules/boost.js' %}">
+</script>   
+
+<script type="text/javascript">
+var j$ = jQuery.noConflict();
+
+j$(document).ready(function(){
+    j$('#container').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'spline'
+    	},
+        title: {
+            text: 'Simulation comparison'
+        },
+        subtitle: {
+            text: '{{start}} - {{end}}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: 'Values'
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+            line: {
+                dataLabels: {
+                    enabled: false
+                },
+                enableMouseTracking: false,
+                lineWidth: 4,
+                marker: {
+                	enabled: false
+                }
+            },
+			spline: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
+			    },
+				lineWidth: 4,
+				states: {
+				    hover: {
+				        lineWidth: 5
+				    }
+				}				    
+			},		            
+			area: {
+				stacking: 'normal',
+				lineColor: '#666666',
+				lineWidth: 1,
+				marker: {
+					lineWidth: 1,
+					lineColor: '#666666'
+				}
+			},
+        },
+        series: [
+        	{% for r in assets %}
+        	{
+        		name: '{{ r.name }}',
+        		data: {{ r.values }}
+        	},
+        	{% endfor %}
+		]
+    });
+});
+</script>  
+{% endblock %}

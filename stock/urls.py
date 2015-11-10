@@ -52,5 +52,6 @@ urlpatterns = patterns(
 		url(r'^backtesting/s1/(?P<symbol>\w+)/$', views.MyStockStrategy1Detail.as_view(), name='backtesting_1'),		
 		url(r'^backtesting/simulation/$', views.MySimulationExec.as_view(), name='simulation_exec'),
 		url(r'^backtesting/result/$', views.MySimulationResultList.as_view(), name='simulation_result_list'),
+		url(r'^backtesting/result/comp/$', views.MySimulationResultComp.as_view(), name='simulation_result_comp'),		
 	)+ static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

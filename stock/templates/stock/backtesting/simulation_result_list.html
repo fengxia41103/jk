@@ -4,15 +4,16 @@
 {% load crispy_forms_tags %}
 
 {% block page-header %}
-	Simulation comparison
+	Simulation results
 {% endblock %}
 
 {% block strategy-result %}
-<form action="{% url 'simulation_result_list' %}" class="uniForm" method="post">
+<form action="{% url 'simulation_result_comp' %}" class="uniForm" method="post" target="_blank">
     {% csrf_token %}
     <table class="table table-striped my-datatable">
 	    <thead>
-	    	<th></th>
+	    	<th></th>	   
+	    	<th>Index</th>
 	    	<th>Data source</th>
 	    	<th>Strategy value</th>
 	    	<th>Strategy</th>
@@ -21,12 +22,15 @@
 	    	<th>Cutoffs</th>
 	    	<th>Capital</th>
 	    	<th>Per trade</th>
-	    	<th></th>
+	    	<th>Sector</th>
+	    	<th>Manage</th>
 	    </thead>
 	    <tbody>
 	    	{% for cond in object_list %}
 	    		<tr><td>
 	    			<input type="checkbox" name="conditions" value="{{ cond.id }}"/>
+	    		</td><td>
+	    			{{ cond.id }}
 	    		</td><td>
 	    			{{ cond.get_data_source_display }}
 	    		</td><td>
@@ -44,7 +48,9 @@
 	    		</td><td>
 	    			{{ cond.per_trade|intcomma }}
 	    		</td><td>
-	    			<a href="{% url 'condition_detail' cond.id %}">Detail</a>
+	    			{{ cond.sector }}
+	    		</td><td>
+	    			<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
 	    			|
 	    			<a href="{% url 'condition_delete' cond.id %}">Delete</a>
 	    		</td</tr>
@@ -53,93 +59,4 @@
     </table>
     <input type="submit" class="btn btn-primary" value="View report" />
 </form>
-
-<div id="container" style="width:100%; height:700px;"></div>
-{% endblock %}
-
-{% block custom_js %}
-    <script type="text/javascript"
-    	src="{% static 'highcharts/highcharts-custom.js' %}">
-    </script>
-    <script type="text/javascript"
-    	src="{% static 'highcharts/js/modules/boost.js' %}">
-    </script>   
-	
-	<script type="text/javascript">
-	var j$ = jQuery.noConflict();
-
-	j$(document).ready(function(){
-	    j$('#container').highcharts({
-	        chart: {
-            	zoomType: 'x',
-            	type: 'spline'
-        	},
-	        title: {
-	            text: 'Simulation comparison'
-	        },
-	        subtitle: {
-	            text: '{{start}} - {{end}}'
-	        },
-	        xAxis: {
-	            categories: {{ on_dates|safe }}
-	        },
-	        yAxis: {
-	            title: {
-	                text: 'Values'
-	            }
-	        },
-			tooltip: {
-			    crosshairs: {
-			        color: 'green',
-			        dashStyle: 'solid'
-			    },
-			    shared: true,
-			    valueDecimals: 2			    
-			},	        
-	        plotOptions: {	        	
-	            line: {
-	                dataLabels: {
-	                    enabled: false
-	                },
-	                enableMouseTracking: false,
-	                lineWidth: 4,
-	                marker: {
-	                	enabled: false
-	                }
-	            },
-				spline: {
-				    marker: {
-				        radius: 1,
-				        lineColor: '#666666',
-				        lineWidth: 1,
-				        enabled: false
-				    },
-					lineWidth: 4,
-					states: {
-					    hover: {
-					        lineWidth: 5
-					    }
-					}				    
-				},		            
-				area: {
-					stacking: 'normal',
-					lineColor: '#666666',
-					lineWidth: 1,
-					marker: {
-						lineWidth: 1,
-						lineColor: '#666666'
-					}
-				},
-	        },
-	        series: [
-	        	{% for r in assets %}
-	        	{
-	        		name: '{{ r.name }}',
-	        		data: {{ r.values }}
-	        	},
-	        	{% endfor %}
-			]
-	    });
-	});
-	</script>    
 {% endblock %}

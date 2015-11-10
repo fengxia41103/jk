@@ -18,6 +18,7 @@ from django.core.mail import send_mail
 from decimal import Decimal
 from django.core.validators import MaxValueValidator, MinValueValidator
 from math import fabs
+import numpy as np
 
 class MyBaseModel (models.Model):
 	# fields
@@ -767,6 +768,18 @@ class MySimulationCondition(models.Model):
 			self.sell_cutoff,
 			self.start,
 			self.end)
+	class Meta:
+		unique_together = ("data_source",
+			"sector",
+			"strategy",
+			"strategy_value",
+			"data_sort",
+			"start",
+			"end",
+			"capital",
+			"per_trade",
+			"buy_cutoff",
+			"sell_cutoff")
 
 class MySimulationResult(models.Model):
 	description = models.TextField()
@@ -780,11 +793,11 @@ class MySimulationResult(models.Model):
 	condition = models.OneToOneField('MySimulationCondition')
 
 	def _num_of_buys(self):
-		return sum([len(t['buy'] for t in self.transaction)])
+		return sum([len(t['buy']) for t in self.transaction])
 	num_of_buys = property(_num_of_buys)
 
 	def _num_of_sells(self):
-		return sum([len(t['sell'] for t in self.transaction)])
+		return sum([len(t['sell']) for t in self.transaction])
 	num_of_sells = property(_num_of_sells)
 
 	def _asset_daily_return(self):
@@ -796,6 +809,26 @@ class MySimulationResult(models.Model):
 		t0 = self.asset[0]
 		return [self.asset[x]/t0 for x in range(1,len(self.asset))]
 	asset_cumulative_return = property(_asset_cumulative_return)
+
+	def _asset_end_return(self):
+		return self.asset_cumulative_return[-1]
+	asset_end_return = property(_asset_end_return)
+	
+	def _asset_max_return(self):
+		return max(self.asset_cumulative_return)
+	asset_max_return = property(_asset_max_return)
+
+	def _asset_min_return(self):
+		return min(self.asset_cumulative_return)
+	asset_min_return = property(_asset_min_return)
+
+	def _asset_cumulative_return_mean(self):
+		return np.mean(self.asset_cumulative_return)
+	asset_cumulative_return_mean = property(_asset_cumulative_return_mean)
+
+	def _asset_cumulative_return_std(self):
+		return np.std(self.asset_cumulative_return)
+	asset_cumulative_return_std = property(_asset_cumulative_return_std)
 
 class MyChenmin(models.Model):
 	executed_on = models.DateField(

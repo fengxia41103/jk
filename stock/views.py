@@ -378,7 +378,7 @@ class MyStockCandidateList(ListView):
 
 from nltk import FreqDist
 @class_view_decorator(login_required)
-class MyStockStrategy1Detail(TemplateView):
+class MyStockStrategy1Detail(DetailView):
 	model = MyStockHistorical
 	template_name ='stock/backtesting/s1_detail.html'
 
@@ -474,9 +474,12 @@ class MySimulationConditionDelete(DeleteView):
 @class_view_decorator(login_required)
 class MySimulationResultList(ListView):
 	template_name = 'stock/backtesting/simulation_result_list.html'
-
 	def get_queryset(self):
 		return MySimulationCondition.objects.filter(mysimulationresult__isnull=False)
+
+@class_view_decorator(login_required)
+class MySimulationResultComp(TemplateView):
+	template_name = 'stock/backtesting/simulation_result_comp.html'
 
 	def post(self, request, *args, **kwargs):
 		conditions = []
@@ -526,8 +529,9 @@ class MySimulationConditionDetail(DetailView):
 
 			# compute china index cumulative return for selected time period
 			china_index = MyStock.objects.get(symbol = "000001")
-			china_historicals = MyStockHistorical.objects.filter(stock = china_index, date_stamp__in = result.on_dates).values('close_price').order_by('date_stamp')
-			china_t0 = china_historicals[0]['close_price']
-			context['china_index_cumulative'] = [float(china_historicals[x]['close_price']/china_t0) for x in range(1,len(china_historicals))]
+			china_historicals = MyStockHistorical.objects.filter(stock = china_index, date_stamp__in = result.on_dates).values('adj_close').order_by('date_stamp')
+			china_t0 = china_historicals[0]['adj_close']
+			print china_t0
+			context['china_index_cumulative'] = [float(china_historicals[x]['adj_close']/china_t0) for x in range(1,len(china_historicals))]
 
 		return context

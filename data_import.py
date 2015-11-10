@@ -400,14 +400,14 @@ def import_wind_sector_index():
 from stock.tasks import backtesting_simulation_consumer
 def batch_simulation_daily_return():
 	sources = [2,3,5]
-	strategies = [1]
+	strategies = [1,2]
 	strategy_values = [1]
 
 	# get 8211 related sectors
 	stock_8211 = MyStock.objects.filter(symbol__startswith="8821")
-	sectors = reduce(lambda x,y:x+y, [list(s.mysector_set.all()) for s in stock_8211])
+	sectors = [None]+reduce(lambda x,y:x+y, [list(s.mysector_set.all()) for s in stock_8211])
 	
-	start = ['2010-01-01','2011-01-01','2012-01-01','2013-01-01','2014-01-01','2015-01-01']
+	start = ['2010-01-01','2015-01-01']
 	end = ['2016-01-01']
 	# start = ['2015-01-01']
 	# end = ['2015-01-10']
@@ -415,6 +415,16 @@ def batch_simulation_daily_return():
 	step = 25
 	conditions = []
 	for (source,strategy,strategy_value,start,end,sector) in itertools.product(sources,strategies,strategy_values,start,end,sectors):
+		# if source == 2:
+		# 	print source,strategy,strategy_value,start,end,sector
+		# 	raw_input()
+
+		# we only try strategy 2 with source 1
+		if strategy == 2 and source != 1: continue
+
+		# we only try strategy 5 with sector
+		if sector and source != 5: continue
+
 		print source,strategy,strategy_value,start,end,sector
 
 		# cutoffs have different meanings based on strategy
@@ -423,7 +433,7 @@ def batch_simulation_daily_return():
 			sell_cutoff = [b+25 for b in buy_cutoff]
 			cutoffs = zip(buy_cutoff,sell_cutoff)
 		elif strategy == 2:
-			cutoffs = itertools.product(range(1,10),range(1,10))
+			cutoffs = itertools.product([1,5,10],[1,5,10])
 
 		for (buy_cutoff,sell_cutoff) in cutoffs:
 			condition,created = MySimulationCondition.objects.get_or_create(
@@ -441,9 +451,17 @@ def batch_simulation_daily_return():
 			)
 			conditions.append(condition)
 
-		# simulate
-		for condition in conditions:
-			backtesting_simulation_consumer.delay(cPickle.dumps(condition))
+	for condition in conditions:
+		backtesting_simulation_consumer.delay(cPickle.dumps(condition))
+
+def temp():
+	s = '3010'
+	stocks = []
+	for sector in MySector.objects.filter(code__startswith=s):
+		for stock in sector.stocks.all():
+			if stock.symbol.startswith('8821'): continue
+			else: stocks.append(stock)
+	print stocks
 
 def main():
 	django.setup()
@@ -468,6 +486,7 @@ def main():
 	# import_wind_sector_stock()
 	# import_wind_sector_index()
 	batch_simulation_daily_return()
+	# temp()
 
 	'''
 	Compute strategy index values

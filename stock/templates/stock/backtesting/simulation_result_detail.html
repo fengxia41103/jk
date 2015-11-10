@@ -51,6 +51,7 @@ Result details
 
 {# asset vs. china #}
 {% if china_index_cumulative %}
+<h2 class="page-header">Cumulative return vs. Index</h2>
 <div id="comp-index" style="width:100%; height:580px;"></div>
 {% endif %}
 
@@ -242,7 +243,7 @@ j$(document).ready(function(){
 			        lineWidth: 1,
 			        enabled: false
 			    },
-				lineWidth: 1,
+				lineWidth: 4,
 				states: {
 				    hover: {
 				        lineWidth: 5
@@ -258,45 +259,21 @@ j$(document).ready(function(){
 					lineColor: '#666666'
 				}
 			},
-			area: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			arearange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			areaspline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			areasplinerange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			bar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			boxplot: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			bubble: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			column: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			columnrange: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			errorbar: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			funnel: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			gauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			heatmap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			line: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			pie: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			polygon: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			pyramid: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			scatter: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			series: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			solidgauge: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			spline: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			treemap: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-			waterfall: { animation: false, enableMouseTracking: false, stickyTracking: true, shadow: false, dataLabels: { style: { textShadow: false } } },
-
-	        }, // end of plot option
-	        series: [{
-	        	name: 'Assets',
-	        	data: {{ assets }},	    	
-	        },{
-	        	type: "line",
-	        	name: 'Cashes',
-	        	data: {{ cashes }},
-	        	step: true,
-	        	visible: false
-	        },{ 
-	    		name: 'Equities',
-	    		data: {{ equities }},
-	    		visible: false
-	    	}]
+	    }, // end of plot option
+        series: [{
+        	name: 'Assets',
+        	data: {{ assets }},	    	
+        },{
+        	type: "line",
+        	name: 'Cashes',
+        	data: {{ cashes }},
+        	step: true,
+        	visible: false
+        },{ 
+    		name: 'Equities',
+    		data: {{ equities }},
+    		visible: false
+    	}]
 	}); // end of highchart
 
 	{% if china_index_cumulative %}

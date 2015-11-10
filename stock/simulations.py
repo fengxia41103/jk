@@ -48,7 +48,11 @@ class MySimulation(object):
 		elif data_source == 4:
 			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id', flat=True)
 		elif data_source == 5 and sector:
-			stocks = [s.id for s in sector.stocks]
+			stocks = []
+			for s in MySector.objects.filter(code__startswith=sector):
+				for stock in s.stocks.all():
+					if stock.symbol.startswith('8821'): continue
+					else: stocks.append(stock.id)		
 		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy','relative_ma')
 
 		# dates
