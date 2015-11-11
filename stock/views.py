@@ -531,7 +531,6 @@ class MySimulationConditionDetail(DetailView):
 			china_index = MyStock.objects.get(symbol = "000001")
 			china_historicals = MyStockHistorical.objects.filter(stock = china_index, date_stamp__in = result.on_dates).values('adj_close').order_by('date_stamp')
 			china_t0 = china_historicals[0]['adj_close']
-			print china_t0
 			context['china_index_cumulative'] = [float(china_historicals[x]['adj_close']/china_t0) for x in range(1,len(china_historicals))]
-
+			context['alpha_return'] = map(lambda x:x[0]-x[1], zip(context['asset_cumulative'],context['china_index_cumulative']))
 		return context

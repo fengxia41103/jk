@@ -401,7 +401,7 @@ from stock.tasks import backtesting_simulation_consumer
 def batch_simulation_daily_return():
 	sources = [2,3,5]
 	strategies = [1,2]
-	strategy_values = [1]
+	strategy_values = [1,2,3]
 
 	# get 8211 related sectors
 	stock_8211 = MyStock.objects.filter(symbol__startswith="8821")
@@ -415,10 +415,6 @@ def batch_simulation_daily_return():
 	step = 25
 	conditions = []
 	for (source,strategy,strategy_value,start,end,sector) in itertools.product(sources,strategies,strategy_values,start,end,sectors):
-		# if source == 2:
-		# 	print source,strategy,strategy_value,start,end,sector
-		# 	raw_input()
-
 		# we only try strategy 2 with source 1
 		if strategy == 2 and source != 1: continue
 

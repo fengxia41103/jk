@@ -39,8 +39,6 @@ Result details
 		</td><td>
 			{{ object.per_trade|intcomma }}
 		</td><td>
-			<a href="{% url 'condition_detail' object.id %}">Detail</a>
-			|
 			<a href="{% url 'condition_delete' object.id %}">Delete</a>
 		</td</tr>
     </tbody>
@@ -52,8 +50,54 @@ Result details
 {# asset vs. china #}
 {% if china_index_cumulative %}
 <h2 class="page-header">Cumulative return vs. Index</h2>
-<div id="comp-index" style="width:100%; height:580px;"></div>
+<div class="row">
+	<div class="col-md-6">
+		<div id="comp-index" style="width:100%; height:400px;"></div>
+	</div>
+	<div class="col-md-6">
+		<div id="alpha-return" style="width:100%; height:400px;"></div>
+	</div>
+</div>
 {% endif %}
+
+<h2 class="page-header">Statistics</h2>
+<table class="table table-striped">
+    <thead>	   
+    	<th>Index</th>
+    	<th>Data source</th>
+    	<th>Cutoffs</th>
+    	<th>End return</th>   	
+    	<th>Max return</th>
+    	<th>Min return</th>
+    	<th>Avg return</th>
+    	<th>STD return</th>
+    	<th>Buys</th>
+    	<th>Sells</th>
+    </thead>
+    <tbody>
+		<tr><td>
+			{{ object.id }}
+		</td><td>
+			{{ object.get_data_source_display }}
+		</td><td>
+			{{ object.buy_cutoff }}% &mdash; {{ object.sell_cutoff }}%
+		</td><td>
+			{{ object.mysimulationresult.asset_end_return|floatformat:"2" }}
+		</td><td>
+			{{ object.mysimulationresult.asset_max_return|floatformat:"2" }}
+		</td><td>
+			{{ object.mysimulationresult.asset_min_return|floatformat:"2" }}
+		</td><td>
+			{{ object.mysimulationresult.asset_cumulative_return_mean|floatformat:"2" }}
+		</td><td>
+			{{ object.mysimulationresult.asset_cumulative_return_std|floatformat:"4" }}
+		</td><td>
+			{{ object.mysimulationresult.num_of_buys|intcomma }}
+		</td><td>
+			{{ object.mysimulationresult.num_of_sells|intcomma }}
+		</td</tr>
+    </tbody>
+</table>
 
 <h2 class="page-header">Traces</h1>
 {% for on_date, sp in snapshots %}
@@ -283,7 +327,7 @@ j$(document).ready(function(){
         	type: 'spline'
     	},
         title: {
-            text: '{{ strategy }} vs. China index'
+            text: 'Simulation vs. China index'
         },
         subtitle: {
             text: '{{start}} - {{end}}'
@@ -337,6 +381,48 @@ j$(document).ready(function(){
     		name: 'China index cumulative',
     		data: {{ china_index_cumulative }}
     	}]
+	});// end of highcharts
+    j$('#alpha-return').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'column'
+    	},
+        title: {
+            text: 'Alpha Return'
+        },
+        subtitle: {
+            text: '{{start}} - {{end}}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: 'Values'
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+			column: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
+			    }			    
+			}
+	    }, // end of option
+        series: [{
+        	name: 'Alpha return',
+        	data: {{ alpha_return }},	    	
+        }]
 	});// end of highcharts
 	{% endif %}
 });// end of document.ready

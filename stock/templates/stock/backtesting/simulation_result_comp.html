@@ -61,6 +61,7 @@
     	<th>STD return</th>
     	<th>Buys</th>
     	<th>Sells</th>
+    	<th></th>
     </thead>
     <tbody>
     	{% for cond in object_list %}
@@ -84,6 +85,8 @@
     			{{ cond.mysimulationresult.num_of_buys|intcomma }}
     		</td><td>
     			{{ cond.mysimulationresult.num_of_sells|intcomma }}
+			</td><td>
+				<a href="{% url 'condition_detail' object.id %}" target="_blank">Detail</a>    			
     		</td</tr>
     	{% endfor %}
     </tbody>
