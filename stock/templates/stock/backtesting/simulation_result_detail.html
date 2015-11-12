@@ -19,6 +19,7 @@ Result details
     	<th>Cutoffs</th>
     	<th>Capital</th>
     	<th>Per trade</th>
+    	<th>Sector</th>
     	<th>Manage</th>
     </thead>
     <tbody>
@@ -38,6 +39,8 @@ Result details
 			{{ object.capital|intcomma }}
 		</td><td>
 			{{ object.per_trade|intcomma }}
+		</td><td>
+			{{ object.sector }}
 		</td><td>
 			<a href="{% url 'condition_delete' object.id %}">Delete</a>
 		</td</tr>
@@ -73,6 +76,7 @@ Result details
     	<th>STD return</th>
     	<th>Buys</th>
     	<th>Sells</th>
+    	<th>Sector</th>
     </thead>
     <tbody>
 		<tr><td>
@@ -95,6 +99,8 @@ Result details
 			{{ object.mysimulationresult.num_of_buys|intcomma }}
 		</td><td>
 			{{ object.mysimulationresult.num_of_sells|intcomma }}
+		</td><td>
+			{{ object.sector }}
 		</td</tr>
     </tbody>
 </table>

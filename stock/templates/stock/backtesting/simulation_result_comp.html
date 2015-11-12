@@ -19,6 +19,7 @@
     	<th>Cutoffs</th>
     	<th>Capital</th>
     	<th>Per trade</th>
+    	<th>Sector</th>
     </thead>
     <tbody>
     {% for object in object_list %}
@@ -40,6 +41,8 @@
 			{{ object.capital|intcomma }}
 		</td><td>
 			{{ object.per_trade|intcomma }}
+		</td><td>
+			{{ object.sector }}
 		</td</tr>
 	{% endfor %}
     </tbody>
@@ -49,7 +52,7 @@
 <div id="container" style="width:100%; height:700px;"></div>
 
 <h2 class="page-header">Analysis</h2>
-<table class="table table-striped">
+<table class="table table-striped my-datatable">
     <thead>	   
     	<th>Index</th>
     	<th>Data source</th>
@@ -61,6 +64,7 @@
     	<th>STD return</th>
     	<th>Buys</th>
     	<th>Sells</th>
+    	<th>Sector</th>
     	<th></th>
     </thead>
     <tbody>
@@ -85,8 +89,10 @@
     			{{ cond.mysimulationresult.num_of_buys|intcomma }}
     		</td><td>
     			{{ cond.mysimulationresult.num_of_sells|intcomma }}
+    		</td><td>
+    			{{ cond.sector.code }} | {{ cond.sector.name }}
 			</td><td>
-				<a href="{% url 'condition_detail' object.id %}" target="_blank">Detail</a>    			
+				<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
     		</td</tr>
     	{% endfor %}
     </tbody>

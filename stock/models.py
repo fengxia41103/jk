@@ -170,7 +170,8 @@ class MySector(models.Model):
 	stocks = models.ManyToManyField('MyStock')
 
 	def __unicode__(self):
-		return self.code
+		if self.name: return u'{0} ({1})'.format(self.name,self.code)
+		else: return self.code
 
 class MyStock(models.Model):
 	# custom managers
@@ -761,13 +762,22 @@ class MySimulationCondition(models.Model):
 	)
 
 	def __unicode__(self):
-		return '%s-%s-%s (%d-%d), %s - %s' %(self.get_data_source_display(), 
-			self.get_strategy_display(), 
-			self.get_strategy_value_display(),
-			self.buy_cutoff,
-			self.sell_cutoff,
-			self.start,
-			self.end)
+		if self.sector:
+			return u'%s-%s-%s (%d-%d), %s - %s' %(self.sector.code, 
+				self.get_strategy_display(), 
+				self.get_strategy_value_display(),
+				self.buy_cutoff,
+				self.sell_cutoff,
+				self.start,
+				self.end)	
+		else:		
+			return '%s-%s-%s (%d-%d), %s - %s' %(self.get_data_source_display(), 
+				self.get_strategy_display(), 
+				self.get_strategy_value_display(),
+				self.buy_cutoff,
+				self.sell_cutoff,
+				self.start,
+				self.end)
 	class Meta:
 		unique_together = ("data_source",
 			"sector",
@@ -813,7 +823,7 @@ class MySimulationResult(models.Model):
 	def _asset_end_return(self):
 		return self.asset_cumulative_return[-1]
 	asset_end_return = property(_asset_end_return)
-	
+
 	def _asset_max_return(self):
 		return max(self.asset_cumulative_return)
 	asset_max_return = property(_asset_max_return)

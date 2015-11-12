@@ -399,9 +399,9 @@ def import_wind_sector_index():
 
 from stock.tasks import backtesting_simulation_consumer
 def batch_simulation_daily_return():
-	sources = [2,3,5]
+	sources = [1,2,3,5]
 	strategies = [1,2]
-	strategy_values = [1,2,3]
+	strategy_values = [1]
 
 	# get 8211 related sectors
 	stock_8211 = MyStock.objects.filter(symbol__startswith="8821")
