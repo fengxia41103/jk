@@ -521,6 +521,8 @@ class MySimulationConditionDetail(DetailView):
 		context['cashes'] = result.cash
 		context['equities'] = result.equity
 		context['snapshots'] = result.snapshot
+		context['equity_gain_from_hold_pcnt'] = result.equity_portfolio_gain_pcnt
+		context['equity_gain_from_trade_pcnt'] = result.equity_trade_gain_pcnt
 
 		# if viewing a China data, we pull China SP500 index
 		# value for comparison purpose

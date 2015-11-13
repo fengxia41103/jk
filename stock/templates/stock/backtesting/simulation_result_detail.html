@@ -50,6 +50,15 @@ Result details
 <h2 class="page-header">Performance</h2>
 <div id="simulation" style="width:100%; height:580px;"></div>
 
+<div class="row">
+	<div class="col-md-6">
+		<div id="equity-gain-from-hold" style="width:100%; height:400px;"></div>
+	</div>
+	<div class="col-md-6">
+		<div id="equity-gain-from-trade" style="width:100%; height:400px;"></div>
+	</div>
+</div>
+
 {# asset vs. china #}
 {% if china_index_cumulative %}
 <h2 class="page-header">Cumulative return vs. Index</h2>
@@ -325,6 +334,123 @@ j$(document).ready(function(){
     		visible: false
     	}]
 	}); // end of highchart
+
+   j$('#equity-gain-from-hold').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'column'
+    	},
+        title: {
+            text: 'Equity Gain % From Portfolio'
+        },
+        subtitle: {
+            text: '{{start}} - {{end}}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: 'Gain as % of equity@T-1'
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+            line: {
+                dataLabels: {
+                    enabled: false
+                },
+                enableMouseTracking: false,
+                lineWidth: 4,
+                marker: {
+                	enabled: false
+                }
+            },
+			spline: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
+			    },
+				lineWidth: 3,
+				states: {
+				    hover: {
+				        lineWidth: 4
+				    }
+				}				    
+			}
+	    }, // end of option
+        series: [{
+        	name: 'Gain from equity portfolio',
+        	data: {{ equity_gain_from_hold_pcnt }},	    	
+        }]
+	});// end of highcharts
+   j$('#equity-gain-from-trade').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'column'
+    	},
+        title: {
+            text: 'Equity Gain % From Trading'
+        },
+        subtitle: {
+            text: '{{start}} - {{end}}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: "Gain as % of equity@T-1"
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+            line: {
+                dataLabels: {
+                    enabled: false
+                },
+                enableMouseTracking: false,
+                lineWidth: 4,
+                marker: {
+                	enabled: false
+                }
+            },
+			spline: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
+			    },
+				lineWidth: 3,
+				states: {
+				    hover: {
+				        lineWidth: 4
+				    }
+				}				    
+			}
+	    }, // end of option
+        series: [{
+        	name: 'Gain from equity trading',
+        	data: {{ equity_gain_from_trade_pcnt }},	    	
+        }]
+	});// end of highcharts
 
 	{% if china_index_cumulative %}
     j$('#comp-index').highcharts({

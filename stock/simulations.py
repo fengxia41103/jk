@@ -39,6 +39,7 @@ class MySimulation(object):
 		# sample set
 		data_source = self.simulation.data_source
 		sector = self.simulation.sector
+		stocks = []		
 		if data_source == 1:
 			stocks = MyStock.objects.filter(is_sp500 = True).values_list('id', flat=True)
 		elif data_source == 2:
@@ -48,7 +49,6 @@ class MySimulation(object):
 		elif data_source == 4:
 			stocks = MyStock.objects.filter(is_china_stock = True).values_list('id', flat=True)
 		elif data_source == 5 and sector:
-			stocks = []
 			for s in MySector.objects.filter(code__startswith=sector):
 				for stock in s.stocks.all():
 					if stock.symbol.startswith('8821'): continue

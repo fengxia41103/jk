@@ -46,7 +46,7 @@ def crawl_stock_yahoo_spot():
 		stock_monitor_yahoo_consumer.delay(','.join(symbols[i*step:(i*step+step)]))
 
 from stock.tasks import stock_monitor_yahoo_consumer2
-def crawl_stock_yahoo_spot2():
+def crawl_update_sp500_spot_yahoo():
 	step = 100
 	total = 500
 	symbols = MyStock.objects.filter(is_sp500=True).values_list('symbol',flat=True)
@@ -55,13 +55,14 @@ def crawl_stock_yahoo_spot2():
 
 
 from stock.tasks import stock_prev_week_yahoo_consumer,stock_prev_month_yahoo_consumer,stock_prev_fib_yahoo_consumer,stock_historical_yahoo_consumer
-def crawl_stock_prev_yahoo2():
+def crawl_update_sp500_historical_yahoo():
 	symbols = MyStock.objects.filter(is_sp500=True).values_list('symbol',flat=True)
 	for s in symbols:	
 		stock_prev_week_yahoo_consumer.delay(s)
 		stock_prev_month_yahoo_consumer.delay(s)
 		stock_prev_fib_yahoo_consumer.delay(s)
 		stock_historical_yahoo_consumer.delay(s)
+
 
 from stock.tasks import chenmin_consumer
 def crawler_chenmin():
@@ -84,17 +85,17 @@ def backtest_s1():
 
 from stock.tasks import backtesting_daily_return_consumer
 def consumer_daily_return():
-	for symbol in MyStock.objects.filter(symbol__startswith = '8821').values_list('symbol',flat=True):
+	for symbol in MyStock.objects.filter(is_sp500 = True).values_list('symbol',flat=True):
 		backtesting_daily_return_consumer.delay(symbol)
 
 from stock.tasks import backtesting_relative_hl_consumer
 def consumer_relative_hl():
-	for symbol in MyStock.objects.filter(symbol__startswith = '8821').values_list('symbol',flat=True):
+	for symbol in MyStock.objects.filter(is_sp500 = True).values_list('symbol',flat=True):
 		backtesting_relative_hl_consumer.delay(symbol)
 
 from stock.tasks import backtesting_relative_ma_consumer
 def consumer_relative_ma():
-	for symbol in MyStock.objects.values_list('symbol',flat=True):
+	for symbol in MyStock.objects.filter(is_sp500 = True).values_list('symbol',flat=True):
 		backtesting_relative_ma_consumer.delay(symbol)
 
 import csv
@@ -448,7 +449,10 @@ def batch_simulation_daily_return():
 			conditions.append(condition)
 
 	for condition in conditions:
-		backtesting_simulation_consumer.delay(cPickle.dumps(condition))
+		if condition.data_source == 1:
+			backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=True)
+		else:
+			backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=False)
 
 def temp():
 	s = '3010'
@@ -465,9 +469,6 @@ def main():
 	# tasks
 	# populate_sp_500	()
 	# crawl_stock_prev_yahoo()
-	# crawl_stock_yahoo_spot2()	
-	# crawl_stock_prev_yahoo2()
-
 	# crawl_stock_yahoo_spot()
 
 	# crawler_chenmin()
@@ -481,8 +482,17 @@ def main():
 	# import_wind_sector()
 	# import_wind_sector_stock()
 	# import_wind_sector_index()
-	batch_simulation_daily_return()
 	# temp()
+
+	'''
+	Pull historical data
+	'''
+	# crawl_update_sp500_historical_yahoo()
+
+	'''
+	Pull spot data
+	'''
+	# crawl_update_sp500_spot_yahoo()
 
 	'''
 	Compute strategy index values
@@ -490,6 +500,11 @@ def main():
 	# consumer_daily_return()
 	# consumer_relative_hl()
 	# consumer_relative_ma()
+
+	'''
+	simulation
+	'''
+	batch_simulation_daily_return()
 
 if __name__ == '__main__':
 	main()

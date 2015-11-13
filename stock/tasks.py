@@ -626,12 +626,14 @@ class MyStockBacktestingSimulation():
 		self.logger = logging.getLogger('jk')
 		self.condition = cPickle.loads(str(condition))
 
-	def run(self):
+	def run(self, is_update):
 		# pick a user
 		user = User.objects.all()[0]
 
 		# simulate
-		if MySimulationResult.objects.filter(condition=self.condition): return
+		existing_results = MySimulationResult.objects.filter(condition=self.condition)
+		if is_update: existing_results.delete()
+		elif len(existing_results): return
 		
 		self.logger.debug('%s simulation starting' %self.condition)
 
@@ -660,9 +662,9 @@ class MyStockBacktestingSimulation():
 		result.save()
 
 @shared_task
-def backtesting_simulation_consumer(condition):
+def backtesting_simulation_consumer(condition, is_update = False):
 	crawler = MyStockBacktestingSimulation(condition)
-	crawler.run()		
+	crawler.run(is_update)		
 
 #################################
 #
@@ -691,6 +693,7 @@ class MyStockStrategyValue(object):
 			self.logger.debug('%s: %d/%d' % (symbol, i,len(records)))
 			window = records[i-window_length:i]
 			t0 =  records[i] # set T0
+
 			self.compute_value(t0,window)
 
 			# save to DB

@@ -90,7 +90,11 @@
     		</td><td>
     			{{ cond.mysimulationresult.num_of_sells|intcomma }}
     		</td><td>
-    			{{ cond.sector.code }} | {{ cond.sector.name }}
+    			{% if cond.sector %}
+    				{{ cond.sector.code }} | {{ cond.sector.name }}
+    			{% else %}
+    				N/A
+    			{% endif %}
 			</td><td>
 				<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
     		</td</tr>

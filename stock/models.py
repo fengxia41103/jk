@@ -484,36 +484,43 @@ class MyStockHistorical(models.Model):
 	daily_return = models.FloatField(
 		null = True,
 		blank = True,
+		default = None,
 		verbose_name = u"(Today's Close - Today's Open)/Today's Open*100"
 	)
 	relative_hl = models.FloatField(
 		null = True,
 		blank = True,
+		default = None,
 		verbose_name = u"Relative Position (H,L)"
 	)
 	relative_ma = models.FloatField(
 		null = True,
 		blank = True,
+		default = None,
 		verbose_name = u"Relative Position Moving Average"
 	)	
 	lg_slope = models.FloatField(
 		null = True,
 		blank = True,
+		default = None,
 		verbose_name = u"Linear regression slope"
 	)
 	si = models.FloatField(
 		null = True,
 		blank = True,
+		default = None,
 		verbose_name = u"SI indicator"
 	)
 	cci = models.FloatField(
 		null = True,
 		blank = True,
+		default = None,
 		verbose_name = u"CCI indicator"
 	)
 	decycler_oscillator = models.FloatField(
 		null = True,
 		blank = True,
+		default = None,
 		verbose_name = u"Decycler oscillator"
 	)
 
@@ -839,6 +846,21 @@ class MySimulationResult(models.Model):
 	def _asset_cumulative_return_std(self):
 		return np.std(self.asset_cumulative_return)
 	asset_cumulative_return_std = property(_asset_cumulative_return_std)
+
+	def _equity_portfolio_gain_pcnt(self):
+		# We index [1:] so the pcnt is calculated using today's gain over yesterday's equity value
+		valid_equity = [float(s[1]['equity']) for s in self.snapshot if float(s[1]['equity'])]
+		gain_from_hold = [float(s[1]['gain']['hold']) for s in self.snapshot[:len(valid_equity)+1]][1:]
+		print len(gain_from_hold), len(valid_equity)
+		return map(lambda x,y: x/y*100, gain_from_hold, valid_equity)
+	equity_portfolio_gain_pcnt = property(_equity_portfolio_gain_pcnt)
+
+	def _equity_trade_gain_pcnt(self):
+		# We index [1:] so the pcnt is calculated using today's gain over yesterday's equity value
+		valid_equity = [float(s[1]['equity']) for s in self.snapshot if float(s[1]['equity'])]
+		gain_from_sell = [float(s[1]['gain']['sell']) for s in self.snapshot[:len(valid_equity)+1]][1:]
+		return map(lambda x,y: x/y*100, gain_from_sell, valid_equity)
+	equity_trade_gain_pcnt = property(_equity_trade_gain_pcnt)
 
 class MyChenmin(models.Model):
 	executed_on = models.DateField(
