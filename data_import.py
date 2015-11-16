@@ -408,7 +408,7 @@ def batch_simulation_daily_return():
 	stock_8211 = MyStock.objects.filter(symbol__startswith="8821")
 	sectors = [None]+reduce(lambda x,y:x+y, [list(s.mysector_set.all()) for s in stock_8211])
 	
-	start = ['2010-01-01','2015-01-01']
+	start = ['2015-01-01']
 	end = ['2016-01-01']
 	# start = ['2015-01-01']
 	# end = ['2015-01-10']
@@ -449,7 +449,8 @@ def batch_simulation_daily_return():
 			conditions.append(condition)
 
 	for condition in conditions:
-		if condition.data_source == 1:
+		# if condition.data_source == 1 and strategy == 2:
+		if strategy == 2:
 			backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=True)
 		else:
 			backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=False)

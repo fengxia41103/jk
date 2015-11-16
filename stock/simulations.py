@@ -54,6 +54,7 @@ class MySimulation(object):
 					if stock.symbol.startswith('8821'): continue
 					else: stocks.append(stock.id)		
 		histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks,date_stamp__range=[start,end]).values('stock','stock__symbol','date_stamp','open_price','close_price','adj_close','relative_hl','daily_return','val_by_strategy','relative_ma')
+		if not len(histories): return False
 
 		# dates
 		dates = list(set([h['date_stamp'] for h in histories]))
@@ -79,10 +80,11 @@ class MySimulation(object):
 				# for JK type trading, we don't need to sort		
 				symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
 				self.data.append((on_date,symbols))
+		return True
 
 	def run(self):
 		# set up data points
-		self.setup()
+		if not self.setup(): return
 
 		# asset simulation result
 		assets = {}
@@ -105,8 +107,11 @@ class MySimulation(object):
 				'gain':{'hold':0,'sell':0}
 			}
 
-			self.sell(on_date, symbols_by_rank)
+			# Since we are computing daily return using
+			# the daily CLOSE price, but existing at OPEN price
+			# 
 			self.buy(on_date, symbols_by_rank)
+			self.sell(on_date, symbols_by_rank)
 
 			# compute equity, cash, asset
 			positions = MyPosition.objects.filter(simulation = self.simulation, is_open = True).values('stock__symbol','position','vol')

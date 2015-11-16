@@ -849,18 +849,24 @@ class MySimulationResult(models.Model):
 
 	def _equity_portfolio_gain_pcnt(self):
 		# We index [1:] so the pcnt is calculated using today's gain over yesterday's equity value
-		valid_equity = [float(s[1]['equity']) for s in self.snapshot if float(s[1]['equity'])]
-		gain_from_hold = [float(s[1]['gain']['hold']) for s in self.snapshot[:len(valid_equity)+1]][1:]
-		print len(gain_from_hold), len(valid_equity)
+		valid_equity = [float(s[1]['equity']) for s in self.snapshot[:-1] if float(s[1]['equity'])]
+		gain_from_hold = []+[float(s[1]['gain']['hold']) for s in self.snapshot[1:1+len(valid_equity)]]
 		return map(lambda x,y: x/y*100, gain_from_hold, valid_equity)
 	equity_portfolio_gain_pcnt = property(_equity_portfolio_gain_pcnt)
 
 	def _equity_trade_gain_pcnt(self):
 		# We index [1:] so the pcnt is calculated using today's gain over yesterday's equity value
-		valid_equity = [float(s[1]['equity']) for s in self.snapshot if float(s[1]['equity'])]
-		gain_from_sell = [float(s[1]['gain']['sell']) for s in self.snapshot[:len(valid_equity)+1]][1:]
+		valid_equity = [float(s[1]['equity']) for s in self.snapshot[:-1] if float(s[1]['equity'])]
+		gain_from_sell = []+[float(s[1]['gain']['sell']) for s in self.snapshot[1:1+len(valid_equity)]]
 		return map(lambda x,y: x/y*100, gain_from_sell, valid_equity)
 	equity_trade_gain_pcnt = property(_equity_trade_gain_pcnt)
+
+	def _equity_portfolio_life_in_days(self):
+		life_in_days = [s[1]['gain']['sell']['life_in_days'] for s in self.snapshot if len(s[1]['gain']['sell'])]
+		print len(life_in_days)
+		life_in_days = reduce(lambda x: []+x, life_in_days)
+		return (max(life_in_days),min(life_in_days),mean(life_in_days))
+	equity_portfolio_life_in_days = property(_equity_portfolio_life_in_days)
 
 class MyChenmin(models.Model):
 	executed_on = models.DateField(

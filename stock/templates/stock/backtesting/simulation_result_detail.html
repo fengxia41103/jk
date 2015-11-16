@@ -85,6 +85,7 @@ Result details
     	<th>STD return</th>
     	<th>Buys</th>
     	<th>Sells</th>
+    	<th>Life in days</th>
     	<th>Sector</th>
     </thead>
     <tbody>
@@ -108,6 +109,8 @@ Result details
 			{{ object.mysimulationresult.num_of_buys|intcomma }}
 		</td><td>
 			{{ object.mysimulationresult.num_of_sells|intcomma }}
+		</td><td>
+			{{ object.mysimulationresult.equity_portfolio_life_in_days }}
 		</td><td>
 			{{ object.sector }}
 		</td</tr>

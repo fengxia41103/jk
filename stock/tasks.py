@@ -646,6 +646,8 @@ class MyStockBacktestingSimulation():
 		trading_method = getattr(sys.modules[__name__], simulation_methods[self.condition.strategy])	
 		simulator = trading_method(user,simulation=self.condition)			
 		simulations = simulator.run()
+		if not simulations: return # if None, we had no data to run this simulation
+		
 		self.logger.debug(' %s simulation end %f' %(self.condition, time.time()-exec_start))
 
 		result = MySimulationResult(
