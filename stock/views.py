@@ -80,6 +80,8 @@ def class_view_decorator(function_decorator):
 #
 ###################################################
 class HomeView (TemplateView):
+	"""Home landing page.
+	"""
 	template_name = 'intern/common/home_with_login_modal.html'
 
 	def get_context_data(self, **kwargs):
@@ -97,6 +99,8 @@ class HomeView (TemplateView):
 #
 ###################################################
 class LoginView(FormView):
+	"""Login page
+	"""
 	template_name = 'registration/login.html'
 	success_url = reverse_lazy('simulation_exec')
 	form_class = AuthenticationForm
@@ -112,6 +116,8 @@ class LoginView(FormView):
 		    return self.form_invalid(form)
 
 class LogoutView(TemplateView):
+	"""Logout page
+	"""
 	template_name = 'registration/logged_out.html'
 	def get(self,request):
 		logout(request)
@@ -120,6 +126,8 @@ class LogoutView(TemplateView):
 		return HttpResponseRedirect (reverse_lazy('home'))
 
 class UserRegisterView(FormView):
+	"""User registration page
+	"""
 	template_name = 'registration/register_form.html'
 	form_class = UserCreationForm
 	success_url = reverse_lazy('login')

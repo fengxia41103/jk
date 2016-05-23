@@ -1,0 +1,26 @@
+{% extends "stock/common/base.html" %}
+{% load staticfiles %}
+
+{% block content %}
+	<h2>Strategy details</h2>
+	{% block strategy-intro %}
+	{% endblock %}
+
+	<h2>Period</h2>
+	{% block strategy-control %}
+	{% endblock %}
+
+	{% if asset_dates and asset_vals %}
+	<h2>Asset values</h2>
+	<div id="container" style="width:100%; height:600px;"></div>
+	{% block strategy-result %}
+	{% endblock %}
+	{% endif %}
+
+{% endblock %}{# end of block content #}
+
+{% block custom_js %}
+    <script type="text/javascript"
+    	src="{% static 'highcharts/highcharts-custom.js' %}">
+    </script>
+{% endblock %}

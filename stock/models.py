@@ -128,7 +128,14 @@ class AttachmentForm(ModelForm):
 #
 #####################################################
 class MyStockCustomManager(models.Manager):
+	"""Custom model manager
+	"""
 	def filter_by_user_pe_threshold(self,user):
+		"""Filter by PE threshold defined in user profile.
+
+		Args:
+			:user: User model object. Each user has a 1-1 relashionship to a UserProfile.
+		"""
 		data = self.get_queryset()
 
 		# get user profile
@@ -138,6 +145,11 @@ class MyStockCustomManager(models.Manager):
 		return data.filter(pe__gte=pe_low,pe__lte=pe_high)
 
 	def in_heat(self,user):
+		"""Filter previou day change is > 0.
+
+		Args:
+			:user: User model object.
+		"""
 		# data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0,day_open__lte=F('prev_close')).order_by('-prev_change')[:top_count]
 		data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0).order_by('-prev_change')
 		return data
@@ -334,40 +346,75 @@ class MyStock(models.Model):
 	)
 
 	def _oneday_change(self):
+		"""Midday change percentage
+
+		Midday change is computed as:
+			(last polled bid price/today's openning price) in %
+		"""
 		return (self.last-self.day_open)/self.day_open*Decimal(100)
 	oneday_change = property(_oneday_change)
 
 	def _twoday_change(self):
+		"""Current bid over yesterday's openning price in percentage.
+		"""
 		return (self.last-self.prev_open)/self.prev_open*Decimal(100)
 	twoday_change = property(_twoday_change)
 
 	def _week_change(self):
+		"""Weekly closing price over the same week's openning price.
+
+		Data is saved in week_adjusted_close as (open,close) delimited by comma.
+		This format is copied by Yahoo!Finance.
+		"""
 		vals = self.week_adjusted_close.split(',')
 		return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
 	week_change = property(_week_change)
 
 	def _month_change(self):
+		"""Closing price over the openning price 1-month ago.
+		"""
 		vals = self.month_adjusted_close.split(',')
 		return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
 	month_change = property(_month_change)
 
 	def _trend_is_consistent_gain(self):
+		"""Stock is growing consistently.
+
+		A stock is considered gaining consistent when:
+		1. it gained today
+		2. it gained since yesterday's opening
+		3. it gained in this week
+		4. it gained in this month
+
+		Taking four segments forces a stronger check against its price trend.
+		There isn't a particular theory behind such check. But IMHO,
+		a consistend gain is an indicator of a rare gaining period.
+		"""
 		if self.oneday_change>0 and self.twoday_change>0 and self.week_change>0 and self.month_change>0:
 			return True
 		else: return False
 	trend_is_consistent_gain = property(_trend_is_consistent_gain)
 
 	def _trend_is_consistent_loss(self):
+		"""Reverse of consistent_gain. See above.
+		"""
 		if self.oneday_change<0 and self.twoday_change<0 and self.week_change<0 and self.month_change<0:
 			return True
 		else: return False
 	trend_is_consistent_loss = property(_trend_is_consistent_loss)
 
 	def _fib_weekly_score_pcnt(self):
+		"""Fibonacci weekly score in %.
+
+		Score is calculated by sampling in time based on Fib values as time intervals.
+		The score is computed offline so it is historically correct.
+		"""
 		return self.fib_weekly_score/float(self.last)*100
 	fib_weekly_score_pcnt = property(_fib_weekly_score_pcnt)
 
 	def _fib_daily_score_pcnt(self):
+		"""Fibonacci daily score.
+		"""
 		return self.fib_daily_score/float(self.last)*100
 	fib_daily_score_pcnt = property(_fib_daily_score_pcnt)
 
@@ -376,6 +423,8 @@ class MyStock(models.Model):
 
 @receiver(pre_save,sender=MyStock)
 def stock_update_handler(sender, **kwargs):
+	"""MyStock presave hook.
+	"""
 	instance = kwargs.get('instance')
 	if instance.id: 
 		original = MyStock.objects.get(id=instance.id)
@@ -394,6 +443,8 @@ def stock_update_handler(sender, **kwargs):
 			instance.vol_over_float = instance.vol/instance.float_share/10
 
 class MyStockHistorical(models.Model):
+	"""Model to save historical stock data.
+	"""
 	stock = models.ForeignKey(
 		'MyStock',
 		verbose_name = u'Stock'
@@ -524,8 +575,11 @@ class MyStockHistorical(models.Model):
 		verbose_name = u"Decycler oscillator"
 	)
 
-	# live computed properties
 	def _avg_price(self):
+		"""Average stock price.
+
+		Avg = total trading amount / total trading volume
+		"""
 		if self.vol and self.amount: return Decimal(self.amount)/Decimal(self.vol)
 		else: return None
 	avg_price = property(_avg_price)
@@ -534,7 +588,11 @@ class MyStockHistorical(models.Model):
 		unique_together = ('stock','date_stamp')
 		index_together = ['stock', 'date_stamp']
 
-class MyUserProfile(models.Model):	
+class MyUserProfile(models.Model):
+	"""User profile model.
+
+	Mode to save user specific configuration values.
+	"""
 	owner = models.OneToOneField (
 		User,
 		default = None,
@@ -560,11 +618,20 @@ class MyUserProfile(models.Model):
 	)
 
 	def _equity(self):
+		"""User equity position.
+
+		User equity position is the aggregation
+		of all his open portfolio.
+		"""
 		pos = [p.total for p in MyPosition.objects.filter(user=self.owner,is_open = True)]
 		return sum(pos)
 	equity = property(_equity)
 
 	def _asset(self):
+		"""User asset.
+
+		Asset = cash + equity
+		"""
 		return self.cash+self.equity
 	asset = property(_asset)
 
@@ -624,6 +691,14 @@ class MyPosition(models.Model):
 		User profile's cash will be updated:
 		if buy: cash -= price * vol
 		if sell: cash += price * vol
+
+		Args:
+			:user: User object. This is also the owner of this position. Buying request
+			will be compared against user's quota.
+			:price: buying at price
+			:vol: buying vol
+			:source: used to track live trading. Not used.
+			:on_date: trading date. Not used.
 		"""
 
 		# new position = weighted avg
@@ -631,12 +706,16 @@ class MyPosition(models.Model):
 		self.vol += vol
 		if not self.vol: self.is_open = False
 		if on_date: self.open_date = on_date
-		else: self.open_date = dt.now().date()		
+		else: self.open_date = dt.now().date()	
 		self.save()
 
 	def close(self,user,price,on_date=None):
-		"""
-		Close position.
+		"""Close position.
+
+		Closed price at requested price.
+
+		Args:
+			:price: selling price.
 		"""
 		self.close_position = price
 		self.is_open = False
@@ -646,30 +725,53 @@ class MyPosition(models.Model):
 		self.save()		
 
 	def _cost(self):
+		"""Cost to establish this position.
+
+		cost = position price * holding volume
+		"""
 		return self.position*self.vol
 	cost = property(_cost)
 	
 	def _gain(self):
+		"""Realized gain/loss.
+
+		Profit/loss realized by holding this stock till closing.
+		"""
 		return (self.close_position - self.position)*self.vol
 	gain = property(_gain)
 
 	def _potential_gain(self):
+		"""Unrealized gain/loss.
+
+		Unrealized gain/loss is estimated by comparing
+		the last spot price over our initial position price.
+		"""
 		return (self.stock.last - self.position)*self.vol
 	potential_gain = property(_potential_gain)
 
 	def _to_last_pcnt(self):
+		"""Unrealized gain/loss in pcnt.
+		"""
 		return (self.stock.last-self.position)/self.position*100.0
 	to_last_pcnt = property(_to_last_pcnt)
 
 	def _total(self):
+		"""Spot value.
+
+		Current position value based on the last spot price.
+		"""
 		return self.stock.last * self.vol
 	total = property(_total)		
 
 	def _elapse_in_days(self):
+		"""Stock's life in days as of now.
+		"""
 		return (dt.now().date()-self.created.date()).days
 	elapse_in_days = property(_elapse_in_days)
 
 	def _life_in_days(self):
+		"""Stock's life in days from its openning to closing.
+		"""
 		if self.open_date and self.close_date:
 			return (self.close_date - self.open_date).days
 		else: return (self.last_updated_on-self.created).days
@@ -810,44 +912,89 @@ class MySimulationResult(models.Model):
 	condition = models.OneToOneField('MySimulationCondition')
 
 	def _num_of_buys(self):
+		"""Total number of buys.
+
+		This is computed from individual buys.
+		"""
 		return sum([len(t['buy']) for t in self.transaction])
 	num_of_buys = property(_num_of_buys)
 
 	def _num_of_sells(self):
+		"""Total number of sells.
+
+		This is computed from individual sells.
+		"""
 		return sum([len(t['sell']) for t in self.transaction])
 	num_of_sells = property(_num_of_sells)
 
 	def _asset_daily_return(self):
+		"""User asset's daily change in pcnt.
+
+		This index shows how a user's asset fluctuates from day to day
+		during simulation period.
+		"""
 		return [1]+[(self.asset[x]-self.asset[x-1])/self.asset[x-1]*100 for x in range(1,len(self.asset))]
 	asset_daily_return = property(_asset_daily_return)
 
 	def _asset_cumulative_return(self):
+		"""Measures daily asset's return over T0's.
+
+		This indes shows how assets swings comparing to simulation's T0.
+		This can be viewed as an overall performance indicator over time.
+		"""
 		cumulative = []
 		t0 = self.asset[0]
 		return [self.asset[x]/t0 for x in range(1,len(self.asset))]
 	asset_cumulative_return = property(_asset_cumulative_return)
 
 	def _asset_end_return(self):
+		"""Last's day's cumulative return.
+		"""
 		return self.asset_cumulative_return[-1]
 	asset_end_return = property(_asset_end_return)
 
 	def _asset_max_return(self):
+		"""Best return % during simulation period.
+
+		This indicator shows the maximum potential gain from
+		applied strategy.
+		"""
 		return max(self.asset_cumulative_return)
 	asset_max_return = property(_asset_max_return)
 
 	def _asset_min_return(self):
+		"""Worst return rate during simulation period.
+
+		This shows the worst moment this strategy can yield.
+		"""
 		return min(self.asset_cumulative_return)
 	asset_min_return = property(_asset_min_return)
 
 	def _asset_cumulative_return_mean(self):
+		"""Average gain.
+
+		Numeric mean of gains. This indicates the likely gain one can achieve 
+		by applying this strategy.	
+		"""
 		return np.mean(self.asset_cumulative_return)
 	asset_cumulative_return_mean = property(_asset_cumulative_return_mean)
 
 	def _asset_cumulative_return_std(self):
+		"""Standard deviation of cumulative gains.
+
+		This measures the risk of applied strategy using cumulative gain data.
+		"""
 		return np.std(self.asset_cumulative_return)
 	asset_cumulative_return_std = property(_asset_cumulative_return_std)
 
 	def _equity_portfolio_gain_pcnt(self):
+		"""Equity gains from holding.
+
+		This tracks equity gains from holding a perticular stock,
+		not from trading it. It indicates
+		how well equities were performing. This is completely determined by
+		how well we picked stock, thus is a good indicator of applied strategy.
+		"""
 		# We index [1:] so the pcnt is calculated using today's gain over yesterday's equity value
 		valid_equity = [float(s[1]['equity']) for s in self.snapshot[:-1] if float(s[1]['equity'])]
 		gain_from_hold = []+[float(s[1]['gain']['hold']) for s in self.snapshot[1:1+len(valid_equity)]]
@@ -855,6 +1002,12 @@ class MySimulationResult(models.Model):
 	equity_portfolio_gain_pcnt = property(_equity_portfolio_gain_pcnt)
 
 	def _equity_trade_gain_pcnt(self):
+		"""Equity gains from trading.
+
+		This tracks gains from closing stocks based on applied strategy.
+		This is influenced by both stock picking strategy and 
+		trading strategy. So it measures the effect of both.
+		"""
 		# We index [1:] so the pcnt is calculated using today's gain over yesterday's equity value
 		valid_equity = [float(s[1]['equity']) for s in self.snapshot[:-1] if float(s[1]['equity'])]
 		gain_from_sell = []+[float(s[1]['gain']['sell']) for s in self.snapshot[1:1+len(valid_equity)]]
@@ -862,6 +1015,11 @@ class MySimulationResult(models.Model):
 	equity_trade_gain_pcnt = property(_equity_trade_gain_pcnt)
 
 	def _equity_portfolio_life_in_days(self):
+		"""Equity life in days.
+
+		We want to measure how long we usually hold a position. One strategy
+		is to dictate how long we can hold a position.
+		"""
 		life_in_days = [s[1]['gain']['sell']['life_in_days'] for s in self.snapshot if len(s[1]['gain']['sell'])]
 		print len(life_in_days)
 		life_in_days = reduce(lambda x: []+x, life_in_days)
@@ -869,6 +1027,10 @@ class MySimulationResult(models.Model):
 	equity_portfolio_life_in_days = property(_equity_portfolio_life_in_days)
 
 class MyChenmin(models.Model):
+	"""Transient model.
+
+	Used to import initial data.
+	"""
 	executed_on = models.DateField(
 		verbose_name = u'发生日期'
 	)
