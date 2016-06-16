@@ -22,6 +22,10 @@ from stock.models import *
 from stock.simulations import *
 from stock.utility import JSONEncoder
 
+# logging
+import logging
+logger = logging.getLogger('jk')
+
 def populate_sp_500():
 	# for s in MyStock.objects.filter(is_sp500=True): s.delete()
 
@@ -422,7 +426,7 @@ def batch_simulation_daily_return():
 		# we only try strategy 5 with sector
 		if sector and source != 5: continue
 
-		print source,strategy,strategy_value,start,end,sector
+		logger.debug(source,strategy,strategy_value,start,end,sector)
 
 		# cutoffs have different meanings based on strategy
 		if strategy == 1:
@@ -448,21 +452,17 @@ def batch_simulation_daily_return():
 			)
 			conditions.append(condition)
 
+	# simulation run!
 	for condition in conditions:
 		# if condition.data_source == 1 and strategy == 2:
+		# MySimulationCondition is not json-able,
+		# using python pickle instead. The downside of this is that
+		# we are relying on a python-specif data format.
+		# But it is safe in this context.
 		if strategy == 2:
 			backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=True)
 		else:
 			backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=False)
-
-def temp():
-	s = '3010'
-	stocks = []
-	for sector in MySector.objects.filter(code__startswith=s):
-		for stock in sector.stocks.all():
-			if stock.symbol.startswith('8821'): continue
-			else: stocks.append(stock)
-	print stocks
 
 def main():
 	django.setup()
@@ -498,9 +498,9 @@ def main():
 	'''
 	Compute strategy index values
 	'''
-	consumer_daily_return()
-	consumer_relative_hl()
-	consumer_relative_ma()
+	# consumer_daily_return()
+	# consumer_relative_hl()
+	# consumer_relative_ma()
 
 	'''
 	simulation

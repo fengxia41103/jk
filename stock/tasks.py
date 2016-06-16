@@ -626,9 +626,19 @@ def backtesting_s1_consumer(symbol):
 class MyStockBacktestingSimulation():
 	def __init__(self, condition):
 		self.logger = logging.getLogger('jk')
+
+		# Model MySimulation is not json-able,
+		# so we are passing it over as python pickle, so cool!
 		self.condition = cPickle.loads(str(condition))
 
 	def run(self, is_update):
+		"""Simulation run.
+
+		Arguments:
+			:is_update: True if we are to remove existing simulation results and run
+				simulation from scratch; False will exit if there are existing results already
+				so we don't run the same simulation twice.
+		"""
 		# pick a user
 		user = User.objects.all()[0]
 
@@ -648,10 +658,13 @@ class MyStockBacktestingSimulation():
 		trading_method = getattr(sys.modules[__name__], simulation_methods[self.condition.strategy])	
 		simulator = trading_method(user,simulation=self.condition)			
 		simulations = simulator.run()
-		if not simulations: return # if None, we had no data to run this simulation
+		if not simulations:
+			# if None, we had no data to run this simulation
+			return 
 		
 		self.logger.debug(' %s simulation end %f' %(self.condition, time.time()-exec_start))
 
+		# Save simulation result
 		result = MySimulationResult(
 			description = '',
 			condition = self.condition,
@@ -714,7 +727,8 @@ class MyStockStrategyValue(object):
 		pass
 
 class MyStockDailyReturn(MyStockStrategyValue):
-	"""
+	"""Daily return value.
+
 	Compute historical oneday_change = (today's close - prev's close)/prev's close *100
 	"""	
 	def __init__(self,):
@@ -739,7 +753,7 @@ class MyStockRelativeHL(MyStockStrategyValue):
 	Relative Position indicator in (H,L) = -100*(Highest(High,Len)-Close)/(Highest(High,Len)-Lowest(Low,Len))+50;   // Len is 40 by default 
 
 	"""	
-	def __init__(self,):
+	def __init__(self):
 		super(MyStockRelativeHL,self).__init__()
 
 	def compute_value(self,t0,window):
@@ -755,13 +769,15 @@ def backtesting_relative_hl_consumer(symbol):
 	crawler.run(symbol,40)
 
 class MyStockRelativeMovingAvg(MyStockStrategyValue):
-	"""
-	Relative Position Indicator in Moving Average= (Price - Average(Price,Len))/StdDev(Price,Len). // Len is 40 by default. 
+	"""Relative Position Indicator.
+
+	Using moving Average= (Price - Average(Price,Len))/StdDev(Price,Len). 
+	Len is 40 by default. 
 	"""	
 	def __init__(self,):
 		super(MyStockRelativeMovingAvg,self).__init__()
 
-	def compute_value(self,t0,window):
+	def compute_value(self,t0,window=40):
 		ref_ma = mean([r.close_price for r in window])
 		ref_std = std([r.close_price for r in window])
 
@@ -774,8 +790,8 @@ def backtesting_relative_ma_consumer(symbol):
 	crawler.run(symbol,40)	
 
 class MyStockCCI(MyStockStrategyValue):
-	"""
-	CCI Indicator :
+	"""CCI Indicator.
+
 	    MA = Average(Price,Len); 
 	    value1=0; 
 	    for i=0 to Len-1 
@@ -800,7 +816,7 @@ def backtesting_cci_consumer(symbol):
 	crawler.run(symbol,40)
 
 class MyStockSI(MyStockStrategyValue):
-	"""
+	"""SI indicator.
 		K = max( |H - C[1]|, |L-C[1]|);
 		R = the largest of :
 		        if H-C[1],  then  |H-C[1]|-0.5|L-C[1]|+0.25|C[1]-O[1]| 

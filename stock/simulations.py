@@ -5,6 +5,18 @@ import simplejson as json
 from stock.models import *
 
 class MySimulation(object):
+	"""Abstract model.
+
+	This model defines a common simulation run framework. All strategies
+	will use the same structure in 3 steps:
+		# get raw data
+		# simulate
+		# record transactions
+
+	The difference of strategies lie in the actual
+	implementation of "buy" and "sell". Therefore, new simulation simply
+	inherit this class and define two functions: "buy" and "sell".
+	"""
 	def __init__(self,user,simulation):
 		self.trading_cost = 0.003 # 0.3% of buying amount
 		self.user = user
@@ -21,6 +33,13 @@ class MySimulation(object):
 		MyPosition.objects.filter(simulation=simulation).delete()
 
 	def setup(self):
+		"""Setup date set.
+
+		Return:
+			:boolean: False if there is not enough historical data for this simulation.
+				Most likely this is caused when date ranges requested is out of sync
+				with background data feeder. True otherwise.
+		"""
 		index_val_mapping = {
 			1:'daily_return',
 			2:'relative_hl',
@@ -73,11 +92,19 @@ class MySimulation(object):
 			his_by_symbol = self.historicals[on_date]
 			
 			if self.simulation.strategy == 1:
+				"""Strategy S1.
+
+				We sort stocks by pre-computed index value and then group
+				stocks into bands. Bands are defined by buy_cutoff and sell_cutoff.
+				"""
 				tmp = [(symbol,h[index_val_mapping[strategy_value]]) for symbol,h in his_by_symbol.iteritems()]			
 				symbols_by_rank = [x[0] for x in sorted(tmp,key=lambda x: x[1],reverse=(self.simulation.data_sort == 1))] 				
 				self.data.append((on_date,symbols_by_rank))
 			elif self.simulation.strategy == 2:
-				# for JK type trading, we don't need to sort		
+				"""Strategy S2.
+
+				Buy low sell high. We don't need to sort.
+				"""
 				symbols = [symbol for symbol,h in his_by_symbol.iteritems()] 
 				self.data.append((on_date,symbols))
 		return True
@@ -108,8 +135,7 @@ class MySimulation(object):
 			}
 
 			# Since we are computing daily return using
-			# the daily CLOSE price, but existing at OPEN price
-			# 
+			# the daily CLOSE price, but exiting at next day's OPEN price.
 			self.buy(on_date, symbols_by_rank)
 			self.sell(on_date, symbols_by_rank)
 
@@ -119,7 +145,7 @@ class MySimulation(object):
 			for p in positions:
 				if p['stock__symbol'] in self.historicals[on_date]:
 					# if symbol's historicals are missing for some reason
-					# eg. stopped trading on that day, compay got bought
+					# eg. stopped trading on that day, company got bought,
 					# this would result some open position at the end of portfolio
 					his = self.historicals[on_date][p['stock__symbol']]
 
@@ -128,21 +154,30 @@ class MySimulation(object):
 					elif 'close_price' in his and 'close_price' > 0: simulated_spot = his['close_price']
 					else: simulated_spot = p['position'] # we don't have a close value, use cost
 				else:
+					# ERROR: stock symbol is missing from historical data.
+					# Either we have not got all historicals yet, or the data source is not good enough.
 					print p['stock__symbol'], 'not in historical!'
 					continue
 
+				# record the spot equity value
 				temp.append(p['vol'] * simulated_spot)
+
+				# compute gain/loss of the holding portfolio
 				self.snapshot[on_date]['gain']['hold'] += p['vol'] * (simulated_spot - p['position'])
 
+			# record equity, cash and asset on that date
 			equity[on_date] = sum(temp)
 			cash[on_date] = self.capital
 			assets[on_date] = equity[on_date] + cash[on_date]
 
+			# snapshot so we could replay the entire trading history
 			self.snapshot[on_date]['cash'] = cash[on_date]
 			self.snapshot[on_date]['equity'] = equity[on_date]
 			self.snapshot[on_date]['asset'] = assets[on_date]	
 			self.snapshot[on_date]['portfolio'] = list(positions)
 
+		# These data are simply extracted from self.data for
+		# purpose of easier graph drawing later in view.
 		on_dates = [on_date for on_date,symbols in self.data]
 		cashes = [float(cash[d]) for d in on_dates]
 		equities = [float(equity[d]) for d in on_dates]
@@ -160,9 +195,15 @@ class MySimulation(object):
 		}
 
 	def buy(self, **kargs):
+		"""Children class should override this function
+		to define its own buy actions.
+		"""
 		pass
 
 	def sell(self,**kargs):
+		"""Children class should override this function
+		to define its own sell actions.
+		"""
 		pass
 
 class MySimulationAlpha(MySimulation):
@@ -277,7 +318,8 @@ class MySimulationJK(MySimulation):
 		for p in positions:
 			# TODO: don't know why a symbol could stop showing up
 			# in historicals. To protect such case, we put a line here.
-			if p.stock.symbol not in self.historicals[on_date]: continue
+			if p.stock.symbol not in self.historicals[on_date]: 
+				continue
 
 			his = self.historicals[on_date][p.stock.symbol]
 			simulated_spot = his['open_price'] # assume we are selling at open

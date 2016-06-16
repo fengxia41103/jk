@@ -843,11 +843,15 @@ class MySimulationCondition(models.Model):
 			that will monitor a stock's open/close/spot to determine when to buy
 			and when to sell.
 		:buy_cutoff: If a stock has dropped over buy_cutoff percentage,
-			one buys this stock. This value is used by the S2 strategy.
+			one buys this stock. This value has different meanings in 
+			different strategies. In S1, this is the cutoff band
+			that has grouped stocked based on a pre-computed index value;
+			in S2, this is daily drop %.
 		:sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff
-			defines a percentage that one would close a position if the stock
-			price has risen over sell_cutoff percentage relative to
-			the initial price at buying.
+			defines a percentage that one would close a position.
+			In S1 this is the band when a stock falls outof a artificial band
+			determined by a pre-computed index value; in S2 this is the 
+			percentage relative to the initial price at buying.
 	"""
 	DATA_CHOICES = (
 		(1, "S&P500"),
@@ -1088,7 +1092,6 @@ class MySimulationResult(models.Model):
 		is to dictate how long we can hold a position.
 		"""
 		life_in_days = [s[1]['gain']['sell']['life_in_days'] for s in self.snapshot if len(s[1]['gain']['sell'])]
-		print len(life_in_days)
 		life_in_days = reduce(lambda x: []+x, life_in_days)
 		return (max(life_in_days),min(life_in_days),mean(life_in_days))
 	equity_portfolio_life_in_days = property(_equity_portfolio_life_in_days)
