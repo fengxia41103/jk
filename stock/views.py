@@ -71,7 +71,7 @@ from stock.simulations import MySimulationAlpha, MySimulationJK
 
 ###################################################
 #
-#	Common utilities
+#   Common utilities
 #
 ###################################################
 
@@ -92,7 +92,7 @@ def class_view_decorator(function_decorator):
 
 ###################################################
 #
-#	Static views
+#   Static views
 #
 ###################################################
 
@@ -113,7 +113,7 @@ class HomeView (TemplateView):
 
 ###################################################
 #
-#	User views
+#   User views
 #
 ###################################################
 
@@ -169,7 +169,7 @@ class UserRegisterView(FormView):
 
 ###################################################
 #
-#	MyApplication views
+#   MyApplication views
 #
 ###################################################
 
@@ -534,7 +534,7 @@ class MyStockStrategy1Detail(TemplateView):
 
 ######################################################
 #
-#	Simulator views
+#   Simulator views
 #
 #####################################################
 from stock.tasks import backtesting_simulation_consumer
@@ -604,16 +604,16 @@ class MySimulationConditionDelete(DeleteView):
     template_name = 'stock/common/delete_form.html'
     success_url = reverse_lazy('simulation_result_list')
 
-
 @class_view_decorator(login_required)
 class MySimulationResultList(ListView):
+    model = MySimulationCondition
     template_name = 'stock/backtesting/simulation_result_list.html'
 
     def get_queryset(self):
         # return MySimulationCondition.objects.filter(mysimulationresult__isnull=False)
         return MySimulationCondition.objects.filter(
-        	mysimulationresult__isnull=False,
-        	strategy = 2,
+            mysimulationresult__isnull=False,
+            strategy = 2,
         )
 
 @class_view_decorator(login_required)

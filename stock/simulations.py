@@ -2,8 +2,12 @@ import time
 from numpy import mean, std
 from collections import OrderedDict
 import simplejson as json
-from stock.models import *
 
+import logging
+logger = logging.getLogger('jk')
+
+# import models
+from stock.models import *
 
 class MySimulation(object):
     """Abstract model.
@@ -150,8 +154,9 @@ class MySimulation(object):
 
             # Since we are computing daily return using
             # the daily CLOSE price, but exiting at next day's OPEN price.
-            self.buy(on_date, symbols_by_rank)
+            # Always sell first so we may get more cash to buy :)
             self.sell(on_date, symbols_by_rank)
+            self.buy(on_date, symbols_by_rank)
 
             # compute equity, cash, asset
             positions = MyPosition.objects.filter(
@@ -392,6 +397,7 @@ class MySimulationJK(MySimulation):
 
             # not enough fund
             if self.capital < self.per_trade:
+            	logger.info('%s: Not enough capital to execute buy.'%symbol)
                 continue
 
             # if buy_cutoff = 0.04,

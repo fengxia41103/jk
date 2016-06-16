@@ -87,9 +87,9 @@ def crawl_update_sp500_historical_yahoo():
     symbols = MyStock.objects.filter(
         is_sp500=True).values_list('symbol', flat=True)
     for s in symbols:
-        stock_prev_week_yahoo_consumer.delay(s)
-        stock_prev_month_yahoo_consumer.delay(s)
-        stock_prev_fib_yahoo_consumer.delay(s)
+        # stock_prev_week_yahoo_consumer.delay(s)
+        # stock_prev_month_yahoo_consumer.delay(s)
+        # stock_prev_fib_yahoo_consumer.delay(s)
         stock_historical_yahoo_consumer.delay(s)
 
 
@@ -582,12 +582,12 @@ def main():
     '''
 	Pull historical data
 	'''
-    # crawl_update_sp500_historical_yahoo()
+    crawl_update_sp500_historical_yahoo()
 
     '''
 	Pull spot data
 	'''
-    crawl_update_sp500_spot_yahoo()
+    # crawl_update_sp500_spot_yahoo()
 
     '''
 	Compute strategy index values

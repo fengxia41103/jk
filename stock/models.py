@@ -22,6 +22,7 @@ import numpy as np
 
 import logging
 logger = logging.getLogger('jk')
+logger.setLevel(logging.DEBUG)
 
 class MyBaseModel (models.Model):
     # fields
@@ -1038,9 +1039,6 @@ class MySimulationResult(models.Model):
 
         This is computed from individual sells.
         """
-        logger.debug('8'*50)
-        logger.debug([len(t['sell']) for t in self.transaction])
-
         return sum([len(t['sell']) for t in self.transaction])
     num_of_sells = property(_num_of_sells)
 
@@ -1140,15 +1138,15 @@ class MySimulationResult(models.Model):
     def _equity_portfolio_life_in_days(self):
         """Equity life in days.
 
-        We want to measure how long we usually hold a position. One strategy
-        is to dictate how long we can hold a position.
+        We want to measure how long we usually hold a position. By monitoing
+        this value, we could apply a strategy that dictate 
+        by how long we can hold a position.
         """
         life_in_days = [s[1]['gain']['sell']['life_in_days']
                         for s in self.snapshot if len(s[1]['gain']['sell'])]
         life_in_days = reduce(lambda x: [] + x, life_in_days)
         return (max(life_in_days), min(life_in_days), mean(life_in_days))
     equity_portfolio_life_in_days = property(_equity_portfolio_life_in_days)
-
 
 class MyChenmin(models.Model):
     """Transient model.

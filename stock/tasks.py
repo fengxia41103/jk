@@ -37,10 +37,8 @@ from jk.tor_handler import *
 from stock.models import *
 from stock.simulations import *
 
-# create logger with 'spam_application'
+import logging
 logger = logging.getLogger('jk')
-logger.setLevel(logging.DEBUG)
-
 
 def grouper(iterable, n, padvalue=None):
     # grouper('abcdefg', 3, 'x') --> ('a','b','c'), ('d','e','f'),
@@ -310,40 +308,60 @@ class MyStockHistoricalYahoo():
         self.logger = logging.getLogger('jk')
 
     def parser(self, symbol):
+        """Parse Yahoo api stock historical data.
+
+        Polling ichart.yahoo.com with manufactured query string (dark magic)
+        to get historical data of a given stock symbol.
+
+        Arguments:
+            :symbol: stock symbol
+
+        Return:
+            none
+        """
+
+        # Get stock and its existing historicals
         stock = MyStock.objects.get(symbol=symbol)
         his = [x.isoformat() for x in MyStockHistorical.objects.filter(
             stock=stock).values_list('date_stamp', flat=True)]
 
+        # Read Yahoo api to get data
         # https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
         now = dt.now()
-        ago = now + relativedelta(months=-180)  # 180 months = 15 yrs
+        ago = now + relativedelta(years=-20)  # 20 years
 
         date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d' % (
-            ago.month - 1, ago.day, ago.year, now.month - 1, now.day, now.year)
+            ago.month, ago.day, ago.year, now.month, now.day, now.year+1)
         url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (
             symbol, date_str)
         self.logger.debug(url)
         content = self.http_handler.request(url)
 
+        # Parse data to update stock historicals
         f = StringIO.StringIO(content)
         records = []
         for cnt, vals in enumerate(csv.reader(f)):
+            # self.logger.debug(vals)
             if not vals:
-                continue  # protect from blank line or invalid symbol, eg. China stock symbols
-            # any empty string, None will be skipped
-            elif not reduce(lambda x, y: x and y, vals): continue
+                # protect from blank line or invalid symbol, eg. China stock symbols
+                # self.logger.debug('not vals')
+                continue
+            elif not reduce(lambda x, y: x and y, vals): 
+                # any empty string, None will be skipped
+                # self.logger.debug('not all columns have value')
+                continue
             elif len(vals) != 7:
                 self.logger.error('[%s] error, %d' % (symbol, len(vals)))
                 continue
             elif 'Adj' in vals[-1]:
+                # this is to skip the column header line
                 continue
 
-            stamp = [int(v) for v in vals[0].split('-')]
-            date_stamp = dt(year=stamp[0], month=stamp[1], day=stamp[2])
-            # # exist = MyStockHistorical.objects.filter(stock=stock,date_stamp=date_stamp)
-
-            # if len(exist): continue
+            # stamp = [int(v) for v in vals[0].split('-')]
+            # date_stamp = dt(year=stamp[0], month=stamp[1], day=stamp[2])
+            date_stamp = dt.strptime(vals[0],'%Y-%m-%d')
             if date_stamp.date().isoformat() in his:
+                # self.logger.debug('already have this')
                 continue  # we already have these
             else:
                 try:
@@ -384,6 +402,11 @@ class MyStockHistoricalYahoo():
                 if len(records) >= 1000:
                     MyStockHistorical.objects.bulk_create(records)
                     records = []
+
+        # whatever left in records are to be saved to DB
+        if records:
+            MyStockHistorical.objects.bulk_create(records)
+
         # persist
         self.logger.debug('[%s] complete' % symbol)
 
@@ -472,7 +495,13 @@ class MyStockMonitorYahoo2():
         for r in content['list']['resources']:
             fields = r['resource']['fields']
             symbol = fields['symbol']
-            stock = MyStock.objects.get(symbol=symbol)
+
+            try:
+                stock = MyStock.objects.get(symbol=symbol)
+            except:
+                self.logger.error('MyStockMonitorYahoo2: symbol [%s] not found in DB' % symbol)
+                continue
+
             stock.last = Decimal(fields['price'])
 
             # last update time
@@ -633,10 +662,10 @@ class MyStockInflux():
         # all_dbs_list = self.client.get_list_database()
         # that list comes back like: [{u'name': u'hello_world'}]
         # if db_name not in [str    (x['name']) for x in all_dbs_list]:
-        # 	print "Creating db {0}".format(db_name)
-        # 	self.client.create_database(db_name)
+        #   print "Creating db {0}".format(db_name)
+        #   self.client.create_database(db_name)
         # else:
-        # 	print "Reusing db {0}".format(db_name)
+        #   print "Reusing db {0}".format(db_name)
         self.client.switch_db(db_name)
 
     def parser(self, symbol):
@@ -727,8 +756,8 @@ class MyStockBacktesting_1():
                 trend_is_consistent_loss = False
 
             """
-			Strategy: marked as "G" if trend is consistently gaining, "L" if consistently losing, "U" if otherwise.
-			"""
+            Strategy: marked as "G" if trend is consistently gaining, "L" if consistently losing, "U" if otherwise.
+            """
             if trend_is_consistent_gain:
                 t0.flag_by_strategy = 'G'  # "gain"
             elif trend_is_consistent_loss:
@@ -819,7 +848,7 @@ def backtesting_simulation_consumer(condition, is_update=False):
 
 #################################
 #
-#	Alpha strategy values
+#   Alpha strategy values
 #
 #################################
 from numpy import mean, std

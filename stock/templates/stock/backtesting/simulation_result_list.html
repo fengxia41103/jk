@@ -25,6 +25,7 @@
 	    	<th>Sector</th>
 	    	<th>Num of buys</th>
 	    	<th>Num of sells</th>
+	    	<th>End return %</th>
 	    	<th>Manage</th>
 	    </thead>
 	    <tbody>
@@ -50,11 +51,13 @@
 	    		</td><td>
 	    			{{ cond.per_trade|intcomma }}
 	    		</td><td>
-	    			{{ cond.mysimulationresult.num_of_buys }}
-	    		</td><td>
-	    			{{ cond.mysimulationresult.num_of_sells }}
-	    		</td><td>
 	    			{{ cond.sector }}
+	    		</td><td>
+	    			{{ cond.mysimulationresult.num_of_buys|intcomma }}
+	    		</td><td>
+	    			{{ cond.mysimulationresult.num_of_sells|intcomma }}
+	    		</td><td>
+	    			{{ cond.mysimulationresult.asset_end_return|floatformat:"2" }}
 	    		</td><td>
 	    			<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
 	    			|

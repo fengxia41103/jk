@@ -15,7 +15,7 @@ class PlainUtility():
         user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
         self.headers = {'User-Agent': user_agent}
         self.ip_url = 'http://icanhazip.com/'
-        self.logger = logging.getLogger('gkp')
+        self.logger = logging.getLogger('jk')
         retries = Retry(connect=5, read=5, redirect=5)
         self.agent = PoolManager(
             10, retries=retries, timeout=Timeout(total=30.0))
@@ -37,7 +37,7 @@ class TorUtility():
         user_agent = 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7'
         self.headers = {'User-Agent': user_agent}
         self.ip_url = 'http://icanhazip.com/'
-        self.logger = logging.getLogger('gkp')
+        self.logger = logging.getLogger('jk')
         retries = Retry(connect=5, read=5, redirect=5)
         self.agent = ProxyManager(
             'http://localhost:8118/', retries=retries, timeout=Timeout(total=60.0))
@@ -95,7 +95,7 @@ class SeleniumUtility():
 
     def __init__(self, use_tor=True):
         self.ip_url = 'http://icanhazip.com/'
-        self.logger = logging.getLogger('gkp')
+        self.logger = logging.getLogger('jk')
 
         dcap = dict(DesiredCapabilities.PHANTOMJS)
         dcap["phantomjs.page.settings.userAgent"] = (
