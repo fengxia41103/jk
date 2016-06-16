@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='myposition',
             name='category',
-            field=models.CharField(max_length=128, null=True, verbose_name='Category tag', blank=True),
+            field=models.CharField(
+                max_length=128, null=True, verbose_name='Category tag', blank=True),
             preserve_default=True,
         ),
     ]

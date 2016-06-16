@@ -14,13 +14,15 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='myposition',
             name='close_date',
-            field=models.DateField(null=True, verbose_name='Position close date', blank=True),
+            field=models.DateField(
+                null=True, verbose_name='Position close date', blank=True),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='myposition',
             name='open_date',
-            field=models.DateField(null=True, verbose_name='Position open date', blank=True),
+            field=models.DateField(
+                null=True, verbose_name='Position open date', blank=True),
             preserve_default=True,
         ),
     ]

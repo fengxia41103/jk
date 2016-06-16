@@ -14,13 +14,15 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystockhistorical',
             name='twoday_change',
-            field=models.FloatField(null=True, verbose_name="(Today's Close - Prev close)/prev close*100", blank=True),
+            field=models.FloatField(
+                null=True, verbose_name="(Today's Close - Prev close)/prev close*100", blank=True),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='mystockhistorical',
             name='oneday_change',
-            field=models.FloatField(null=True, verbose_name="(Today's Close - Today's Open)/Today's Open*100", blank=True),
+            field=models.FloatField(
+                null=True, verbose_name="(Today's Close - Today's Open)/Today's Open*100", blank=True),
             preserve_default=True,
         ),
     ]

@@ -18,13 +18,15 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='fib_daily_adjusted_close',
-            field=models.TextField(default=b'', verbose_name='Fibonacci timezone adjusted closing price'),
+            field=models.TextField(
+                default=b'', verbose_name='Fibonacci timezone adjusted closing price'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='fib_weekly_adjusted_close',
-            field=models.TextField(default=b'', verbose_name='Fibonacci timezone adjusted closing price'),
+            field=models.TextField(
+                default=b'', verbose_name='Fibonacci timezone adjusted closing price'),
             preserve_default=True,
         ),
     ]

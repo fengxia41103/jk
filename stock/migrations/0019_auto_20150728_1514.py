@@ -24,7 +24,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='myposition',
             name='close_position',
-            field=models.DecimalField(default=0, verbose_name='We closed at', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0, verbose_name='We closed at', max_digits=20, decimal_places=15),
             preserve_default=False,
         ),
         migrations.AddField(
@@ -36,7 +37,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='myuserprofile',
             name='balance',
-            field=models.DecimalField(default=10000, verbose_name='Account balance', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=10000, verbose_name='Account balance', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
     ]

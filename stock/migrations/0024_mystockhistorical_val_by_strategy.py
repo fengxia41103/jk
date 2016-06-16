@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystockhistorical',
             name='val_by_strategy',
-            field=models.FloatField(default=0.0, null=True, verbose_name=b'Computed value based on a strategy', blank=True),
+            field=models.FloatField(
+                default=0.0, null=True, verbose_name=b'Computed value based on a strategy', blank=True),
             preserve_default=True,
         ),
     ]

@@ -14,19 +14,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='day_change',
-            field=models.FloatField(default=0.0, verbose_name='Today change(%)'),
+            field=models.FloatField(
+                default=0.0, verbose_name='Today change(%)'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='spread',
-            field=models.DecimalField(default=0.0, verbose_name='Bid-ask spread', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0.0, verbose_name='Bid-ask spread', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='vol_over_float',
-            field=models.FloatField(default=0.0, verbose_name='Vol/floating shares (%)'),
+            field=models.FloatField(
+                default=0.0, verbose_name='Vol/floating shares (%)'),
             preserve_default=True,
         ),
     ]

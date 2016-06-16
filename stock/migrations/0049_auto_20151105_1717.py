@@ -18,7 +18,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='myposition',
             name='simulation',
-            field=models.ForeignKey(default=None, to='stock.MySimulationCondition'),
+            field=models.ForeignKey(
+                default=None, to='stock.MySimulationCondition'),
             preserve_default=False,
         ),
     ]

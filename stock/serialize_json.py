@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # Copyright (c) 2013, Christopher R. Wagner
-#  
+#
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation files
 # (the "Software"), to deal in the Software without restriction,
@@ -9,10 +9,10 @@
 # publish, distribute, sublicense, and/or sell copies of the Software,
 # and to permit persons to whom the Software is furnished to do so,
 # subject to the following conditions:
-#  
+#
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
-#  
+#
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -56,7 +56,7 @@ TEST_DATA = [1, 2, 3,
                  [('my', 23), ('order', 55), ('stays', 44), ('fixed', 602)]),
              np.array([[1, 2, 3], [4, 5, 6]]),
              np.array([[1.2398, 2.4848, 3.484884], [4.10, 5.3, 6.999992]]),
-            ] 
+             ]
 
 
 def nested_equal(v1, v2):
@@ -73,14 +73,14 @@ def nested_equal(v1, v2):
     if isinstance(v1, Iterable) and isinstance(v2, Iterable):
         return all(nested_equal(sub1, sub2) for sub1, sub2 in zip(v1, v2))
     return v1 == v2
-    
+
 
 def isnamedtuple(obj):
     """Heuristic check if an object is a namedtuple."""
     return isinstance(obj, tuple) \
-           and hasattr(obj, '_fields') \
-           and hasattr(obj, '_asdict') \
-           and callable(obj._asdict)
+        and hasattr(obj, '_fields') \
+        and hasattr(obj, '_asdict') \
+        and callable(obj._asdict)
 
 
 def serialize(data):
@@ -127,8 +127,8 @@ def restore(dct):
     if "py/collections.OrderedDict" in dct:
         return OrderedDict(dct["py/collections.OrderedDict"])
     return dct
-    
-             
+
+
 def data_to_json(data):
     return json.dumps(serialize(data))
 
@@ -148,7 +148,7 @@ def test_equivalence():
         print data_to_json(TEST_DATA)
         print "\nhas unserialized to\n"
         print json_to_data(data_to_json(TEST_DATA))
-                
+
 
 if __name__ == "__main__":
     test_equivalence()

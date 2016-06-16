@@ -20,7 +20,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mysimulationresult',
             name='asset',
-            field=models.TextField(default=datetime.datetime(2015, 11, 6, 14, 35, 35, 792378, tzinfo=utc)),
+            field=models.TextField(default=datetime.datetime(
+                2015, 11, 6, 14, 35, 35, 792378, tzinfo=utc)),
             preserve_default=False,
         ),
         migrations.AddField(

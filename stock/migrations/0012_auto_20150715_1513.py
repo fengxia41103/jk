@@ -14,13 +14,15 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='month_adjusted_close',
-            field=models.TextField(default=b'', verbose_name='1-month adjusted closing price'),
+            field=models.TextField(
+                default=b'', verbose_name='1-month adjusted closing price'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='week_adjusted_close',
-            field=models.TextField(default=b'', verbose_name='1-week adjusted closing price'),
+            field=models.TextField(
+                default=b'', verbose_name='1-week adjusted closing price'),
             preserve_default=True,
         ),
     ]

@@ -14,13 +14,15 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='is_sp500',
-            field=models.BooleanField(default=False, verbose_name=b'Is a SP500 stock'),
+            field=models.BooleanField(
+                default=False, verbose_name=b'Is a SP500 stock'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='sector',
-            field=models.CharField(default=b'unknown', max_length=64, verbose_name=b'Sector name'),
+            field=models.CharField(
+                default=b'unknown', max_length=64, verbose_name=b'Sector name'),
             preserve_default=True,
         ),
     ]

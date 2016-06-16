@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='prev_change',
-            field=models.FloatField(default=0.0, verbose_name='Prev day change (%)'),
+            field=models.FloatField(
+                default=0.0, verbose_name='Prev day change (%)'),
             preserve_default=True,
         ),
     ]

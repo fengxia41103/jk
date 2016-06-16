@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystockhistorical',
             name='flag_by_strategy',
-            field=models.CharField(default=b'U', max_length=1, null=True, verbose_name='Back testing flag', blank=True),
+            field=models.CharField(
+                default=b'U', max_length=1, null=True, verbose_name='Back testing flag', blank=True),
             preserve_default=True,
         ),
     ]

@@ -14,19 +14,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='fib_daily_score',
-            field=models.FloatField(default=0, verbose_name='Weighed sum of daily adj close price'),
+            field=models.FloatField(
+                default=0, verbose_name='Weighed sum of daily adj close price'),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='fib_weekly_score',
-            field=models.FloatField(default=0, verbose_name='Weighed sum of weekly adj close price'),
+            field=models.FloatField(
+                default=0, verbose_name='Weighed sum of weekly adj close price'),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='myposition',
             name='close_position',
-            field=models.DecimalField(default=0.0, verbose_name='We closed at', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0.0, verbose_name='We closed at', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
     ]

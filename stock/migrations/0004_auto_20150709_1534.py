@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='mystock',
             name='last_update_time',
-            field=models.DateTimeField(auto_now=True, verbose_name='Spot sample time', null=True),
+            field=models.DateTimeField(
+                auto_now=True, verbose_name='Spot sample time', null=True),
             preserve_default=True,
         ),
     ]

@@ -18,7 +18,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystockhistorical',
             name='relative_hl',
-            field=models.FloatField(null=True, verbose_name='Relative Position indicator in (H,L)', blank=True),
+            field=models.FloatField(
+                null=True, verbose_name='Relative Position indicator in (H,L)', blank=True),
             preserve_default=True,
         ),
     ]

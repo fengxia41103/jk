@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mysector',
             name='description',
-            field=models.TextField(null=True, verbose_name='Description', blank=True),
+            field=models.TextField(
+                null=True, verbose_name='Description', blank=True),
             preserve_default=True,
         ),
     ]

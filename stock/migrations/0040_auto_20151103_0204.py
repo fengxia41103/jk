@@ -18,7 +18,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='floating_share',
-            field=models.FloatField(default=0.0, verbose_name='Floating share(in million)'),
+            field=models.FloatField(
+                default=0.0, verbose_name='Floating share(in million)'),
             preserve_default=True,
         ),
     ]

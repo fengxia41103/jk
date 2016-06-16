@@ -14,13 +14,19 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='MyStockHistorical',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('id', models.AutoField(verbose_name='ID',
+                                        serialize=False, auto_created=True, primary_key=True)),
                 ('datestamp', models.DateField(verbose_name='Date')),
-                ('open_price', models.DecimalField(verbose_name='Open', max_digits=20, decimal_places=15)),
-                ('high_price', models.DecimalField(verbose_name='High', max_digits=20, decimal_places=15)),
-                ('low_price', models.DecimalField(verbose_name='Low', max_digits=20, decimal_places=15)),
-                ('close_price', models.DecimalField(verbose_name='Close', max_digits=20, decimal_places=15)),
-                ('adj_close', models.DecimalField(verbose_name='Adjusted close', max_digits=20, decimal_places=15)),
+                ('open_price', models.DecimalField(
+                    verbose_name='Open', max_digits=20, decimal_places=15)),
+                ('high_price', models.DecimalField(
+                    verbose_name='High', max_digits=20, decimal_places=15)),
+                ('low_price', models.DecimalField(
+                    verbose_name='Low', max_digits=20, decimal_places=15)),
+                ('close_price', models.DecimalField(
+                    verbose_name='Close', max_digits=20, decimal_places=15)),
+                ('adj_close', models.DecimalField(
+                    verbose_name='Adjusted close', max_digits=20, decimal_places=15)),
                 ('vol', models.FloatField(verbose_name='Volume (000)')),
                 ('stock', models.ForeignKey(verbose_name='Stock', to='stock.MyStock')),
             ],

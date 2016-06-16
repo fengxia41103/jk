@@ -13,6 +13,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterUniqueTogether(
             name='mysimulationcondition',
-            unique_together=set([('data_source', 'sector', 'strategy', 'strategy_value', 'data_sort', 'start', 'end', 'capital', 'per_trade', 'buy_cutoff', 'sell_cutoff')]),
+            unique_together=set([('data_source', 'sector', 'strategy', 'strategy_value', 'data_sort',
+                                  'start', 'end', 'capital', 'per_trade', 'buy_cutoff', 'sell_cutoff')]),
         ),
     ]

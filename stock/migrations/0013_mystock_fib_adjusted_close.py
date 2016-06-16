@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='fib_adjusted_close',
-            field=models.TextField(default=b'', verbose_name='Fib interval adjusted closing price'),
+            field=models.TextField(
+                default=b'', verbose_name='Fib interval adjusted closing price'),
             preserve_default=True,
         ),
     ]

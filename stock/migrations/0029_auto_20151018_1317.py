@@ -14,13 +14,15 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='myposition',
             name='position',
-            field=models.DecimalField(verbose_name='We paid', max_digits=20, decimal_places=4),
+            field=models.DecimalField(
+                verbose_name='We paid', max_digits=20, decimal_places=4),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='myposition',
             name='vol',
-            field=models.DecimalField(default=0, verbose_name='Trade vol', max_digits=20, decimal_places=4),
+            field=models.DecimalField(
+                default=0, verbose_name='Trade vol', max_digits=20, decimal_places=4),
             preserve_default=True,
         ),
     ]

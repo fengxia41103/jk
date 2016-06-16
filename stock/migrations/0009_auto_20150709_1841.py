@@ -14,12 +14,16 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name='MyPosition',
             fields=[
-                ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
+                ('id', models.AutoField(verbose_name='ID',
+                                        serialize=False, auto_created=True, primary_key=True)),
                 ('created', models.DateTimeField(auto_now_add=True)),
-                ('position', models.DecimalField(verbose_name='We paid', max_digits=20, decimal_places=15)),
-                ('exit_bid', models.DecimalField(verbose_name='Sell at', max_digits=20, decimal_places=15)),
+                ('position', models.DecimalField(
+                    verbose_name='We paid', max_digits=20, decimal_places=15)),
+                ('exit_bid', models.DecimalField(
+                    verbose_name='Sell at', max_digits=20, decimal_places=15)),
                 ('vol', models.IntegerField(default=0, verbose_name='Trade vol')),
-                ('is_open', models.BooleanField(default=True, verbose_name='Is position open')),
+                ('is_open', models.BooleanField(
+                    default=True, verbose_name='Is position open')),
                 ('last_updated_on', models.DateTimeField(auto_now=True)),
                 ('stock', models.ForeignKey(verbose_name='Stock', to='stock.MyStock')),
             ],
@@ -41,19 +45,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='day_high',
-            field=models.DecimalField(default=0.0, verbose_name='Day high', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0.0, verbose_name='Day high', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='day_low',
-            field=models.DecimalField(default=0.0, verbose_name='Day low', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0.0, verbose_name='Day low', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='mystock',
             name='is_in_play',
-            field=models.BooleanField(default=False, verbose_name='Has pending position'),
+            field=models.BooleanField(
+                default=False, verbose_name='Has pending position'),
             preserve_default=True,
         ),
     ]

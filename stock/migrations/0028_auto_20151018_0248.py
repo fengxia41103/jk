@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='myposition',
             name='vol',
-            field=models.DecimalField(default=0, verbose_name='Trade vol', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0, verbose_name='Trade vol', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
     ]

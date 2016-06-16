@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystockhistorical',
             name='oneday_change_pcnt',
-            field=models.FloatField(null=True, verbose_name="(Today's Open - PrevDay's Adj Close)/Adj close*100", blank=True),
+            field=models.FloatField(
+                null=True, verbose_name="(Today's Open - PrevDay's Adj Close)/Adj close*100", blank=True),
             preserve_default=True,
         ),
     ]

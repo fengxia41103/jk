@@ -19,19 +19,22 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='ask',
-            field=models.DecimalField(default=0.0, verbose_name='Ask price', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0.0, verbose_name='Ask price', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='bid',
-            field=models.DecimalField(default=0.0, verbose_name='Bid price', max_digits=20, decimal_places=15),
+            field=models.DecimalField(
+                default=0.0, verbose_name='Bid price', max_digits=20, decimal_places=15),
             preserve_default=True,
         ),
         migrations.AddField(
             model_name='mystock',
             name='day_range',
-            field=models.CharField(max_length=64, null=True, verbose_name='Day range', blank=True),
+            field=models.CharField(
+                max_length=64, null=True, verbose_name='Day range', blank=True),
             preserve_default=True,
         ),
         migrations.AddField(

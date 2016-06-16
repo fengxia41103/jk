@@ -60,7 +60,7 @@ INSTALLED_APPS = (
     'social.apps.django_app.default',  # python-social-auth
     'localflavor',  # django-localflavor
     'rest_framework',  # djangorestframework
-    'djangular', # django-angular
+    'djangular',  # django-angular
     'stock',  # stock
 )
 

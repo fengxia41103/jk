@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystockhistorical',
             name='peer_rank',
-            field=models.IntegerField(default=0, null=True, verbose_name='Ranking among peers', blank=True),
+            field=models.IntegerField(
+                default=0, null=True, verbose_name='Ranking among peers', blank=True),
             preserve_default=True,
         ),
     ]

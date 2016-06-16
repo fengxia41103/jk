@@ -14,13 +14,15 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mysimulationcondition',
             name='sector',
-            field=models.ForeignKey(default=None, blank=True, to='stock.MySector', null=True, verbose_name='Data source sector'),
+            field=models.ForeignKey(default=None, blank=True, to='stock.MySector',
+                                    null=True, verbose_name='Data source sector'),
             preserve_default=True,
         ),
         migrations.AlterField(
             model_name='mysimulationcondition',
             name='data_source',
-            field=models.IntegerField(default=1, choices=[(1, b'S&P500'), (2, b'CI00*'), (3, b'WIND 8821*'), (4, b'China stock'), (5, b'WIND 2nd-tier sector')]),
+            field=models.IntegerField(default=1, choices=[(
+                1, b'S&P500'), (2, b'CI00*'), (3, b'WIND 8821*'), (4, b'China stock'), (5, b'WIND 2nd-tier sector')]),
             preserve_default=True,
         ),
     ]

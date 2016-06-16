@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='mystock',
             name='float_share',
-            field=models.FloatField(default=0.0, verbose_name='Float share(in million)'),
+            field=models.FloatField(
+                default=0.0, verbose_name='Float share(in million)'),
             preserve_default=True,
         ),
     ]

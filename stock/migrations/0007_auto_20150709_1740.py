@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='mystock',
             name='vol',
-            field=models.FloatField(default=0.0, verbose_name='Volume (in 000)'),
+            field=models.FloatField(
+                default=0.0, verbose_name='Volume (in 000)'),
             preserve_default=True,
         ),
     ]

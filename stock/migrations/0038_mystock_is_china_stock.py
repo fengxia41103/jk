@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='mystock',
             name='is_china_stock',
-            field=models.BooleanField(default=False, verbose_name=b'Is a China stock'),
+            field=models.BooleanField(
+                default=False, verbose_name=b'Is a China stock'),
             preserve_default=True,
         ),
     ]

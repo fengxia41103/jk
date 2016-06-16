@@ -12,7 +12,7 @@ sys.path.append('/home/fengxia/workspace/jk/jk')
 os.environ['DJANGO_SETTINGS_MODULE'] = 'jk.settings'
 
 # Activate your virtual env
-activate_env=os.path.expanduser("~/.virtualenvs/gaokao/bin/activate_this.py")
+activate_env = os.path.expanduser("~/.virtualenvs/gaokao/bin/activate_this.py")
 execfile(activate_env, dict(__file__=activate_env))
 
 # Fix django closing connection to MemCachier after every request (#11331)
