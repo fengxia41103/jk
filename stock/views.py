@@ -193,6 +193,10 @@ class MyStockList (FilterView):
 from tasks import stock_monitor_yahoo_consumer,stock_monitor_yahoo_consumer2
 @class_view_decorator(login_required)
 class MyStockUpdate(TemplateView):
+	"""Update S&P500 using Yahoo source.
+
+	Add a background task to queue to process updates from Yahoo sources.
+	"""
 	template_name = ''
 
 	def post(self,request):
@@ -294,6 +298,8 @@ class MyStockTrendConsistentLoss(TemplateView):
 
 @class_view_decorator(login_required)
 class MyStockPosition(TemplateView):
+	"""View user's current open positions.
+	"""
 	template_name = 'stock/stock/position.html'
 	def post(self,request):
 		stock = MyStock.objects.get(id=int(self.request.POST['obj_id']))		
@@ -307,6 +313,11 @@ class MyStockPosition(TemplateView):
 
 @class_view_decorator(login_required)
 class MyStockTransaction(TemplateView):
+	"""Ajax view.
+
+	This handles transactions of either buying or selling a particular position
+	that requesting user currently has on his portfolio.
+	"""
 	template_name = ''	
 
 	def post(self,request):
@@ -386,11 +397,23 @@ class MyStockCandidateList(ListView):
 
 from nltk import FreqDist
 @class_view_decorator(login_required)
-class MyStockStrategy1Detail(DetailView):
+class MyStockStrategy1Detail(TemplateView):
 	model = MyStockHistorical
 	template_name ='stock/backtesting/s1_detail.html'
 
 	def occurrences(self, haystack, needle):
+		"""Count occurences of a substring within a string.
+
+		This is a helper function to count the number of occurance
+		of a pattern (substring) within a string.
+
+		Args:
+			:haystack: a string or list. The long string we are to search for a pattern.
+			:needle: a string or list. the pattern we are searching.
+
+		Returns:
+			:int: number of occurance
+		"""
 		return sum(haystack[i:i+len(needle)] == needle for i in xrange(len(haystack)-len(needle)+1))
 
 	def get_context_data(self, **kwargs):
@@ -423,6 +446,11 @@ class MyStockStrategy1Detail(DetailView):
 		context['peers'] = MyStock.objects.all().values_list('symbol',flat=True)
 		return context	
 
+######################################################
+#
+#	Simulator views
+#
+#####################################################
 from stock.tasks import backtesting_simulation_consumer
 @class_view_decorator(login_required)
 class MySimulationExec(FormView):
@@ -494,6 +522,8 @@ class MySimulationResultComp(TemplateView):
 		for cond_id in self.request.POST.getlist('conditions'):
 			condition = MySimulationCondition.objects.get(id = int(cond_id))
 			conditions.append(condition)
+
+		# Get all dates covered by simualtions
 		all_dates = list(set(reduce(lambda x,y: x+y, [c.mysimulationresult.on_dates for c in conditions])))
 		all_dates = sorted(all_dates)
 
@@ -502,6 +532,8 @@ class MySimulationResultComp(TemplateView):
 			start_date = cond.mysimulationresult.on_dates[0]
 			end_date = cond.mysimulationresult.on_dates[-1]
 
+			# we are to padding 0s to front and back so two simulations
+			# have the same start date and end date to compare their asset values
 			padding_start = all_dates.index(start_date)
 			padding_end = len(all_dates) - all_dates.index(end_date) - 1 # 0-index
 			assets.append({'name':cond, 'values':[0]*padding_start+cond.mysimulationresult.asset+[0]*padding_end})

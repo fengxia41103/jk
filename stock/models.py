@@ -155,6 +155,12 @@ class MyStockCustomManager(models.Manager):
 		return data
 
 class MySector(models.Model):
+	"""Sector that is used to group stocks.
+
+	The company that a stock represents is usually
+	linked to a sector. Each country may have a different way to
+	define these.
+	"""
 	parent = models.ForeignKey(
 		'self',
 		null = True,
@@ -351,13 +357,19 @@ class MyStock(models.Model):
 		Midday change is computed as:
 			(last polled bid price/today's openning price) in %
 		"""
-		return (self.last-self.day_open)/self.day_open*Decimal(100)
+		if self.day_open:
+			return (self.last-self.day_open)/self.day_open*Decimal(100)
+		else:
+			return None
 	oneday_change = property(_oneday_change)
 
 	def _twoday_change(self):
 		"""Current bid over yesterday's openning price in percentage.
 		"""
-		return (self.last-self.prev_open)/self.prev_open*Decimal(100)
+		if self.prev_open:
+			return (self.last-self.prev_open)/self.prev_open*Decimal(100)
+		else:
+			return None
 	twoday_change = property(_twoday_change)
 
 	def _week_change(self):
@@ -366,15 +378,21 @@ class MyStock(models.Model):
 		Data is saved in week_adjusted_close as (open,close) delimited by comma.
 		This format is copied by Yahoo!Finance.
 		"""
-		vals = self.week_adjusted_close.split(',')
-		return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
+		if self.week_adjusted_close:
+			vals = self.week_adjusted_close.split(',')
+			return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
+		else:
+			return None			
 	week_change = property(_week_change)
 
 	def _month_change(self):
 		"""Closing price over the openning price 1-month ago.
 		"""
-		vals = self.month_adjusted_close.split(',')
-		return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
+		if self.month_adjusted_close:
+			vals = self.month_adjusted_close.split(',')
+			return (Decimal(vals[-1])-Decimal(vals[0]))/Decimal(vals[0])*Decimal(100)
+		else:
+			return None
 	month_change = property(_month_change)
 
 	def _trend_is_consistent_gain(self):
@@ -409,13 +427,19 @@ class MyStock(models.Model):
 		Score is calculated by sampling in time based on Fib values as time intervals.
 		The score is computed offline so it is historically correct.
 		"""
-		return self.fib_weekly_score/float(self.last)*100
+		if self.last:
+			return self.fib_weekly_score/float(self.last)*100
+		else:
+			return None
 	fib_weekly_score_pcnt = property(_fib_weekly_score_pcnt)
 
 	def _fib_daily_score_pcnt(self):
 		"""Fibonacci daily score.
 		"""
-		return self.fib_daily_score/float(self.last)*100
+		if self.last:
+			return self.fib_daily_score/float(self.last)*100
+		else:
+			return None
 	fib_daily_score_pcnt = property(_fib_daily_score_pcnt)
 
 	def __unicode__(self):
@@ -636,6 +660,21 @@ class MyUserProfile(models.Model):
 	asset = property(_asset)
 
 class MyPosition(models.Model):
+	"""Stock position on portfolio.
+
+	Each position is a stock that user is currently holding.
+	A position is like a tiny accounting book:
+		position: cost we paid when buying these stocks
+		vol: qty
+		close_position: price we took when selling these stocks
+
+	The difference between the buy and sell will be the gain/loss
+	we took buy doing this trade. Also, as long as we are holding it,
+	its value fluctuates along with the market. Thus the source
+	of final gain/loss came from two places:
+		1. diff between cost and exit price
+		2. fluctuation from the market
+	"""
 	created = models.DateTimeField(
 		auto_now_add=True,
 	)
@@ -788,6 +827,28 @@ def day_change_handler(sender, **kwargs):
 			stock.save()
 
 class MySimulationCondition(models.Model):
+	"""Simulation condition model.
+
+	A simulation condition represents a particular
+	set of parameters that form the context of a simulation run,
+	eg. which data set to use, what date period to use,
+	how many capital to begin with, and how much
+	we want to spend per trade.
+
+	Fields:
+		:strategy: Defines which strategy one would
+			use for a simulation run.
+			S1 strategy calls for an index value precalculated based on
+			certain algorithm and trade based; S2 is a buy low sell high strategy
+			that will monitor a stock's open/close/spot to determine when to buy
+			and when to sell.
+		:buy_cutoff: If a stock has dropped over buy_cutoff percentage,
+			one buys this stock. This value is used by the S2 strategy.
+		:sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff
+			defines a percentage that one would close a position if the stock
+			price has risen over sell_cutoff percentage relative to
+			the initial price at buying.
+	"""
 	DATA_CHOICES = (
 		(1, "S&P500"),
 		(2, "CI00*"),
@@ -901,10 +962,16 @@ class MySimulationCondition(models.Model):
 			"sell_cutoff")
 
 class MySimulationResult(models.Model):
+	"""Simulation result model.
+
+	This is a complex model because it will save the raw data
+	from a simulation run so we can replay the entire simulation
+	step by step.
+	"""
 	description = models.TextField()
-	on_dates = JSONField()
-	asset = JSONField()
-	cash = JSONField()
+	on_dates = JSONField() # date range
+	asset = JSONField() # assets
+	cash = JSONField() # cash
 	equity = JSONField()
 	portfolio = JSONField()
 	transaction = JSONField()
@@ -1062,7 +1129,6 @@ class MyChenmin(models.Model):
 #	RESTful API endpoints
 #
 #####################################################
-
 from rest_framework import serializers, viewsets,filters
 
 # Serializers define the API representation.

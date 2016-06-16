@@ -351,6 +351,8 @@ class MyStockMonitorYahoo():
 			try: stock.pe = Decimal(vals[1])
 			except: pass
 
+			# at least we want the daily open
+			if vals[3] == 'N/A': continue
 			stock.day_open = Decimal(vals[3])
 			
 			try: stock.ask = Decimal(vals[4])
@@ -361,7 +363,7 @@ class MyStockMonitorYahoo():
 			stock.vol = int(vals[6])/1000.0
 			
 			try: stock.float_share = float(vals[7])/1000000
-			except: pass # could bve N/A
+			except: pass # could be N/A
 
 			if '-' in vals[8]:
 				stock.day_low = Decimal(vals[8].split('-')[0])
@@ -675,6 +677,11 @@ def backtesting_simulation_consumer(condition, is_update = False):
 #################################
 from numpy import mean, std
 class MyStockStrategyValue(object):
+	"""Abstract model that defines a "run" method 
+	that can overriden by children class to define
+	their own compute_value method, which computes
+	the so called index value per strategy.
+	"""
 	def __init__(self):
 		self.logger = logging.getLogger('jk')
 

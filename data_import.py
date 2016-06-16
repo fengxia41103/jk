@@ -493,19 +493,19 @@ def main():
 	'''
 	Pull spot data
 	'''
-	# crawl_update_sp500_spot_yahoo()
+	crawl_update_sp500_spot_yahoo()
 
 	'''
 	Compute strategy index values
 	'''
-	# consumer_daily_return()
-	# consumer_relative_hl()
-	# consumer_relative_ma()
+	consumer_daily_return()
+	consumer_relative_hl()
+	consumer_relative_ma()
 
 	'''
 	simulation
 	'''
-	batch_simulation_daily_return()
+	# batch_simulation_daily_return()
 
 if __name__ == '__main__':
 	main()
