@@ -20,6 +20,8 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from math import fabs
 import numpy as np
 
+import logging
+logger = logging.getLogger('jk')
 
 class MyBaseModel (models.Model):
     # fields
@@ -1019,6 +1021,8 @@ class MySimulationResult(models.Model):
     portfolio = JSONField()
     transaction = JSONField()
     snapshot = JSONField()
+
+    # each simulation condition has a 1-1 simulation result
     condition = models.OneToOneField('MySimulationCondition')
 
     def _num_of_buys(self):
@@ -1034,6 +1038,9 @@ class MySimulationResult(models.Model):
 
         This is computed from individual sells.
         """
+        logger.debug('8'*50)
+        logger.debug([len(t['sell']) for t in self.transaction])
+
         return sum([len(t['sell']) for t in self.transaction])
     num_of_sells = property(_num_of_sells)
 

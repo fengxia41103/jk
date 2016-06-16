@@ -23,6 +23,8 @@
 	    	<th>Capital</th>
 	    	<th>Per trade</th>
 	    	<th>Sector</th>
+	    	<th>Num of buys</th>
+	    	<th>Num of sells</th>
 	    	<th>Manage</th>
 	    </thead>
 	    <tbody>
@@ -47,6 +49,10 @@
 	    			{{ cond.capital|intcomma }}
 	    		</td><td>
 	    			{{ cond.per_trade|intcomma }}
+	    		</td><td>
+	    			{{ cond.mysimulationresult.num_of_buys }}
+	    		</td><td>
+	    			{{ cond.mysimulationresult.num_of_sells }}
 	    		</td><td>
 	    			{{ cond.sector }}
 	    		</td><td>

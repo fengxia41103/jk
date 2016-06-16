@@ -242,13 +242,6 @@ AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
 
-# emails
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_HOST_USER = 'fengxia41103@gmail.com'
-EMAIL_HOST_PASSWORD = 'XFxf123456'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-
 # django-restframework
 REST_FRAMEWORK = {
     'DEFAULT_FILTER_BACKENDS': ('rest_framework.filters.DjangoFilterBackend',),

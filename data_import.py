@@ -549,9 +549,11 @@ def batch_simulation_daily_return():
         # we are relying on a python-specif data format.
         # But it is safe in this context.
         if strategy == 2:
+        	# buy low sell high
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=True)
         else:
+        	# alpha
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=False)
 
