@@ -487,11 +487,8 @@ def import_wind_sector_index():
         # print 'done', symbol, len(records)
 
 from stock.tasks import backtesting_simulation_consumer
-
-
-def batch_simulation_daily_return():
+def batch_simulation_daily_return(date_range, strategies = [1,2]):
     sources = [1, 2, 3, 5]
-    strategies = [1, 2]
     strategy_values = [1]
 
     # get 8211 related sectors
@@ -499,47 +496,48 @@ def batch_simulation_daily_return():
     sectors = [None] + reduce(lambda x, y: x + y,
                               [list(s.mysector_set.all()) for s in stock_8211])
 
-    start = ['2015-01-01']
-    end = ['2016-01-01']
+    # start = ['2016-01-01']
+    # end = ['2017-01-01']
     # start = ['2015-01-01']
     # end = ['2015-01-10']
 
-    step = 25
     conditions = []
-    for (source, strategy, strategy_value, start, end, sector) in itertools.product(sources, strategies, strategy_values, start, end, sectors):
-        # we only try strategy 2 with source 1
-        if strategy == 2 and source != 1:
-            continue
+    for (source, strategy, strategy_value, sector) in itertools.product(sources, strategies, strategy_values, sectors):
+        for (start,end) in date_range:      
+            # we only try strategy 2 with source 1
+            if strategy == 2 and source != 1:
+                continue
 
-        # we only try strategy 5 with sector
-        if sector and source != 5:
-            continue
+            # we only try strategy 5 with sector
+            if sector and source != 5:
+                continue
 
-        logger.debug(source, strategy, strategy_value, start, end, sector)
+            logger.debug(source, strategy, strategy_value, start, end, sector)
 
-        # cutoffs have different meanings based on strategy
-        if strategy == 1:
-            buy_cutoff = range(0, 100, 25)
-            sell_cutoff = [b + 25 for b in buy_cutoff]
-            cutoffs = zip(buy_cutoff, sell_cutoff)
-        elif strategy == 2:
-            cutoffs = itertools.product([1, 5, 10], [1, 5, 10])
+            # cutoffs have different meanings based on strategy
+            if strategy == 1:
+                step = 25
+                buy_cutoff = range(0, 100, step)
+                sell_cutoff = [b + step for b in buy_cutoff]
+                cutoffs = zip(buy_cutoff, sell_cutoff)
+            elif strategy == 2:
+                cutoffs = itertools.product([1, 5, 10], [1, 5, 10])
 
-        for (buy_cutoff, sell_cutoff) in cutoffs:
-            condition, created = MySimulationCondition.objects.get_or_create(
-                data_source=source,
-                sector=sector,
-                data_sort=1,  # descending
-                strategy=strategy,
-                strategy_value=strategy_value,
-                start=start,
-                end=end,
-                capital=100000,
-                per_trade=10000,
-                buy_cutoff=buy_cutoff,
-                sell_cutoff=sell_cutoff
-            )
-            conditions.append(condition)
+            for (buy_cutoff, sell_cutoff) in cutoffs:
+                condition, created = MySimulationCondition.objects.get_or_create(
+                    data_source=source,
+                    sector=sector,
+                    data_sort=1,  # descending
+                    strategy=strategy,
+                    strategy_value=strategy_value,
+                    start=start,
+                    end=end,
+                    capital=100000,
+                    per_trade=10000,
+                    buy_cutoff=buy_cutoff,
+                    sell_cutoff=sell_cutoff
+                )
+                conditions.append(condition)
 
     # simulation run!
     for condition in conditions:
@@ -549,11 +547,11 @@ def batch_simulation_daily_return():
         # we are relying on a python-specif data format.
         # But it is safe in this context.
         if strategy == 2:
-        	# buy low sell high
+            # buy low sell high
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=True)
         else:
-        	# alpha
+            # alpha
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=False)
 
@@ -562,7 +560,7 @@ def main():
     django.setup()
 
     # tasks
-    # populate_sp_500	()
+    # populate_sp_500   ()
     # crawl_stock_prev_yahoo()
     # crawl_stock_yahoo_spot()
 
@@ -580,26 +578,29 @@ def main():
     # temp()
 
     '''
-	Pull historical data
-	'''
-    crawl_update_sp500_historical_yahoo()
+    Pull historical data
+    '''
+    # crawl_update_sp500_historical_yahoo()
 
     '''
-	Pull spot data
-	'''
+    Pull spot data
+    '''
     # crawl_update_sp500_spot_yahoo()
 
     '''
-	Compute strategy index values
-	'''
+    Compute strategy index values
+    '''
     # consumer_daily_return()
     # consumer_relative_hl()
     # consumer_relative_ma()
 
     '''
-	simulation
-	'''
-    # batch_simulation_daily_return()
+    simulation
+    '''
+    batch_simulation_daily_return(
+        date_range = [('2016-01-01','2017-01-01')],
+        strategies = [2]
+    )
 
 if __name__ == '__main__':
     main()

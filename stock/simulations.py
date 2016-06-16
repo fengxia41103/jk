@@ -397,7 +397,7 @@ class MySimulationJK(MySimulation):
 
             # not enough fund
             if self.capital < self.per_trade:
-            	logger.info('%s: Not enough capital to execute buy.'%symbol)
+            	logger.debug('%s: Not enough capital to execute buy.'%symbol)
                 continue
 
             # if buy_cutoff = 0.04,

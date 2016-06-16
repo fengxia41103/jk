@@ -16,7 +16,7 @@ class PlainUtility():
         self.headers = {'User-Agent': user_agent}
         self.ip_url = 'http://icanhazip.com/'
         self.logger = logging.getLogger('jk')
-        retries = Retry(connect=5, read=5, redirect=5)
+        retries = Retry(connect=5, read=25, redirect=5)
         self.agent = PoolManager(
             10, retries=retries, timeout=Timeout(total=30.0))
 
@@ -38,7 +38,7 @@ class TorUtility():
         self.headers = {'User-Agent': user_agent}
         self.ip_url = 'http://icanhazip.com/'
         self.logger = logging.getLogger('jk')
-        retries = Retry(connect=5, read=5, redirect=5)
+        retries = Retry(connect=5, read=25, redirect=5)
         self.agent = ProxyManager(
             'http://localhost:8118/', retries=retries, timeout=Timeout(total=60.0))
 
