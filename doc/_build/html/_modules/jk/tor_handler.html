@@ -1,0 +1,210 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>jk.tor_handler &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for jk.tor_handler</h1><div class="highlight"><pre>
+<span></span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">socks</span>
+<span class="kn">import</span> <span class="nn">socket</span>
+<span class="kn">from</span> <span class="nn">stem</span> <span class="kn">import</span> <span class="n">Signal</span>
+<span class="kn">from</span> <span class="nn">stem.control</span> <span class="kn">import</span> <span class="n">Controller</span>
+<span class="kn">from</span> <span class="nn">urllib3</span> <span class="kn">import</span> <span class="n">PoolManager</span><span class="p">,</span> <span class="n">Retry</span><span class="p">,</span> <span class="n">Timeout</span><span class="p">,</span> <span class="n">ProxyManager</span>
+
+
+<div class="viewcode-block" id="PlainUtility"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.PlainUtility">[docs]</a><span class="k">class</span> <span class="nc">PlainUtility</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">user_agent</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="n">user_agent</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ip_url</span> <span class="o">=</span> <span class="s1">&#39;http://icanhazip.com/&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;gkp&#39;</span><span class="p">)</span>
+        <span class="n">retries</span> <span class="o">=</span> <span class="n">Retry</span><span class="p">(</span><span class="n">connect</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">redirect</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">PoolManager</span><span class="p">(</span>
+            <span class="mi">10</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">Timeout</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="mf">30.0</span><span class="p">))</span>
+
+<div class="viewcode-block" id="PlainUtility.current_ip"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.PlainUtility.current_ip">[docs]</a>    <span class="k">def</span> <span class="nf">current_ip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ip_url</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PlainUtility.request"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.PlainUtility.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;status </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="TorUtility"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.TorUtility">[docs]</a><span class="k">class</span> <span class="nc">TorUtility</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">user_agent</span> <span class="o">=</span> <span class="s1">&#39;Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;User-Agent&#39;</span><span class="p">:</span> <span class="n">user_agent</span><span class="p">}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ip_url</span> <span class="o">=</span> <span class="s1">&#39;http://icanhazip.com/&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;gkp&#39;</span><span class="p">)</span>
+        <span class="n">retries</span> <span class="o">=</span> <span class="n">Retry</span><span class="p">(</span><span class="n">connect</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">read</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">redirect</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">ProxyManager</span><span class="p">(</span>
+            <span class="s1">&#39;http://localhost:8118/&#39;</span><span class="p">,</span> <span class="n">retries</span><span class="o">=</span><span class="n">retries</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="n">Timeout</span><span class="p">(</span><span class="n">total</span><span class="o">=</span><span class="mf">60.0</span><span class="p">))</span>
+
+<div class="viewcode-block" id="TorUtility.renewTorIdentity"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.TorUtility.renewTorIdentity">[docs]</a>    <span class="k">def</span> <span class="nf">renewTorIdentity</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">passAuth</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="n">socket</span><span class="o">.</span><span class="n">socket</span><span class="p">()</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">connect</span><span class="p">((</span><span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="mi">9051</span><span class="p">))</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s1">&#39;AUTHENTICATE &quot;{0}&quot;</span><span class="se">\r\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">passAuth</span><span class="p">))</span>
+            <span class="n">resp</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;250&#39;</span><span class="p">):</span>
+                <span class="n">s</span><span class="o">.</span><span class="n">send</span><span class="p">(</span><span class="s2">&quot;signal NEWNYM</span><span class="se">\r\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="n">resp</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span><span class="mi">1024</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">resp</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;250&#39;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Identity renewed&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;response 2:</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">resp</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;response 1:</span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">resp</span><span class="p">)</span>
+
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">&quot;Can&#39;t renew identity: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorUtility.renew_connection"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.TorUtility.renew_connection">[docs]</a>    <span class="k">def</span> <span class="nf">renew_connection</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">Controller</span><span class="o">.</span><span class="n">from_port</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">9051</span><span class="p">)</span> <span class="k">as</span> <span class="n">controller</span><span class="p">:</span>
+            <span class="n">controller</span><span class="o">.</span><span class="n">authenticate</span><span class="p">(</span><span class="s1">&#39;natalie&#39;</span><span class="p">)</span>
+            <span class="n">controller</span><span class="o">.</span><span class="n">signal</span><span class="p">(</span><span class="n">Signal</span><span class="o">.</span><span class="n">NEWNYM</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span> <span class="o">*</span> <span class="mi">6</span> <span class="o">+</span> <span class="s1">&#39;Renew TOR IP: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ip_url</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;*&#39;</span> <span class="o">*</span> <span class="mi">50</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TorUtility.request"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.TorUtility.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="s1">&#39;GET&#39;</span><span class="p">,</span> <span class="n">url</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">200</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">r</span><span class="o">.</span><span class="n">data</span>
+        <span class="k">elif</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="mi">403</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">renew_connection</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;status </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">r</span><span class="o">.</span><span class="n">status</span><span class="p">)</span>
+        <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="TorUtility.current_ip"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.TorUtility.current_ip">[docs]</a>    <span class="k">def</span> <span class="nf">current_ip</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ip_url</span><span class="p">)</span></div></div>
+
+<span class="kn">from</span> <span class="nn">selenium</span> <span class="kn">import</span> <span class="n">webdriver</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.common.desired_capabilities</span> <span class="kn">import</span> <span class="n">DesiredCapabilities</span>
+
+
+<div class="viewcode-block" id="SeleniumUtility"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.SeleniumUtility">[docs]</a><span class="k">class</span> <span class="nc">SeleniumUtility</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">use_tor</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ip_url</span> <span class="o">=</span> <span class="s1">&#39;http://icanhazip.com/&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;gkp&#39;</span><span class="p">)</span>
+
+        <span class="n">dcap</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">DesiredCapabilities</span><span class="o">.</span><span class="n">PHANTOMJS</span><span class="p">)</span>
+        <span class="n">dcap</span><span class="p">[</span><span class="s2">&quot;phantomjs.page.settings.userAgent&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="s2">&quot;Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/53 &quot;</span>
+            <span class="s2">&quot;(KHTML, like Gecko) Chrome/15.0.87&quot;</span>
+        <span class="p">)</span>
+        <span class="c1"># DesiredCapabilities.PHANTOMJS[&#39;phantomjs.page.settings.userAgent&#39;] = user_agent</span>
+        <span class="n">service_args</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="s1">&#39;--proxy=127.0.0.1:8118&#39;</span><span class="p">,</span>  <span class="c1"># provixy proxy</span>
+            <span class="s1">&#39;--proxy-type=http&#39;</span><span class="p">,</span>
+        <span class="p">]</span>
+        <span class="k">if</span> <span class="n">use_tor</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">webdriver</span><span class="o">.</span><span class="n">PhantomJS</span><span class="p">(</span>
+                <span class="s1">&#39;phantomjs&#39;</span><span class="p">,</span> <span class="n">service_args</span><span class="o">=</span><span class="n">service_args</span><span class="p">,</span> <span class="n">desired_capabilities</span><span class="o">=</span><span class="n">dcap</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">webdriver</span><span class="o">.</span><span class="n">PhantomJS</span><span class="p">(</span>
+                <span class="s1">&#39;phantomjs&#39;</span><span class="p">,</span> <span class="n">desired_capabilities</span><span class="o">=</span><span class="n">dcap</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">set_page_load_timeout</span><span class="p">(</span><span class="mi">120</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SeleniumUtility.request"><a class="viewcode-back" href="../../jk.html#jk.tor_handler.SeleniumUtility.request">[docs]</a>    <span class="k">def</span> <span class="nf">request</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">url</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">page_source</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;#</span><span class="si">%d</span><span class="s1"> request timeout&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">)</span></div>
+
+    <span class="k">def</span> <span class="nf">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span><span class="o">.</span><span class="n">quit</span><span class="p">()</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

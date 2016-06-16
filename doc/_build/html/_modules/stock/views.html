@@ -1,0 +1,769 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.views &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for stock.views</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">from</span> <span class="nn">django</span> <span class="kn">import</span> <span class="n">forms</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+<span class="kn">from</span> <span class="nn">django.forms.models</span> <span class="kn">import</span> <span class="n">modelformset_factory</span><span class="p">,</span> <span class="n">inlineformset_factory</span>
+<span class="kn">from</span> <span class="nn">django.contrib.contenttypes.generic</span> <span class="kn">import</span> <span class="n">generic_inlineformset_factory</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth.decorators</span> <span class="kn">import</span> <span class="n">login_required</span><span class="p">,</span> <span class="n">permission_required</span>
+<span class="kn">from</span> <span class="nn">django.utils.decorators</span> <span class="kn">import</span> <span class="n">method_decorator</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth.forms</span> <span class="kn">import</span> <span class="n">UserCreationForm</span><span class="p">,</span> <span class="n">AuthenticationForm</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth</span> <span class="kn">import</span> <span class="n">authenticate</span><span class="p">,</span> <span class="n">logout</span><span class="p">,</span> <span class="n">login</span>
+<span class="kn">from</span> <span class="nn">django.template</span> <span class="kn">import</span> <span class="n">RequestContext</span>
+<span class="kn">from</span> <span class="nn">django.views.generic</span> <span class="kn">import</span> <span class="n">TemplateView</span><span class="p">,</span> <span class="n">ListView</span><span class="p">,</span> <span class="n">DetailView</span>
+<span class="kn">from</span> <span class="nn">django.views.generic.edit</span> <span class="kn">import</span> <span class="n">FormView</span><span class="p">,</span> <span class="n">CreateView</span><span class="p">,</span> <span class="n">UpdateView</span><span class="p">,</span> <span class="n">DeleteView</span>
+<span class="kn">from</span> <span class="nn">django.core.urlresolvers</span> <span class="kn">import</span> <span class="n">reverse_lazy</span><span class="p">,</span> <span class="n">resolve</span><span class="p">,</span> <span class="n">reverse</span>
+<span class="kn">from</span> <span class="nn">django.shortcuts</span> <span class="kn">import</span> <span class="n">render</span><span class="p">,</span> <span class="n">render_to_response</span>
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">HttpResponse</span><span class="p">,</span> <span class="n">HttpResponseRedirect</span><span class="p">,</span> <span class="n">JsonResponse</span>
+<span class="kn">from</span> <span class="nn">django.utils.encoding</span> <span class="kn">import</span> <span class="n">smart_text</span>
+<span class="kn">from</span> <span class="nn">django.views.decorators.csrf</span> <span class="kn">import</span> <span class="n">csrf_exempt</span>
+<span class="kn">from</span> <span class="nn">django.db.models</span> <span class="kn">import</span> <span class="n">Count</span><span class="p">,</span> <span class="n">Max</span><span class="p">,</span> <span class="n">Min</span><span class="p">,</span> <span class="n">Avg</span>
+
+<span class="kn">from</span> <span class="nn">django.http</span> <span class="kn">import</span> <span class="n">HttpResponse</span>
+<span class="kn">from</span> <span class="nn">django.shortcuts</span> <span class="kn">import</span> <span class="n">render</span>
+<span class="kn">from</span> <span class="nn">django.views.decorators.vary</span> <span class="kn">import</span> <span class="n">vary_on_headers</span>
+<span class="c1"># protect the view with require_POST decorator</span>
+<span class="kn">from</span> <span class="nn">django.views.decorators.http</span> <span class="kn">import</span> <span class="n">require_POST</span>
+<span class="kn">from</span> <span class="nn">django.contrib</span> <span class="kn">import</span> <span class="n">messages</span>
+<span class="kn">from</span> <span class="nn">django.db.models</span> <span class="kn">import</span> <span class="n">Q</span><span class="p">,</span> <span class="n">F</span>
+<span class="kn">from</span> <span class="nn">django.template</span> <span class="kn">import</span> <span class="n">loader</span><span class="p">,</span> <span class="n">Context</span>
+
+<span class="c1"># django-crispy-forms</span>
+<span class="kn">from</span> <span class="nn">crispy_forms.helper</span> <span class="kn">import</span> <span class="n">FormHelper</span>
+<span class="kn">from</span> <span class="nn">crispy_forms.layout</span> <span class="kn">import</span> <span class="n">Submit</span>
+
+<span class="c1"># django-filters</span>
+<span class="kn">from</span> <span class="nn">django_filters</span> <span class="kn">import</span> <span class="n">FilterSet</span><span class="p">,</span> <span class="n">BooleanFilter</span>
+<span class="kn">from</span> <span class="nn">django_filters.views</span> <span class="kn">import</span> <span class="n">FilterView</span>
+<span class="kn">import</span> <span class="nn">django_filters</span>
+
+<span class="c1"># django emails</span>
+<span class="kn">from</span> <span class="nn">django.core.mail</span> <span class="kn">import</span> <span class="n">send_mail</span>
+
+<span class="c1"># so what</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">shutil</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">testtools</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">import</span> <span class="nn">unittest</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">tempfile</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span>
+<span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">groupby</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">lxml.html</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">from</span> <span class="nn">utility</span> <span class="kn">import</span> <span class="n">MyUtility</span><span class="p">,</span> <span class="n">JSONEncoder</span>
+
+<span class="kn">from</span> <span class="nn">stock.forms</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">stock.models</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">stock.simulations</span> <span class="kn">import</span> <span class="n">MySimulationAlpha</span><span class="p">,</span> <span class="n">MySimulationJK</span>
+
+<span class="c1">###################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	Common utilities</span>
+<span class="c1">#</span>
+<span class="c1">###################################################</span>
+
+
+<div class="viewcode-block" id="class_view_decorator"><a class="viewcode-back" href="../../stock.html#stock.views.class_view_decorator">[docs]</a><span class="k">def</span> <span class="nf">class_view_decorator</span><span class="p">(</span><span class="n">function_decorator</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Convert a function based decorator into a class based decorator usable</span>
+<span class="sd">    on class based Views.</span>
+
+<span class="sd">    Can&#39;t subclass the `View` as it breaks inheritance (super in particular),</span>
+<span class="sd">    so we monkey-patch instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">simple_decorator</span><span class="p">(</span><span class="n">View</span><span class="p">):</span>
+        <span class="n">View</span><span class="o">.</span><span class="n">dispatch</span> <span class="o">=</span> <span class="n">method_decorator</span><span class="p">(</span><span class="n">function_decorator</span><span class="p">)(</span><span class="n">View</span><span class="o">.</span><span class="n">dispatch</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">View</span>
+
+    <span class="k">return</span> <span class="n">simple_decorator</span></div>
+
+<span class="c1">###################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	Static views</span>
+<span class="c1">#</span>
+<span class="c1">###################################################</span>
+
+
+<div class="viewcode-block" id="HomeView"><a class="viewcode-back" href="../../stock.html#stock.views.HomeView">[docs]</a><span class="k">class</span> <span class="nc">HomeView</span> <span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Home landing page.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;intern/common/home_with_login_modal.html&#39;</span>
+
+<div class="viewcode-block" id="HomeView.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.HomeView.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">user_auth_form</span> <span class="o">=</span> <span class="n">AuthenticationForm</span><span class="p">()</span>
+        <span class="n">user_registration_form</span> <span class="o">=</span> <span class="n">UserCreationForm</span><span class="p">()</span>
+
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;registration_form&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_registration_form</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;auth_form&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">user_auth_form</span>
+        <span class="k">return</span> <span class="n">context</span></div></div>
+
+<span class="c1">###################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	User views</span>
+<span class="c1">#</span>
+<span class="c1">###################################################</span>
+
+
+<div class="viewcode-block" id="LoginView"><a class="viewcode-back" href="../../stock.html#stock.views.LoginView">[docs]</a><span class="k">class</span> <span class="nc">LoginView</span><span class="p">(</span><span class="n">FormView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Login page</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;registration/login.html&#39;</span>
+    <span class="n">success_url</span> <span class="o">=</span> <span class="n">reverse_lazy</span><span class="p">(</span><span class="s1">&#39;simulation_exec&#39;</span><span class="p">)</span>
+    <span class="n">form_class</span> <span class="o">=</span> <span class="n">AuthenticationForm</span>
+
+<div class="viewcode-block" id="LoginView.form_valid"><a class="viewcode-back" href="../../stock.html#stock.views.LoginView.form_valid">[docs]</a>    <span class="k">def</span> <span class="nf">form_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+        <span class="n">username</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">]</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;password&#39;</span><span class="p">]</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">authenticate</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">username</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="n">password</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">user</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">None</span> <span class="ow">and</span> <span class="n">user</span><span class="o">.</span><span class="n">is_active</span><span class="p">:</span>
+            <span class="n">login</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">,</span> <span class="n">user</span><span class="p">)</span>
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">LoginView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">form_valid</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">form_invalid</span><span class="p">(</span><span class="n">form</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="LogoutView"><a class="viewcode-back" href="../../stock.html#stock.views.LogoutView">[docs]</a><span class="k">class</span> <span class="nc">LogoutView</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Logout page</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;registration/logged_out.html&#39;</span>
+
+<div class="viewcode-block" id="LogoutView.get"><a class="viewcode-back" href="../../stock.html#stock.views.LogoutView.get">[docs]</a>    <span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="n">logout</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+    <span class="c1"># Redirect to a success page.</span>
+        <span class="c1"># messages.add_message(request, messages.INFO, &#39;Thank you for using our service. Hope to see you soon!&#39;)</span>
+        <span class="k">return</span> <span class="n">HttpResponseRedirect</span><span class="p">(</span><span class="n">reverse_lazy</span><span class="p">(</span><span class="s1">&#39;home&#39;</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="UserRegisterView"><a class="viewcode-back" href="../../stock.html#stock.views.UserRegisterView">[docs]</a><span class="k">class</span> <span class="nc">UserRegisterView</span><span class="p">(</span><span class="n">FormView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;User registration page</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;registration/register_form.html&#39;</span>
+    <span class="n">form_class</span> <span class="o">=</span> <span class="n">UserCreationForm</span>
+    <span class="n">success_url</span> <span class="o">=</span> <span class="n">reverse_lazy</span><span class="p">(</span><span class="s1">&#39;login&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="UserRegisterView.form_valid"><a class="viewcode-back" href="../../stock.html#stock.views.UserRegisterView.form_valid">[docs]</a>    <span class="k">def</span> <span class="nf">form_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+        <span class="n">user_name</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;username&#39;</span><span class="p">]</span>
+        <span class="n">password</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;password2&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="n">user_name</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">form_invalid</span><span class="p">(</span><span class="n">form</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">create_user</span><span class="p">(</span><span class="n">user_name</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">password</span><span class="p">)</span>
+            <span class="n">user</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+            <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">UserRegisterView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">form_valid</span><span class="p">(</span><span class="n">form</span><span class="p">)</span></div></div>
+
+<span class="c1">###################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	MyApplication views</span>
+<span class="c1">#</span>
+<span class="c1">###################################################</span>
+
+
+<div class="viewcode-block" id="UserProfileView"><a class="viewcode-back" href="../../stock.html#stock.views.UserProfileView">[docs]</a><span class="k">class</span> <span class="nc">UserProfileView</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/user/profile.html&#39;</span>
+
+<div class="viewcode-block" id="UserProfileView.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.UserProfileView.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="o">.</span><span class="n">is_authenticated</span><span class="p">():</span>
+            <span class="n">user_profile</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyUserProfile</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                <span class="n">owner</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">context</span></div>
+
+<div class="viewcode-block" id="UserProfileView.post"><a class="viewcode-back" href="../../stock.html#stock.views.UserProfileView.post">[docs]</a>    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="n">pe_threshold</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;pe&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">per_trade_total</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;per_trade_total&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">exit_pcnt</span> <span class="o">=</span> <span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;exit_pcnt&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="c1"># get user property obj</span>
+        <span class="n">user_profile</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyUserProfile</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">owner</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
+        <span class="n">user_profile</span><span class="o">.</span><span class="n">pe_threshold</span> <span class="o">=</span> <span class="n">pe_threshold</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">user_profile</span><span class="o">.</span><span class="n">per_trade_total</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">per_trade_total</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>  <span class="c1"># no change</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">user_profile</span><span class="o">.</span><span class="n">exit_percent</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">exit_pcnt</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="k">pass</span>
+        <span class="n">user_profile</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="c1"># refresh current page, whatever it is.</span>
+        <span class="k">return</span> <span class="n">HttpResponseRedirect</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">META</span><span class="p">[</span><span class="s1">&#39;HTTP_REFERER&#39;</span><span class="p">])</span></div></div>
+
+
+<div class="viewcode-block" id="MyStockListFilter"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockListFilter">[docs]</a><span class="k">class</span> <span class="nc">MyStockListFilter</span> <span class="p">(</span><span class="n">FilterSet</span><span class="p">):</span>
+
+<div class="viewcode-block" id="MyStockListFilter.Meta"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockListFilter.Meta">[docs]</a>    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">MyStock</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;company_name&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;contains&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;contains&#39;</span><span class="p">],</span>
+            <span class="s1">&#39;is_in_play&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;exact&#39;</span><span class="p">],</span>
+            <span class="c1"># &#39;sponsor__is_sas_paying_student_fees&#39;:[&#39;exact&#39;],</span>
+            <span class="c1"># &#39;sponsor__is_to_return_balance&#39;:[&#39;exact&#39;]</span>
+        <span class="p">}</span></div></div>
+
+
+<div class="viewcode-block" id="MyStockList"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockList">[docs]</a><span class="k">class</span> <span class="nc">MyStockList</span> <span class="p">(</span><span class="n">FilterView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/list.html&#39;</span>
+    <span class="n">paginate_by</span> <span class="o">=</span> <span class="mi">500</span>
+
+<div class="viewcode-block" id="MyStockList.get_filterset_class"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockList.get_filterset_class">[docs]</a>    <span class="k">def</span> <span class="nf">get_filterset_class</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MyStockListFilter</span></div></div>
+
+<span class="kn">from</span> <span class="nn">tasks</span> <span class="kn">import</span> <span class="n">stock_monitor_yahoo_consumer</span><span class="p">,</span> <span class="n">stock_monitor_yahoo_consumer2</span>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockUpdate"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockUpdate">[docs]</a><span class="k">class</span> <span class="nc">MyStockUpdate</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Update S&amp;P500 using Yahoo source.</span>
+
+<span class="sd">    Add a background task to queue to process updates from Yahoo sources.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+<div class="viewcode-block" id="MyStockUpdate.post"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockUpdate.post">[docs]</a>    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="mi">100</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="mi">500</span>
+        <span class="n">symbols</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">total</span> <span class="o">/</span> <span class="n">step</span><span class="p">):</span>
+            <span class="n">stock_monitor_yahoo_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span>
+                <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symbols</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span><span class="p">:(</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span> <span class="o">+</span> <span class="n">step</span><span class="p">)]))</span>
+            <span class="n">stock_monitor_yahoo_consumer2</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span>
+                <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symbols</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span><span class="p">:(</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span> <span class="o">+</span> <span class="n">step</span><span class="p">)]))</span>
+
+        <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;ok&#39;</span><span class="p">}),</span>
+                            <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;application/javascript&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockHeatPrevChange"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatPrevChange">[docs]</a><span class="k">class</span> <span class="nc">MyStockHeatPrevChange</span><span class="p">(</span><span class="n">ListView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/list_heat_prev_change.html&#39;</span>
+    <span class="n">paginate_by</span> <span class="o">=</span> <span class="mi">250</span>
+
+<div class="viewcode-block" id="MyStockHeatPrevChange.get_queryset"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatPrevChange.get_queryset">[docs]</a>    <span class="k">def</span> <span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">in_heat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)[:</span><span class="mi">250</span><span class="p">]</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockHeatSpread"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatSpread">[docs]</a><span class="k">class</span> <span class="nc">MyStockHeatSpread</span><span class="p">(</span><span class="n">ListView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/list_heat_spread.html&#39;</span>
+    <span class="n">paginate_by</span> <span class="o">=</span> <span class="mi">250</span>
+
+<div class="viewcode-block" id="MyStockHeatSpread.get_queryset"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatSpread.get_queryset">[docs]</a>    <span class="k">def</span> <span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">in_heat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;spread&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockHeatDayChange"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatDayChange">[docs]</a><span class="k">class</span> <span class="nc">MyStockHeatDayChange</span><span class="p">(</span><span class="n">ListView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/list_heat_day_change.html&#39;</span>
+    <span class="n">paginate_by</span> <span class="o">=</span> <span class="mi">250</span>
+
+<div class="viewcode-block" id="MyStockHeatDayChange.get_queryset"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatDayChange.get_queryset">[docs]</a>    <span class="k">def</span> <span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">in_heat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">day_change__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockHeatVolOverFloat"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatVolOverFloat">[docs]</a><span class="k">class</span> <span class="nc">MyStockHeatVolOverFloat</span><span class="p">(</span><span class="n">ListView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/list_heat_vol_over_float.html&#39;</span>
+    <span class="n">paginate_by</span> <span class="o">=</span> <span class="mi">250</span>
+
+<div class="viewcode-block" id="MyStockHeatVolOverFloat.get_queryset"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHeatVolOverFloat.get_queryset">[docs]</a>    <span class="k">def</span> <span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">in_heat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;vol_over_float&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockTrendTransition"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendTransition">[docs]</a><span class="k">class</span> <span class="nc">MyStockTrendTransition</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/trend_2day_transition.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockTrendTransition.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendTransition.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;up_up&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">prev_change__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">day_change__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;down_up&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">prev_change__lt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">day_change__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;up_down&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">prev_change__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">day_change__lt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;down_down&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">prev_change__lt</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">day_change__lt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">context</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockTrendGain"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendGain">[docs]</a><span class="k">class</span> <span class="nc">MyStockTrendGain</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/trend_gain.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockTrendGain.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendGain.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;direction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Gain&#39;</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;object_list&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">prev_open__lt</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s1">&#39;last&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">context</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockTrendLoss"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendLoss">[docs]</a><span class="k">class</span> <span class="nc">MyStockTrendLoss</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/trend_gain.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockTrendLoss.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendLoss.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;direction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Loss&#39;</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;object_list&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">prev_open__gt</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s1">&#39;last&#39;</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">context</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockTrendConsistentGain"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendConsistentGain">[docs]</a><span class="k">class</span> <span class="nc">MyStockTrendConsistentGain</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/trend_gain.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockTrendConsistentGain.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendConsistentGain.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;direction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Consistent gain&#39;</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;object_list&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">trend_is_consistent_gain</span><span class="p">,</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">prev_open__lt</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s1">&#39;last&#39;</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">context</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockTrendConsistentLoss"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendConsistentLoss">[docs]</a><span class="k">class</span> <span class="nc">MyStockTrendConsistentLoss</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/trend_gain.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockTrendConsistentLoss.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTrendConsistentLoss.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;direction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Consistent loss&#39;</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;object_list&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span>
+            <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">trend_is_consistent_loss</span><span class="p">,</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">prev_open__gt</span><span class="o">=</span><span class="n">F</span><span class="p">(</span><span class="s1">&#39;last&#39;</span><span class="p">)))</span>
+
+        <span class="k">return</span> <span class="n">context</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockPosition"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockPosition">[docs]</a><span class="k">class</span> <span class="nc">MyStockPosition</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;View user&#39;s current open positions.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/position.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockPosition.post"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockPosition.post">[docs]</a>    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;obj_id&#39;</span><span class="p">]))</span>
+        <span class="n">pos_open</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="n">content</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">get_template</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">template_name</span><span class="p">)</span>
+        <span class="n">html</span> <span class="o">=</span> <span class="n">content</span><span class="o">.</span><span class="n">render</span><span class="p">(</span>
+            <span class="n">Context</span><span class="p">({</span><span class="s1">&#39;pos_open&#39;</span><span class="p">:</span> <span class="n">pos_open</span><span class="p">,</span> <span class="s1">&#39;obj_id&#39;</span><span class="p">:</span> <span class="n">stock</span><span class="o">.</span><span class="n">id</span><span class="p">}))</span>
+
+        <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;html&#39;</span><span class="p">:</span> <span class="n">html</span><span class="p">}),</span>
+                            <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;application/javascript&#39;</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockTransaction"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTransaction">[docs]</a><span class="k">class</span> <span class="nc">MyStockTransaction</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Ajax view.</span>
+
+<span class="sd">    This handles transactions of either buying or selling a particular position</span>
+<span class="sd">    that requesting user currently has on his portfolio.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+
+<div class="viewcode-block" id="MyStockTransaction.post"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockTransaction.post">[docs]</a>    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;obj_id&#39;</span><span class="p">]))</span>
+        <span class="n">transaction_type</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span>
+
+        <span class="c1"># get user property obj</span>
+        <span class="n">user_profile</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyUserProfile</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="n">owner</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
+
+        <span class="c1"># establish a new position</span>
+        <span class="k">if</span> <span class="n">transaction_type</span> <span class="o">==</span> <span class="s1">&#39;bid&#39;</span><span class="p">:</span>  <span class="c1"># buy 1</span>
+            <span class="n">vol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">user_profile</span><span class="o">.</span><span class="n">per_trade_total</span> <span class="o">/</span> <span class="n">stock</span><span class="o">.</span><span class="n">last</span><span class="p">)</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="p">(</span><span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">stock</span><span class="o">.</span><span class="n">last</span><span class="p">,</span>
+                             <span class="n">vol</span><span class="o">=</span><span class="n">vol</span><span class="p">,</span> <span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">)</span>
+            <span class="n">user_profile</span><span class="o">.</span><span class="n">cash</span> <span class="o">-=</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span> <span class="n">pos</span><span class="o">.</span><span class="n">position</span>
+
+            <span class="n">user_profile</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="n">transaction_type</span> <span class="o">==</span> <span class="s1">&#39;ask&#39;</span><span class="p">:</span>  <span class="c1"># sell 1, FIFO</span>
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;created&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">is_open</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">close_position</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">last</span>
+            <span class="n">user_profile</span><span class="o">.</span><span class="n">cash</span> <span class="o">+=</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span> <span class="n">pos</span><span class="o">.</span><span class="n">close_position</span>
+
+            <span class="n">user_profile</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="k">elif</span> <span class="n">transaction_type</span> <span class="o">==</span> <span class="s1">&#39;close&#39;</span><span class="p">:</span>  <span class="c1"># close positions</span>
+            <span class="k">for</span> <span class="n">pos</span> <span class="ow">in</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+                <span class="n">pos</span><span class="o">.</span><span class="n">is_open</span> <span class="o">=</span> <span class="bp">False</span>
+                <span class="n">pos</span><span class="o">.</span><span class="n">close_position</span> <span class="o">=</span> <span class="n">stock</span><span class="o">.</span><span class="n">last</span>
+                <span class="n">user_profile</span><span class="o">.</span><span class="n">cash</span> <span class="o">+=</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span> <span class="n">pos</span><span class="o">.</span><span class="n">close_position</span>
+                <span class="n">pos</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="c1"># update records</span>
+        <span class="n">user_profile</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">HttpResponse</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;ok&#39;</span><span class="p">}),</span>
+                            <span class="n">content_type</span><span class="o">=</span><span class="s1">&#39;application/javascript&#39;</span><span class="p">)</span></div></div>
+
+<span class="kn">from</span> <span class="nn">statistics</span> <span class="kn">import</span> <span class="n">mean</span>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="UserPositionList"><a class="viewcode-back" href="../../stock.html#stock.views.UserPositionList">[docs]</a><span class="k">class</span> <span class="nc">UserPositionList</span><span class="p">(</span><span class="n">ListView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/position_list.html&#39;</span>
+
+<div class="viewcode-block" id="UserPositionList.get_queryset"><a class="viewcode-back" href="../../stock.html#stock.views.UserPositionList.get_queryset">[docs]</a>    <span class="k">def</span> <span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;stock&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stocks</span><span class="p">:</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;id&#39;</span><span class="p">:</span> <span class="n">s</span><span class="p">,</span> <span class="s1">&#39;stock&#39;</span><span class="p">:</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">s</span><span class="p">)}</span>
+            <span class="n">tmp</span><span class="p">[</span><span class="s1">&#39;potential_gain&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">potential_gain</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stock</span><span class="o">=</span><span class="n">s</span><span class="p">)])</span>
+            <span class="n">tmp</span><span class="p">[</span><span class="s1">&#39;life&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">mean</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">elapse_in_days</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stock</span><span class="o">=</span><span class="n">s</span><span class="p">)])</span>
+            <span class="n">tmp</span><span class="p">[</span><span class="s1">&#39;avg_cost&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">total</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stock</span><span class="o">=</span><span class="n">s</span><span class="p">)])</span> <span class="o">/</span> \
+                <span class="nb">sum</span><span class="p">([</span><span class="n">a</span><span class="o">.</span><span class="n">vol</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                    <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">stock</span><span class="o">=</span><span class="n">s</span><span class="p">)])</span>
+            <span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockCandidateList"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockCandidateList">[docs]</a><span class="k">class</span> <span class="nc">MyStockCandidateList</span><span class="p">(</span><span class="n">ListView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/trend_gain.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockCandidateList.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockCandidateList.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ListView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;direction&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Candidate&#39;</span>
+        <span class="k">return</span> <span class="n">context</span></div>
+
+<div class="viewcode-block" id="MyStockCandidateList.get_queryset"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockCandidateList.get_queryset">[docs]</a>    <span class="k">def</span> <span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+        <span class="k">return</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">trend_is_consistent_loss</span> <span class="ow">and</span>  <span class="c1"># has been on down curve</span>
+                      <span class="c1"># 2-day drop greater than 4%</span>
+                      <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">oneday_change</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">2</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">twoday_change</span> <span class="o">&lt;</span> <span class="o">-</span><span class="mi">4</span><span class="p">)</span> <span class="ow">and</span>
+                      <span class="n">x</span><span class="o">.</span><span class="n">fib_weekly_score_pcnt</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>  <span class="c1"># weekly trending up</span>
+                      <span class="n">x</span><span class="o">.</span><span class="n">fib_daily_score_pcnt</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>  <span class="c1"># daily trending up</span>
+                      <span class="c1"># weekly trending up &gt; drops</span>
+                      <span class="n">x</span><span class="o">.</span><span class="n">fib_weekly_score_pcnt</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">oneday_change</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                      <span class="n">x</span><span class="o">.</span><span class="n">fib_weekly_score_pcnt</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">twoday_change</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                      <span class="c1"># daily trending up &gt; drops</span>
+                      <span class="n">x</span><span class="o">.</span><span class="n">fib_daily_score_pcnt</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">oneday_change</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span>
+                      <span class="n">x</span><span class="o">.</span><span class="n">fib_daily_score_pcnt</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">twoday_change</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span>
+                      <span class="n">stocks</span><span class="p">)</span></div></div>
+
+<span class="kn">from</span> <span class="nn">nltk</span> <span class="kn">import</span> <span class="n">FreqDist</span>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockStrategy1Detail"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockStrategy1Detail">[docs]</a><span class="k">class</span> <span class="nc">MyStockStrategy1Detail</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">MyStockHistorical</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/backtesting/s1_detail.html&#39;</span>
+
+<div class="viewcode-block" id="MyStockStrategy1Detail.occurrences"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockStrategy1Detail.occurrences">[docs]</a>    <span class="k">def</span> <span class="nf">occurrences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">haystack</span><span class="p">,</span> <span class="n">needle</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Count occurences of a substring within a string.</span>
+
+<span class="sd">        This is a helper function to count the number of occurance</span>
+<span class="sd">        of a pattern (substring) within a string.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">                :haystack: a string or list. The long string we are to search for a pattern.</span>
+<span class="sd">                :needle: a string or list. the pattern we are searching.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">                :int: number of occurance</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">haystack</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">needle</span><span class="p">)]</span> <span class="o">==</span> <span class="n">needle</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">haystack</span><span class="p">)</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">needle</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MyStockStrategy1Detail.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockStrategy1Detail.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol__iexact</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;symbol&#39;</span><span class="p">])</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;stock&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">stock</span>
+
+        <span class="n">histories</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">)</span>
+        <span class="n">histories</span> <span class="o">=</span> <span class="n">tmp</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">h</span><span class="o">.</span><span class="n">flag_by_strategy</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">histories</span><span class="p">])</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;[U]+&#39;</span><span class="p">,</span> <span class="s1">&#39;U&#39;</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;[G]+&#39;</span><span class="p">,</span> <span class="s1">&#39;G&#39;</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
+        <span class="n">tmp</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="s1">&#39;[L]+&#39;</span><span class="p">,</span> <span class="s1">&#39;L&#39;</span><span class="p">,</span> <span class="n">tmp</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;flag_by_strategy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">histories</span>
+
+        <span class="c1"># probabilities</span>
+        <span class="n">total_sample</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tmp</span><span class="p">)</span> <span class="o">-</span> <span class="mi">5</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_ggg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;GUGUG&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_ggl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;GUGUL&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_glg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;GULUG&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_gll&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;GULUL&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_lgg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;LUGUG&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_lgl&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;LUGUL&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_llg&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;LULUG&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_lll&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">occurrences</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="s1">&#39;LULUL&#39;</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_conseq_u&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FreqDist</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;[U]+&#39;</span><span class="p">,</span> <span class="n">histories</span><span class="p">)])</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_conseq_g&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FreqDist</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;[G]+&#39;</span><span class="p">,</span> <span class="n">histories</span><span class="p">)])</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_conseq_l&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">FreqDist</span><span class="p">(</span>
+            <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s1">&#39;[L]+&#39;</span><span class="p">,</span> <span class="n">histories</span><span class="p">)])</span><span class="o">.</span><span class="n">most_common</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;ending_g_over_l&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_ggg&#39;</span><span class="p">],</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_glg&#39;</span><span class="p">],</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_lgg&#39;</span><span class="p">],</span> <span class="n">context</span><span class="p">[</span>
+                                         <span class="s1">&#39;prob_llg&#39;</span><span class="p">]])</span> <span class="o">*</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="nb">sum</span><span class="p">([</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_ggl&#39;</span><span class="p">],</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_gll&#39;</span><span class="p">],</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_lgl&#39;</span><span class="p">],</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;prob_lll&#39;</span><span class="p">]])</span>
+
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;peers&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">(</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">context</span></div></div>
+
+<span class="c1">######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	Simulator views</span>
+<span class="c1">#</span>
+<span class="c1">#####################################################</span>
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">backtesting_simulation_consumer</span>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MySimulationExec"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationExec">[docs]</a><span class="k">class</span> <span class="nc">MySimulationExec</span><span class="p">(</span><span class="n">FormView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/backtesting/simulation_exec.html&#39;</span>
+    <span class="n">form_class</span> <span class="o">=</span> <span class="n">StrategyControlForm</span>
+
+<div class="viewcode-block" id="MySimulationExec.form_valid"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationExec.form_valid">[docs]</a>    <span class="k">def</span> <span class="nf">form_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+        <span class="c1"># persist simulation conditions</span>
+        <span class="n">condition</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MySimulationCondition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+            <span class="o">**</span><span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">)</span>
+
+        <span class="c1"># run simulation for 1st time</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">MySimulationResult</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">condition</span><span class="o">=</span><span class="n">condition</span><span class="p">):</span>
+            <span class="c1"># MySimulationCondition is not JSON serializable</span>
+            <span class="c1"># so we use cPickle to pass object to background queue task</span>
+            <span class="n">backtesting_simulation_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">condition</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">HttpResponseRedirect</span><span class="p">(</span><span class="n">reverse_lazy</span><span class="p">(</span><span class="s1">&#39;simulation_result_list&#39;</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">HttpResponseRedirect</span><span class="p">(</span><span class="n">reverse_lazy</span><span class="p">(</span><span class="s1">&#39;condition_detail&#39;</span><span class="p">,</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;pk&#39;</span><span class="p">:</span> <span class="n">condition</span><span class="o">.</span><span class="n">id</span><span class="p">}))</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MyStockHistoricalList"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHistoricalList">[docs]</a><span class="k">class</span> <span class="nc">MyStockHistoricalList</span><span class="p">(</span><span class="n">FormView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/stock/list_historicals.html&#39;</span>
+    <span class="n">form_class</span> <span class="o">=</span> <span class="n">HistoricalListForm</span>
+
+<div class="viewcode-block" id="MyStockHistoricalList.form_valid"><a class="viewcode-back" href="../../stock.html#stock.views.MyStockHistoricalList.form_valid">[docs]</a>    <span class="k">def</span> <span class="nf">form_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">form</span><span class="p">):</span>
+        <span class="c1"># control variables</span>
+        <span class="n">on_date</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;on_date&#39;</span><span class="p">]</span>
+
+        <span class="c1"># sample set</span>
+        <span class="n">data_source</span> <span class="o">=</span> <span class="n">form</span><span class="o">.</span><span class="n">cleaned_data</span><span class="p">[</span><span class="s1">&#39;data_source&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">data_source</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+            <span class="n">data_source</span> <span class="o">=</span> <span class="s1">&#39;S&amp;P 500&#39;</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_source</span> <span class="o">==</span> <span class="s1">&#39;2&#39;</span><span class="p">:</span>
+            <span class="n">data_source</span> <span class="o">=</span> <span class="s1">&#39;CI sector&#39;</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">symbol__startswith</span><span class="o">=</span><span class="s2">&quot;CI00&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_source</span> <span class="o">==</span> <span class="s1">&#39;3&#39;</span><span class="p">:</span>
+            <span class="n">data_source</span> <span class="o">=</span> <span class="s1">&#39;WIND sector&#39;</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">symbol__startswith</span><span class="o">=</span><span class="s2">&quot;8821&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_source</span> <span class="o">==</span> <span class="s1">&#39;4&#39;</span><span class="p">:</span>
+            <span class="n">data_source</span> <span class="o">=</span> <span class="s1">&#39;China stock&#39;</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">is_china_stock</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+
+        <span class="n">historicals</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">stock__in</span><span class="o">=</span><span class="n">stocks</span><span class="p">,</span> <span class="n">date_stamp</span><span class="o">=</span><span class="n">on_date</span><span class="p">)</span>
+
+        <span class="c1"># render HTML</span>
+        <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_name</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;form&#39;</span><span class="p">:</span> <span class="n">form</span><span class="p">,</span>
+            <span class="s1">&#39;data_source&#39;</span><span class="p">:</span> <span class="n">data_source</span><span class="p">,</span>
+            <span class="s1">&#39;on_date&#39;</span><span class="p">:</span> <span class="n">on_date</span><span class="p">,</span>
+            <span class="s1">&#39;historicals&#39;</span><span class="p">:</span> <span class="n">historicals</span><span class="p">})</span></div></div>
+
+
+<div class="viewcode-block" id="MySimulationConditionDelete"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationConditionDelete">[docs]</a><span class="k">class</span> <span class="nc">MySimulationConditionDelete</span><span class="p">(</span><span class="n">DeleteView</span><span class="p">):</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">MySimulationCondition</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/common/delete_form.html&#39;</span>
+    <span class="n">success_url</span> <span class="o">=</span> <span class="n">reverse_lazy</span><span class="p">(</span><span class="s1">&#39;simulation_result_list&#39;</span><span class="p">)</span></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MySimulationResultList"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationResultList">[docs]</a><span class="k">class</span> <span class="nc">MySimulationResultList</span><span class="p">(</span><span class="n">ListView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/backtesting/simulation_result_list.html&#39;</span>
+
+<div class="viewcode-block" id="MySimulationResultList.get_queryset"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationResultList.get_queryset">[docs]</a>    <span class="k">def</span> <span class="nf">get_queryset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">MySimulationCondition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">mysimulationresult__isnull</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MySimulationResultComp"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationResultComp">[docs]</a><span class="k">class</span> <span class="nc">MySimulationResultComp</span><span class="p">(</span><span class="n">TemplateView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/backtesting/simulation_result_comp.html&#39;</span>
+
+<div class="viewcode-block" id="MySimulationResultComp.post"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationResultComp.post">[docs]</a>    <span class="k">def</span> <span class="nf">post</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">conditions</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">cond_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">POST</span><span class="o">.</span><span class="n">getlist</span><span class="p">(</span><span class="s1">&#39;conditions&#39;</span><span class="p">):</span>
+            <span class="n">condition</span> <span class="o">=</span> <span class="n">MySimulationCondition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">cond_id</span><span class="p">))</span>
+            <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+
+        <span class="c1"># Get all dates covered by simualtions</span>
+        <span class="n">all_dates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span>
+                                    <span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">mysimulationresult</span><span class="o">.</span><span class="n">on_dates</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">])))</span>
+        <span class="n">all_dates</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">all_dates</span><span class="p">)</span>
+
+        <span class="n">assets</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">cond</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">:</span>
+            <span class="n">start_date</span> <span class="o">=</span> <span class="n">cond</span><span class="o">.</span><span class="n">mysimulationresult</span><span class="o">.</span><span class="n">on_dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">end_date</span> <span class="o">=</span> <span class="n">cond</span><span class="o">.</span><span class="n">mysimulationresult</span><span class="o">.</span><span class="n">on_dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># we are to padding 0s to front and back so two simulations</span>
+            <span class="c1"># have the same start date and end date to compare their asset</span>
+            <span class="c1"># values</span>
+            <span class="n">padding_start</span> <span class="o">=</span> <span class="n">all_dates</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">start_date</span><span class="p">)</span>
+            <span class="n">padding_end</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">all_dates</span><span class="p">)</span> <span class="o">-</span> \
+                <span class="n">all_dates</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">end_date</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>  <span class="c1"># 0-index</span>
+            <span class="n">assets</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">cond</span><span class="p">,</span> <span class="s1">&#39;values&#39;</span><span class="p">:</span> <span class="p">[</span>
+                          <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">padding_start</span> <span class="o">+</span> <span class="n">cond</span><span class="o">.</span><span class="n">mysimulationresult</span><span class="o">.</span><span class="n">asset</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">padding_end</span><span class="p">})</span>
+
+        <span class="k">return</span> <span class="n">render</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">template_name</span><span class="p">,</span> <span class="p">{</span>
+            <span class="s1">&#39;object_list&#39;</span><span class="p">:</span> <span class="n">conditions</span><span class="p">,</span>
+            <span class="s1">&#39;on_dates&#39;</span><span class="p">:</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">all_dates</span><span class="p">],</span>
+            <span class="s1">&#39;start&#39;</span><span class="p">:</span> <span class="n">all_dates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="s1">&#39;end&#39;</span><span class="p">:</span> <span class="n">all_dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+            <span class="s1">&#39;assets&#39;</span><span class="p">:</span> <span class="n">assets</span><span class="p">})</span></div></div>
+
+
+<span class="nd">@class_view_decorator</span><span class="p">(</span><span class="n">login_required</span><span class="p">)</span>
+<div class="viewcode-block" id="MySimulationConditionDetail"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationConditionDetail">[docs]</a><span class="k">class</span> <span class="nc">MySimulationConditionDetail</span><span class="p">(</span><span class="n">DetailView</span><span class="p">):</span>
+    <span class="n">template_name</span> <span class="o">=</span> <span class="s1">&#39;stock/backtesting/simulation_result_detail.html&#39;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">MySimulationCondition</span>
+
+<div class="viewcode-block" id="MySimulationConditionDetail.get_context_data"><a class="viewcode-back" href="../../stock.html#stock.views.MySimulationConditionDetail.get_context_data">[docs]</a>    <span class="k">def</span> <span class="nf">get_context_data</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">context</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DetailView</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">get_context_data</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">mysimulationresult</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;strategy&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;start&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">start</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;end&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">end</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;on_dates&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">str</span><span class="p">(</span><span class="n">d</span><span class="p">)</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">on_dates</span><span class="p">]</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;assets&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">asset</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;cashes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">cash</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;equities&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">equity</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;snapshots&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">snapshot</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;equity_gain_from_hold_pcnt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">equity_portfolio_gain_pcnt</span>
+        <span class="n">context</span><span class="p">[</span><span class="s1">&#39;equity_gain_from_trade_pcnt&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">equity_trade_gain_pcnt</span>
+
+        <span class="c1"># if viewing a China data, we pull China SP500 index</span>
+        <span class="c1"># value for comparison purpose</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">object</span><span class="o">.</span><span class="n">data_source</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">]:</span>
+            <span class="n">context</span><span class="p">[</span><span class="s1">&#39;asset_cumulative&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">asset_cumulative_return</span>
+
+            <span class="c1"># compute china index cumulative return for selected time period</span>
+            <span class="n">china_index</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;000001&quot;</span><span class="p">)</span>
+            <span class="n">china_historicals</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">stock</span><span class="o">=</span><span class="n">china_index</span><span class="p">,</span> <span class="n">date_stamp__in</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">on_dates</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s1">&#39;adj_close&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">)</span>
+            <span class="n">china_t0</span> <span class="o">=</span> <span class="n">china_historicals</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span>
+            <span class="n">context</span><span class="p">[</span><span class="s1">&#39;china_index_cumulative&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">china_historicals</span><span class="p">[</span><span class="n">x</span><span class="p">][</span>
+                                                       <span class="s1">&#39;adj_close&#39;</span><span class="p">]</span> <span class="o">/</span> <span class="n">china_t0</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">china_historicals</span><span class="p">))]</span>
+            <span class="n">context</span><span class="p">[</span><span class="s1">&#39;alpha_return&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span>
+                                          <span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="nb">zip</span><span class="p">(</span><span class="n">context</span><span class="p">[</span><span class="s1">&#39;asset_cumulative&#39;</span><span class="p">],</span> <span class="n">context</span><span class="p">[</span><span class="s1">&#39;china_index_cumulative&#39;</span><span class="p">]))</span>
+        <span class="k">return</span> <span class="n">context</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

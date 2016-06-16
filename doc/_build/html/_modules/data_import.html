@@ -1,0 +1,686 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>data_import &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../index.html" />
+    <link rel="up" title="Module code" href="index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for data_import</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+<span class="kn">import</span> <span class="nn">gc</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">lxml.html</span>
+<span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">urllib2</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">xlrd</span>
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="kn">as</span> <span class="nn">dt</span>
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
+
+<span class="c1"># setup Django</span>
+<span class="kn">import</span> <span class="nn">django</span>
+<span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">__file__</span><span class="p">),</span> <span class="s1">&#39;jk&#39;</span><span class="p">))</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s2">&quot;DJANGO_SETTINGS_MODULE&quot;</span><span class="p">,</span> <span class="s2">&quot;jk.settings&quot;</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+
+<span class="kn">from</span> <span class="nn">django.utils</span> <span class="kn">import</span> <span class="n">timezone</span>
+
+<span class="c1"># import models</span>
+<span class="kn">from</span> <span class="nn">stock.models</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">stock.simulations</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">stock.utility</span> <span class="kn">import</span> <span class="n">JSONEncoder</span>
+
+<span class="c1"># logging</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="populate_sp_500"><a class="viewcode-back" href="../data_import.html#data_import.populate_sp_500">[docs]</a><span class="k">def</span> <span class="nf">populate_sp_500</span><span class="p">():</span>
+    <span class="c1"># for s in MyStock.objects.filter(is_sp500=True): s.delete()</span>
+
+    <span class="n">symbols</span> <span class="o">=</span> <span class="s1">&#39;A,AA,AAL,AAPL,ABBV,ABC,ABT,ACE,ACN,ADBE,ADI,ADM,ADP,ADS,ADSK,ADT,AEE,AEP,AES,AET,AFL,AIG,AIV,AIZ,AKAM,ALL,ALLE,ALTR,ALXN,AMAT,AME,AMG,AMGN,AMP,AMT,AMZN,AN,ANTM,AON,APA,APC,APD,APH,ARG,ATI,AVB,AVGO,AVY,AXP,AZO,BA,BAC,BAX,BBBY,BBT,BBY,BCR,BDX,BEN,BF.B,BHI,BIIB,BK,BLK,BLL,BMY,BRCM,BRK.B,BSX,BWA,BXP,C,CA,CAG,CAH,CAM,CAT,CB,CBG,CBS,CCE,CCI,CCL,CELG,CERN,CF,CHK,CHRW,CI,CINF,CL,CLX,CMA,CMCSA,CME,CMG,CMI,CMS,CNP,CNX,COF,COG,COH,COL,COP,COST,CPB,CRM,CSC,CSCO,CSX,CTAS,CTL,CTSH,CTXS,CVC,CVS,CVX,D,DAL,DD,DE,DFS,DG,DGX,DHI,DHR,DIS,DISCA,DISCK,DLPH,DLTR,DNB,DO,DOV,DOW,DPS,DRI,DTE,DTV,DUK,DVA,DVN,EA,EBAY,ECL,ED,EFX,EIX,EL,EMC,EMN,EMR,ENDP,EOG,EQIX,EQR,EQT,ES,ESRX,ESS,ESV,ETFC,ETN,ETR,EW,EXC,EXPD,EXPE,F,FAST,FB,FCX,FDO,FDX,FE,FFIV,FIS,FISV,FITB,FLIR,FLR,FLS,FMC,FOSL,FOXA,FSLR,FTI,FTR,GAS,GCI,GD,GE,GGP,GILD,GIS,GLW,GM,GMCR,GME,GNW,GOOG,GOOGL,GPC,GPS,GRMN,GS,GT,GWW,HAL,HAR,HAS,HBAN,HBI,HCA,HCBK,HCN,HCP,HD,HES,HIG,HOG,HON,HOT,HP,HPQ,HRB,HRL,HRS,HSIC,HSP,HST,HSY,HUM,IBM,ICE,IFF,INTC,INTU,IP,IPG,IR,IRM,ISRG,ITW,IVZ,JCI,JEC,JNJ,JNPR,JOY,JPM,JWN,K,KEY,KIM,KLAC,KMB,KMI,KMX,KO,KORS,KR,KSS,KSU,L,LB,LEG,LEN,LH,LLL,LLTC,LLY,LM,LMT,LNC,LOW,LRCX,LUK,LUV,LVLT,LYB,M,MA,MAC,MAR,MAS,MAT,MCD,MCHP,MCK,MCO,MDLZ,MDT,MET,MHFI,MHK,MJN,MKC,MLM,MMC,MMM,MNK,MNST,MO,MON,MOS,MPC,MRK,MRO,MS,MSFT,MSI,MTB,MU,MUR,MYL,NAVI,NBL,NDAQ,NE,NEE,NEM,NFLX,NFX,NI,NKE,NLSN,NOC,NOV,NRG,NSC,NTAP,NTRS,NUE,NVDA,NWL,NWSA,O,OI,OKE,OMC,ORCL,ORLY,OXY,PAYX,PBCT,PBI,PCAR,PCG,PCL,PCLN,PCP,PDCO,PEG,PEP,PFE,PFG,PG,PGR,PH,PHM,PKI,PLD,PLL,PM,PNC,PNR,PNW,POM,PPG,PPL,PRGO,PRU,PSA,PSX,PVH,PWR,PX,PXD,QCOM,QEP,R,RAI,RCL,REGN,RF,RHI,RHT,RIG,RL,ROK,ROP,ROST,RRC,RSG,RTN,SBUX,SCG,SCHW,SE,SEE,SHW,SIAL,SJM,SLB,SLG,SNA,SNDK,SNI,SO,SPG,SPLS,SRCL,SRE,STI,STJ,STT,STX,STZ,SWK,SWKS,SWN,SYK,SYMC,SYY,T,TAP,TDC,TE,TEL,TGT,THC,TIF,TJX,TMK,TMO,TRIP,TROW,TRV,TSCO,TSN,TSO,TSS,TWC,TWX,TXN,TXT,TYC,UA,UHS,UNH,UNM,UNP,UPS,URBN,URI,USB,UTX,V,VAR,VFC,VIAB,VLO,VMC,VNO,VRSN,VRTX,VTR,VZ,WAT,WBA,WDC,WEC,WFC,WFM,WHR,WM,WMB,WMT,WU,WY,WYN,WYNN,XEC,XEL,XL,XLNX,XOM,XRAY,XRX,XYL,YHOO,YUM,ZION,ZTS&#39;</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">in</span> <span class="n">s</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="n">stock</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">s</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">stock_prev_yahoo_consumer</span>
+
+
+<div class="viewcode-block" id="crawl_stock_prev_yahoo"><a class="viewcode-back" href="../data_import.html#data_import.crawl_stock_prev_yahoo">[docs]</a><span class="k">def</span> <span class="nf">crawl_stock_prev_yahoo</span><span class="p">():</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">stock_prev_yahoo_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">stock_monitor_yahoo_consumer</span>
+
+
+<div class="viewcode-block" id="crawl_stock_yahoo_spot"><a class="viewcode-back" href="../data_import.html#data_import.crawl_stock_yahoo_spot">[docs]</a><span class="k">def</span> <span class="nf">crawl_stock_yahoo_spot</span><span class="p">():</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">total</span> <span class="o">/</span> <span class="n">step</span><span class="p">):</span>
+        <span class="n">stock_monitor_yahoo_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span>
+            <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symbols</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span><span class="p">:(</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span> <span class="o">+</span> <span class="n">step</span><span class="p">)]))</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">stock_monitor_yahoo_consumer2</span>
+
+
+<div class="viewcode-block" id="crawl_update_sp500_spot_yahoo"><a class="viewcode-back" href="../data_import.html#data_import.crawl_update_sp500_spot_yahoo">[docs]</a><span class="k">def</span> <span class="nf">crawl_update_sp500_spot_yahoo</span><span class="p">():</span>
+    <span class="n">step</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="mi">500</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">total</span> <span class="o">/</span> <span class="n">step</span><span class="p">):</span>
+        <span class="n">stock_monitor_yahoo_consumer2</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span>
+            <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">symbols</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span><span class="p">:(</span><span class="n">i</span> <span class="o">*</span> <span class="n">step</span> <span class="o">+</span> <span class="n">step</span><span class="p">)]))</span></div>
+
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">stock_prev_week_yahoo_consumer</span><span class="p">,</span> <span class="n">stock_prev_month_yahoo_consumer</span><span class="p">,</span> <span class="n">stock_prev_fib_yahoo_consumer</span><span class="p">,</span> <span class="n">stock_historical_yahoo_consumer</span>
+
+
+<div class="viewcode-block" id="crawl_update_sp500_historical_yahoo"><a class="viewcode-back" href="../data_import.html#data_import.crawl_update_sp500_historical_yahoo">[docs]</a><span class="k">def</span> <span class="nf">crawl_update_sp500_historical_yahoo</span><span class="p">():</span>
+    <span class="n">symbols</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+        <span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">:</span>
+        <span class="n">stock_prev_week_yahoo_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">stock_prev_month_yahoo_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">stock_prev_fib_yahoo_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="n">stock_historical_yahoo_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></div>
+
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">chenmin_consumer</span>
+
+
+<div class="viewcode-block" id="crawler_chenmin"><a class="viewcode-back" href="../data_import.html#data_import.crawler_chenmin">[docs]</a><span class="k">def</span> <span class="nf">crawler_chenmin</span><span class="p">():</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="s1">&#39;/home/fengxia/Downloads/chenmin&#39;</span>
+    <span class="n">files</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s1">&#39;.xls&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">,</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="p">[</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">files</span><span class="p">]:</span>
+        <span class="n">chenmin_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">influx_consumer</span>
+<span class="kn">from</span> <span class="nn">influxdb.influxdb08</span> <span class="kn">import</span> <span class="n">InfluxDBClient</span>
+
+
+<div class="viewcode-block" id="crawler_influx"><a class="viewcode-back" href="../data_import.html#data_import.crawler_influx">[docs]</a><span class="k">def</span> <span class="nf">crawler_influx</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;stock__symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">))):</span>
+        <span class="n">influx_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="k">print</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> queued&#39;</span> <span class="o">%</span> <span class="n">symbol</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">backtesting_s1_consumer</span>
+
+
+<div class="viewcode-block" id="backtest_s1"><a class="viewcode-back" href="../data_import.html#data_import.backtest_s1">[docs]</a><span class="k">def</span> <span class="nf">backtest_s1</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;stock__symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">))):</span>
+        <span class="n">backtesting_s1_onsumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">backtesting_daily_return_consumer</span>
+
+
+<div class="viewcode-block" id="consumer_daily_return"><a class="viewcode-back" href="../data_import.html#data_import.consumer_daily_return">[docs]</a><span class="k">def</span> <span class="nf">consumer_daily_return</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">backtesting_daily_return_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">backtesting_relative_hl_consumer</span>
+
+
+<div class="viewcode-block" id="consumer_relative_hl"><a class="viewcode-back" href="../data_import.html#data_import.consumer_relative_hl">[docs]</a><span class="k">def</span> <span class="nf">consumer_relative_hl</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">backtesting_relative_hl_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">backtesting_relative_ma_consumer</span>
+
+
+<div class="viewcode-block" id="consumer_relative_ma"><a class="viewcode-back" href="../data_import.html#data_import.consumer_relative_ma">[docs]</a><span class="k">def</span> <span class="nf">consumer_relative_ma</span><span class="p">():</span>
+    <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">backtesting_relative_ma_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span></div>
+
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">from</span> <span class="nn">django.db.models.loading</span> <span class="kn">import</span> <span class="n">get_model</span>
+
+
+<div class="viewcode-block" id="dump"><a class="viewcode-back" href="../data_import.html#data_import.dump">[docs]</a><span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="n">qs</span><span class="p">,</span> <span class="n">outfile_path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Takes in a Django queryset and spits out a CSV file.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               </span>
+
+<span class="sd">    Usage::</span>
+
+<span class="sd">            &gt;&gt; from utils import dump2csv</span>
+<span class="sd">            &gt;&gt; from dummy_app.models import *</span>
+<span class="sd">            &gt;&gt; qs = DummyModel.objects.filter(is_sp500=True)</span>
+<span class="sd">            &gt;&gt; dump2csv.dump(qs, &#39;./data/dump.csv&#39;)</span>
+
+<span class="sd">    Based on a snippet by zbyte64::</span>
+
+<span class="sd">            http://www.djangosnippets.org/snippets/790/</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">qs</span><span class="o">.</span><span class="n">model</span>
+    <span class="k">with</span> <span class="n">codecs</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">outfile_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">temp</span><span class="p">:</span>
+        <span class="c1"># writer = csv.writer(open(outfile_path, &#39;w&#39;))</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+
+        <span class="n">headers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">_meta</span><span class="o">.</span><span class="n">fields</span><span class="p">:</span>
+            <span class="n">headers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">field</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">headers</span> <span class="o">=</span> <span class="n">headers</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">headers</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">obj</span> <span class="ow">in</span> <span class="n">qs</span><span class="p">:</span>
+            <span class="n">row</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">headers</span><span class="p">:</span>
+                <span class="n">val</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="p">()</span>
+                <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">==</span> <span class="nb">unicode</span><span class="p">:</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="n">val</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s2">&quot;utf-8&quot;</span><span class="p">)</span>
+                <span class="n">row</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">row</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="dump_chenmin"><a class="viewcode-back" href="../data_import.html#data_import.dump_chenmin">[docs]</a><span class="k">def</span> <span class="nf">dump_chenmin</span><span class="p">():</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="s1">&#39;/home/fengxia/Desktop/chenmin&#39;</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">MyChenmin</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">())</span>
+
+    <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">MyChenmin</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()):</span>
+        <span class="n">dump</span><span class="p">(</span><span class="n">MyChenmin</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span>
+            <span class="s1">&#39;executed_on&#39;</span><span class="p">),</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">symbol</span> <span class="o">+</span> <span class="s1">&#39;.csv&#39;</span><span class="p">))</span>
+        <span class="k">print</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">total</span><span class="p">),</span> <span class="n">symbol</span></div>
+
+
+<div class="viewcode-block" id="import_chenmin_csv"><a class="viewcode-back" href="../data_import.html#data_import.import_chenmin_csv">[docs]</a><span class="k">def</span> <span class="nf">import_chenmin_csv</span><span class="p">():</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="s1">&#39;/home/fengxia/Desktop/chenmin/alpha&#39;</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+        <span class="n">symbol</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="n">stock</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">his</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)]</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">),</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">vals</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># handle blank lines</span>
+
+                <span class="c1"># some time stamp is in form of &quot;x/x/x&quot;, normalized to &quot;x-x-x&quot;</span>
+                <span class="c1"># format</span>
+                <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;-&#39;</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">6</span><span class="p">:</span>
+                    <span class="k">print</span> <span class="s1">&#39;error in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">symbol</span>
+                    <span class="k">print</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">vals</span>
+                    <span class="nb">raw_input</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="s1">&#39;-&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                    <span class="k">continue</span>  <span class="c1"># skip these title lines</span>
+
+                <span class="n">stamp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)]</span>
+                <span class="n">date_stamp</span> <span class="o">=</span> <span class="n">dt</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">stamp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">month</span><span class="o">=</span><span class="n">stamp</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">day</span><span class="o">=</span><span class="n">stamp</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+
+                <span class="k">if</span> <span class="n">date_stamp</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="ow">in</span> <span class="n">his</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># we already have these</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">open_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">open_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">high_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">high_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">low_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">low_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">close_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">close_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">vol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1000.0</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">vol</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">adj_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+                    <span class="k">except</span><span class="p">:</span>
+                        <span class="n">adj_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="n">h</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="p">(</span>
+                        <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span>
+                        <span class="n">date_stamp</span><span class="o">=</span><span class="n">date_stamp</span><span class="p">,</span>
+                        <span class="n">open_price</span><span class="o">=</span><span class="n">open_p</span><span class="p">,</span>
+                        <span class="n">high_price</span><span class="o">=</span><span class="n">high_p</span><span class="p">,</span>
+                        <span class="n">low_price</span><span class="o">=</span><span class="n">low_p</span><span class="p">,</span>
+                        <span class="n">close_price</span><span class="o">=</span><span class="n">close_p</span><span class="p">,</span>
+                        <span class="n">vol</span><span class="o">=</span><span class="n">vol</span><span class="p">,</span>
+                        <span class="n">adj_close</span><span class="o">=</span><span class="n">adj_p</span>
+                    <span class="p">)</span>
+                    <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1000</span><span class="p">:</span>
+                        <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+                        <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">):</span>
+            <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+
+        <span class="c1"># persist</span>
+        <span class="k">print</span> <span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">symbol</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">import_china_stock_consumer</span>
+
+
+<div class="viewcode-block" id="import_chenmin_csv2"><a class="viewcode-back" href="../data_import.html#data_import.import_chenmin_csv2">[docs]</a><span class="k">def</span> <span class="nf">import_chenmin_csv2</span><span class="p">():</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="s1">&#39;/home/fengxia/Desktop/chenmin/d_data1.csv&#39;</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">china</span> <span class="ow">in</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">is_china_stock</span><span class="o">=</span><span class="bp">True</span><span class="p">):</span>
+        <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stock</span><span class="o">=</span><span class="n">china</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+    <span class="n">historicals</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">vals</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># handle blank lines</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;^\d+&#39;</span><span class="p">,</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+                <span class="k">continue</span>
+
+            <span class="n">symbol</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">historicals</span><span class="p">:</span>
+                <span class="n">historicals</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">historicals</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">vals</span><span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">val_list</span> <span class="ow">in</span> <span class="n">historicals</span><span class="o">.</span><span class="n">iteritems</span><span class="p">():</span>
+        <span class="n">import_china_stock_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">val_list</span><span class="p">)</span></div>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">stock_flag_sp500_consumer</span>
+
+
+<div class="viewcode-block" id="crawler_flag_sp500"><a class="viewcode-back" href="../data_import.html#data_import.crawler_flag_sp500">[docs]</a><span class="k">def</span> <span class="nf">crawler_flag_sp500</span><span class="p">():</span>
+    <span class="n">stock_flag_sp500_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="import_china_stock_floating_share"><a class="viewcode-back" href="../data_import.html#data_import.import_china_stock_floating_share">[docs]</a><span class="k">def</span> <span class="nf">import_china_stock_floating_share</span><span class="p">():</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="s1">u&#39;/home/fengxia/Desktop/chenmin/study/All_Stock_流通股本.csv&#39;</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="s1">&#39;.&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">continue</span>
+
+            <span class="n">symbol</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">floating_share</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1000000.0</span>
+            <span class="k">print</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">floating_share</span>
+
+            <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">floating_share</span> <span class="o">=</span> <span class="n">floating_share</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="import_wind_sector"><a class="viewcode-back" href="../data_import.html#data_import.import_wind_sector">[docs]</a><span class="k">def</span> <span class="nf">import_wind_sector</span><span class="p">():</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="s1">u&#39;/home/fengxia/Desktop/chenmin/sector/sector.xls&#39;</span>
+    <span class="n">workbook</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">open_workbook</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="n">sheet</span> <span class="o">=</span> <span class="n">workbook</span><span class="o">.</span><span class="n">sheet_by_index</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">s1</span> <span class="o">=</span> <span class="n">s2</span> <span class="o">=</span> <span class="n">s3</span> <span class="o">=</span> <span class="n">s4</span> <span class="o">=</span> <span class="bp">None</span>
+
+    <span class="k">for</span> <span class="n">row_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">274</span><span class="p">):</span>
+        <span class="n">level_1</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">level_1</span><span class="p">:</span>
+            <span class="n">level_1</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">level_1</span><span class="p">))</span>
+        <span class="n">level_1_desp</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">level_2</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">level_2</span><span class="p">:</span>
+            <span class="n">level_2</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">level_2</span><span class="p">))</span>
+        <span class="n">level_2_desp</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">level_3</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">level_3</span><span class="p">:</span>
+            <span class="n">level_3</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">level_3</span><span class="p">))</span>
+        <span class="n">level_3_desp</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">5</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="n">level_4</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">level_4</span><span class="p">:</span>
+            <span class="n">level_4</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">level_4</span><span class="p">))</span>
+        <span class="n">level_4_desp</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">row_idx</span><span class="p">,</span> <span class="mi">7</span><span class="p">)</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">level_4_desp</span><span class="p">:</span>
+            <span class="k">continue</span>  <span class="c1"># blank cell</span>
+
+        <span class="k">if</span> <span class="n">level_1</span> <span class="ow">and</span> <span class="n">level_1_desp</span><span class="p">:</span>
+            <span class="n">s1</span> <span class="o">=</span> <span class="n">MySector</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">level_1</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">level_1_desp</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">=</span><span class="s1">&#39;wind&#39;</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">s1</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="k">print</span> <span class="s1">&#39;level 1 </span><span class="si">%s</span><span class="s1"> created&#39;</span> <span class="o">%</span> <span class="n">level_1</span>
+
+        <span class="k">if</span> <span class="n">level_2</span> <span class="ow">and</span> <span class="n">level_2_desp</span> <span class="ow">and</span> <span class="n">s1</span><span class="p">:</span>
+            <span class="n">s2</span> <span class="o">=</span> <span class="n">MySector</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">level_2</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">level_2_desp</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">=</span><span class="s1">&#39;wind&#39;</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="n">s1</span>
+            <span class="p">)</span>
+            <span class="n">s2</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="k">print</span> <span class="s1">&#39;level 2 </span><span class="si">%s</span><span class="s1"> created&#39;</span> <span class="o">%</span> <span class="n">level_2</span>
+
+        <span class="k">if</span> <span class="n">level_3</span> <span class="ow">and</span> <span class="n">level_3_desp</span> <span class="ow">and</span> <span class="n">s2</span><span class="p">:</span>
+            <span class="n">s3</span> <span class="o">=</span> <span class="n">MySector</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">level_3</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">level_3_desp</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">=</span><span class="s1">&#39;wind&#39;</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="n">s2</span>
+            <span class="p">)</span>
+            <span class="n">s3</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="k">print</span> <span class="s1">&#39;level 3 </span><span class="si">%s</span><span class="s1"> created&#39;</span> <span class="o">%</span> <span class="n">level_3</span>
+
+        <span class="c1"># level-4 description line</span>
+        <span class="k">if</span> <span class="n">s4</span> <span class="ow">and</span> <span class="n">level_4_desp</span><span class="p">:</span>
+            <span class="n">s4</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">level_4_desp</span>
+            <span class="n">s4</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="k">print</span> <span class="s1">&#39;level 4 description saved&#39;</span>
+
+        <span class="c1"># level-4 name line</span>
+        <span class="k">if</span> <span class="n">level_4_desp</span> <span class="ow">and</span> <span class="n">level_4</span> <span class="ow">and</span> <span class="n">s3</span><span class="p">:</span>
+            <span class="n">s4</span> <span class="o">=</span> <span class="n">MySector</span><span class="p">(</span>
+                <span class="n">code</span><span class="o">=</span><span class="n">level_4</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">level_4_desp</span><span class="p">,</span>
+                <span class="n">source</span><span class="o">=</span><span class="s1">&#39;wind&#39;</span><span class="p">,</span>
+                <span class="n">parent</span><span class="o">=</span><span class="n">s3</span>
+            <span class="p">)</span>
+            <span class="n">s4</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="k">print</span> <span class="s1">&#39;level 4 </span><span class="si">%s</span><span class="s1"> created&#39;</span> <span class="o">%</span> <span class="n">level_4</span></div>
+
+
+<div class="viewcode-block" id="import_wind_sector_stock"><a class="viewcode-back" href="../data_import.html#data_import.import_wind_sector_stock">[docs]</a><span class="k">def</span> <span class="nf">import_wind_sector_stock</span><span class="p">():</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="s1">&#39;/home/fengxia/Desktop/chenmin/sector/wind&#39;</span>
+    <span class="n">missing_sectors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">missing_symbols</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">listdir</span><span class="p">(</span><span class="n">root</span><span class="p">):</span>
+        <span class="n">sector</span><span class="p">,</span> <span class="n">ext</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">splitext</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">sector</span> <span class="o">=</span> <span class="n">MySector</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">code</span><span class="o">=</span><span class="n">sector</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="n">missing_sectors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sector</span><span class="p">)</span>
+            <span class="k">continue</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">f</span><span class="p">),</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">csvfile</span><span class="p">)):</span>
+                <span class="n">symbol</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="s1">&#39;^\d+&#39;</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+                    <span class="k">continue</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+                    <span class="n">sector</span><span class="o">.</span><span class="n">stocks</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+                    <span class="k">print</span> <span class="s1">&#39;sector </span><span class="si">%s</span><span class="s1"> add stock </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">sector</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">missing_symbols</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+    <span class="k">print</span> <span class="s1">&#39;missing sectors&#39;</span><span class="p">,</span> <span class="n">missing_sectors</span>
+    <span class="k">print</span> <span class="s1">&#39;missing symbols:&#39;</span><span class="p">,</span> <span class="n">missing_symbols</span></div>
+
+
+<div class="viewcode-block" id="import_wind_sector_index"><a class="viewcode-back" href="../data_import.html#data_import.import_wind_sector_index">[docs]</a><span class="k">def</span> <span class="nf">import_wind_sector_index</span><span class="p">():</span>
+    <span class="n">sectors</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;882112&#39;</span><span class="p">:</span> <span class="s1">&#39;3030&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882111&#39;</span><span class="p">:</span> <span class="s1">&#39;3020&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882116&#39;</span><span class="p">:</span> <span class="s1">&#39;4020&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882119&#39;</span><span class="p">:</span> <span class="s1">&#39;4510&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882101&#39;</span><span class="p">:</span> <span class="s1">&#39;1510&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882117&#39;</span><span class="p">:</span> <span class="s1">&#39;4030&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882121&#39;</span><span class="p">:</span> <span class="s1">&#39;4530&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882108&#39;</span><span class="p">:</span> <span class="s1">&#39;2540&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882110&#39;</span><span class="p">:</span> <span class="s1">&#39;2550&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882115&#39;</span><span class="p">:</span> <span class="s1">&#39;4010&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882100&#39;</span><span class="p">:</span> <span class="s1">&#39;1010&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882118&#39;</span><span class="p">:</span> <span class="s1">&#39;4040&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882103&#39;</span><span class="p">:</span> <span class="s1">&#39;2020&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882120&#39;</span><span class="p">:</span> <span class="s1">&#39;4520&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882106&#39;</span><span class="p">:</span> <span class="s1">&#39;2520&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882113&#39;</span><span class="p">:</span> <span class="s1">&#39;3510&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882104&#39;</span><span class="p">:</span> <span class="s1">&#39;2030&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882102&#39;</span><span class="p">:</span> <span class="s1">&#39;2010&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882105&#39;</span><span class="p">:</span> <span class="s1">&#39;2510&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882107&#39;</span><span class="p">:</span> <span class="s1">&#39;2530&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882114&#39;</span><span class="p">:</span> <span class="s1">&#39;3520&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882123&#39;</span><span class="p">:</span> <span class="s1">&#39;5510&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882122&#39;</span><span class="p">:</span> <span class="s1">&#39;5010&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;882109&#39;</span><span class="p">:</span> <span class="s1">&#39;3010&#39;</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="s1">u&#39;/home/fengxia/Desktop/chenmin/sector/Wind_index_historical_2005-2015.xlsx&#39;</span>
+    <span class="n">workbook</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">open_workbook</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">sheet</span> <span class="ow">in</span> <span class="n">workbook</span><span class="o">.</span><span class="n">sheets</span><span class="p">():</span>
+        <span class="n">symbol</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+        <span class="n">stock</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="k">print</span> <span class="s1">&#39;stock symbol&#39;</span><span class="p">,</span> <span class="n">symbol</span>
+
+        <span class="k">print</span> <span class="s1">&#39;sector code&#39;</span><span class="p">,</span> <span class="n">sectors</span><span class="p">[</span><span class="n">symbol</span><span class="p">]</span>
+        <span class="n">sector</span> <span class="o">=</span> <span class="n">MySector</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">code</span><span class="o">=</span><span class="n">sectors</span><span class="p">[</span><span class="n">symbol</span><span class="p">])</span>
+        <span class="n">sector</span><span class="o">.</span><span class="n">stocks</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">stock</span><span class="p">)</span>
+
+        <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">print</span> <span class="s1">&#39;rows&#39;</span><span class="p">,</span> <span class="n">sheet</span><span class="o">.</span><span class="n">nrows</span>
+        <span class="k">for</span> <span class="n">r_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sheet</span><span class="o">.</span><span class="n">nrows</span><span class="p">):</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="n">sheet</span><span class="o">.</span><span class="n">row_values</span><span class="p">(</span><span class="n">r_idx</span><span class="p">)[:</span><span class="mi">6</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="ow">or</span> <span class="n">y</span><span class="p">,</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="n">x</span><span class="p">,</span> <span class="n">vals</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])):</span> <span class="k">continue</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># for date stamp line, vals[0] is a floating number</span>
+                <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">date_stamp</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">xldate</span><span class="o">.</span><span class="n">xldate_as_datetime</span><span class="p">(</span>
+                <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">workbook</span><span class="o">.</span><span class="n">datemode</span><span class="p">)</span>
+            <span class="n">h</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="p">(</span>
+                <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span>
+                <span class="n">date_stamp</span><span class="o">=</span><span class="n">date_stamp</span><span class="p">,</span>
+                <span class="n">open_price</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">high_price</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
+                <span class="n">low_price</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
+                <span class="n">close_price</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
+                <span class="n">vol</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span> <span class="o">/</span> <span class="mi">1000</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+        <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">records</span><span class="p">)</span></div>
+        <span class="c1"># print &#39;done&#39;, symbol, len(records)</span>
+
+<span class="kn">from</span> <span class="nn">stock.tasks</span> <span class="kn">import</span> <span class="n">backtesting_simulation_consumer</span>
+
+
+<div class="viewcode-block" id="batch_simulation_daily_return"><a class="viewcode-back" href="../data_import.html#data_import.batch_simulation_daily_return">[docs]</a><span class="k">def</span> <span class="nf">batch_simulation_daily_return</span><span class="p">():</span>
+    <span class="n">sources</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">5</span><span class="p">]</span>
+    <span class="n">strategies</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+    <span class="n">strategy_values</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># get 8211 related sectors</span>
+    <span class="n">stock_8211</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">symbol__startswith</span><span class="o">=</span><span class="s2">&quot;8821&quot;</span><span class="p">)</span>
+    <span class="n">sectors</span> <span class="o">=</span> <span class="p">[</span><span class="bp">None</span><span class="p">]</span> <span class="o">+</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">,</span>
+                              <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">mysector_set</span><span class="o">.</span><span class="n">all</span><span class="p">())</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">stock_8211</span><span class="p">])</span>
+
+    <span class="n">start</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;2015-01-01&#39;</span><span class="p">]</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;2016-01-01&#39;</span><span class="p">]</span>
+    <span class="c1"># start = [&#39;2015-01-01&#39;]</span>
+    <span class="c1"># end = [&#39;2015-01-10&#39;]</span>
+
+    <span class="n">step</span> <span class="o">=</span> <span class="mi">25</span>
+    <span class="n">conditions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">strategy</span><span class="p">,</span> <span class="n">strategy_value</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">sector</span><span class="p">)</span> <span class="ow">in</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">(</span><span class="n">sources</span><span class="p">,</span> <span class="n">strategies</span><span class="p">,</span> <span class="n">strategy_values</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">sectors</span><span class="p">):</span>
+        <span class="c1"># we only try strategy 2 with source 1</span>
+        <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="n">source</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># we only try strategy 5 with sector</span>
+        <span class="k">if</span> <span class="n">sector</span> <span class="ow">and</span> <span class="n">source</span> <span class="o">!=</span> <span class="mi">5</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">source</span><span class="p">,</span> <span class="n">strategy</span><span class="p">,</span> <span class="n">strategy_value</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">sector</span><span class="p">)</span>
+
+        <span class="c1"># cutoffs have different meanings based on strategy</span>
+        <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">buy_cutoff</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">25</span><span class="p">)</span>
+            <span class="n">sell_cutoff</span> <span class="o">=</span> <span class="p">[</span><span class="n">b</span> <span class="o">+</span> <span class="mi">25</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">buy_cutoff</span><span class="p">]</span>
+            <span class="n">cutoffs</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="n">buy_cutoff</span><span class="p">,</span> <span class="n">sell_cutoff</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">strategy</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">cutoffs</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">product</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">])</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">buy_cutoff</span><span class="p">,</span> <span class="n">sell_cutoff</span><span class="p">)</span> <span class="ow">in</span> <span class="n">cutoffs</span><span class="p">:</span>
+            <span class="n">condition</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MySimulationCondition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span>
+                <span class="n">data_source</span><span class="o">=</span><span class="n">source</span><span class="p">,</span>
+                <span class="n">sector</span><span class="o">=</span><span class="n">sector</span><span class="p">,</span>
+                <span class="n">data_sort</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>  <span class="c1"># descending</span>
+                <span class="n">strategy</span><span class="o">=</span><span class="n">strategy</span><span class="p">,</span>
+                <span class="n">strategy_value</span><span class="o">=</span><span class="n">strategy_value</span><span class="p">,</span>
+                <span class="n">start</span><span class="o">=</span><span class="n">start</span><span class="p">,</span>
+                <span class="n">end</span><span class="o">=</span><span class="n">end</span><span class="p">,</span>
+                <span class="n">capital</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+                <span class="n">per_trade</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+                <span class="n">buy_cutoff</span><span class="o">=</span><span class="n">buy_cutoff</span><span class="p">,</span>
+                <span class="n">sell_cutoff</span><span class="o">=</span><span class="n">sell_cutoff</span>
+            <span class="p">)</span>
+            <span class="n">conditions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+
+    <span class="c1"># simulation run!</span>
+    <span class="k">for</span> <span class="n">condition</span> <span class="ow">in</span> <span class="n">conditions</span><span class="p">:</span>
+        <span class="c1"># if condition.data_source == 1 and strategy == 2:</span>
+        <span class="c1"># MySimulationCondition is not json-able,</span>
+        <span class="c1"># using python pickle instead. The downside of this is that</span>
+        <span class="c1"># we are relying on a python-specif data format.</span>
+        <span class="c1"># But it is safe in this context.</span>
+        <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">backtesting_simulation_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span>
+                <span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">condition</span><span class="p">),</span> <span class="n">is_update</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">backtesting_simulation_consumer</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span>
+                <span class="n">cPickle</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">condition</span><span class="p">),</span> <span class="n">is_update</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../data_import.html#data_import.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+    <span class="n">django</span><span class="o">.</span><span class="n">setup</span><span class="p">()</span>
+
+    <span class="c1"># tasks</span>
+    <span class="c1"># populate_sp_500	()</span>
+    <span class="c1"># crawl_stock_prev_yahoo()</span>
+    <span class="c1"># crawl_stock_yahoo_spot()</span>
+
+    <span class="c1"># crawler_chenmin()</span>
+    <span class="c1"># dump_chenmin()</span>
+    <span class="c1"># crawler_influx()</span>
+    <span class="c1"># backtest_1()</span>
+    <span class="c1"># import_chenmin_csv2()</span>
+    <span class="c1"># crawler_flag_sp500()</span>
+    <span class="c1"># consumer_oneday_change()</span>
+    <span class="c1"># import_china_stock_floating_share()</span>
+    <span class="c1"># import_wind_sector()</span>
+    <span class="c1"># import_wind_sector_stock()</span>
+    <span class="c1"># import_wind_sector_index()</span>
+    <span class="c1"># temp()</span>
+
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Pull historical data</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+    <span class="c1"># crawl_update_sp500_historical_yahoo()</span>
+
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Pull spot data</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+    <span class="n">crawl_update_sp500_spot_yahoo</span><span class="p">()</span>
+
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	Compute strategy index values</span>
+<span class="sd">	&#39;&#39;&#39;</span>
+    <span class="c1"># consumer_daily_return()</span>
+    <span class="c1"># consumer_relative_hl()</span>
+    <span class="c1"># consumer_relative_ma()</span>
+
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">	simulation</span>
+<span class="sd">	&#39;&#39;&#39;</span></div>
+    <span class="c1"># batch_simulation_daily_return()</span>
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,237 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.serialize_json &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for stock.serialize_json</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python</span>
+
+<span class="c1"># Copyright (c) 2013, Christopher R. Wagner</span>
+<span class="c1">#</span>
+<span class="c1"># Permission is hereby granted, free of charge, to any person</span>
+<span class="c1"># obtaining a copy of this software and associated documentation files</span>
+<span class="c1"># (the &quot;Software&quot;), to deal in the Software without restriction,</span>
+<span class="c1"># including without limitation the rights to use, copy, modify, merge,</span>
+<span class="c1"># publish, distribute, sublicense, and/or sell copies of the Software,</span>
+<span class="c1"># and to permit persons to whom the Software is furnished to do so,</span>
+<span class="c1"># subject to the following conditions:</span>
+<span class="c1">#</span>
+<span class="c1"># The above copyright notice and this permission notice shall be</span>
+<span class="c1"># included in all copies or substantial portions of the Software.</span>
+<span class="c1">#</span>
+<span class="c1"># THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND,</span>
+<span class="c1"># EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF</span>
+<span class="c1"># MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND</span>
+<span class="c1"># NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS</span>
+<span class="c1"># BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN</span>
+<span class="c1"># ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN</span>
+<span class="c1"># CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE</span>
+<span class="c1"># SOFTWARE.</span>
+
+<span class="sd">&quot;&quot;&quot;JSON serialization routines for python data types.</span>
+
+<span class="sd">Retains type information for basic python datatypes that do not have a</span>
+<span class="sd">direct mapping to JSON without abusing JSON too much. Format is</span>
+<span class="sd">similar to the one used by jsonpickle, though not guaranteed to be</span>
+<span class="sd">compatible.</span>
+
+<span class="sd">Currently handles dictionaries with non-string-keys, tuples, sets,</span>
+<span class="sd">numpy arrays, namedtuples, and OrderedDicts.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
+
+
+<span class="n">MyTuple</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s2">&quot;MyTuple&quot;</span><span class="p">,</span> <span class="s2">&quot;foo baz&quot;</span><span class="p">)</span>
+
+
+<span class="n">TEST_DATA</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span>
+             <span class="mf">23.32987</span><span class="p">,</span> <span class="mf">478.292222</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.0002384</span><span class="p">,</span>
+             <span class="s2">&quot;testing&quot;</span><span class="p">,</span>
+             <span class="bp">False</span><span class="p">,</span>
+             <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="p">[</span><span class="mi">7</span><span class="p">,</span> <span class="mi">8</span><span class="p">],</span> <span class="mi">9</span><span class="p">],</span>
+             <span class="p">(</span><span class="s2">&quot;mixed&quot;</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="s2">&quot;tuple&quot;</span><span class="p">),</span>
+             <span class="p">{</span><span class="s2">&quot;str&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;str2&quot;</span><span class="p">:</span> <span class="mi">2</span><span class="p">},</span>
+             <span class="p">{</span><span class="mi">1</span><span class="p">:</span> <span class="s2">&quot;str&quot;</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span> <span class="s2">&quot;str4&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">):</span> <span class="s2">&quot;str8&quot;</span><span class="p">},</span>
+             <span class="p">{</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">9</span><span class="p">)},</span>
+             <span class="bp">None</span><span class="p">,</span>
+             <span class="n">MyTuple</span><span class="p">(</span><span class="n">foo</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">baz</span><span class="o">=</span><span class="mi">2</span><span class="p">),</span>
+             <span class="n">OrderedDict</span><span class="p">(</span>
+                 <span class="p">[(</span><span class="s1">&#39;my&#39;</span><span class="p">,</span> <span class="mi">23</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;order&#39;</span><span class="p">,</span> <span class="mi">55</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;stays&#39;</span><span class="p">,</span> <span class="mi">44</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;fixed&#39;</span><span class="p">,</span> <span class="mi">602</span><span class="p">)]),</span>
+             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]]),</span>
+             <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.2398</span><span class="p">,</span> <span class="mf">2.4848</span><span class="p">,</span> <span class="mf">3.484884</span><span class="p">],</span> <span class="p">[</span><span class="mf">4.10</span><span class="p">,</span> <span class="mf">5.3</span><span class="p">,</span> <span class="mf">6.999992</span><span class="p">]]),</span>
+             <span class="p">]</span>
+
+
+<div class="viewcode-block" id="nested_equal"><a class="viewcode-back" href="../../stock.html#stock.serialize_json.nested_equal">[docs]</a><span class="k">def</span> <span class="nf">nested_equal</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compares two complex data structures.</span>
+
+<span class="sd">    This handles the case where numpy arrays are leaf nodes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v2</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">v1</span> <span class="o">==</span> <span class="n">v2</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v2</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array_equal</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v2</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">nested_equal</span><span class="p">(</span><span class="n">v1</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">v2</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v2</span><span class="p">,</span> <span class="n">Iterable</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="n">nested_equal</span><span class="p">(</span><span class="n">sub1</span><span class="p">,</span> <span class="n">sub2</span><span class="p">)</span> <span class="k">for</span> <span class="n">sub1</span><span class="p">,</span> <span class="n">sub2</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">v1</span> <span class="o">==</span> <span class="n">v2</span></div>
+
+
+<div class="viewcode-block" id="isnamedtuple"><a class="viewcode-back" href="../../stock.html#stock.serialize_json.isnamedtuple">[docs]</a><span class="k">def</span> <span class="nf">isnamedtuple</span><span class="p">(</span><span class="n">obj</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Heuristic check if an object is a namedtuple.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> \
+        <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_fields&#39;</span><span class="p">)</span> \
+        <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s1">&#39;_asdict&#39;</span><span class="p">)</span> \
+        <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">obj</span><span class="o">.</span><span class="n">_asdict</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="serialize"><a class="viewcode-back" href="../../stock.html#stock.serialize_json.serialize">[docs]</a><span class="k">def</span> <span class="nf">serialize</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">data</span> <span class="ow">is</span> <span class="bp">None</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="p">(</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">long</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)):</span>
+        <span class="k">return</span> <span class="n">data</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">serialize</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">OrderedDict</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;py/collections.OrderedDict&quot;</span><span class="p">:</span>
+                <span class="p">[[</span><span class="n">serialize</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">serialize</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()]}</span>
+    <span class="k">if</span> <span class="n">isnamedtuple</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;py/collections.namedtuple&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;type&quot;</span><span class="p">:</span>   <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">__name__</span><span class="p">,</span>
+            <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">_fields</span><span class="p">),</span>
+            <span class="s2">&quot;values&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">serialize</span><span class="p">(</span><span class="nb">getattr</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">))</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">_fields</span><span class="p">]}}</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">basestring</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">data</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">serialize</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;py/dict&quot;</span><span class="p">:</span> <span class="p">[[</span><span class="n">serialize</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">serialize</span><span class="p">(</span><span class="n">v</span><span class="p">)]</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()]}</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;py/tuple&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">serialize</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]}</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">set</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;py/set&quot;</span><span class="p">:</span> <span class="p">[</span><span class="n">serialize</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="k">for</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">data</span><span class="p">]}</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;py/numpy.ndarray&quot;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s2">&quot;values&quot;</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">tolist</span><span class="p">(),</span>
+            <span class="s2">&quot;dtype&quot;</span><span class="p">:</span>  <span class="nb">str</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dtype</span><span class="p">)}}</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Type </span><span class="si">%s</span><span class="s2"> not data-serializable&quot;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="restore"><a class="viewcode-back" href="../../stock.html#stock.serialize_json.restore">[docs]</a><span class="k">def</span> <span class="nf">restore</span><span class="p">(</span><span class="n">dct</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s2">&quot;py/dict&quot;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">dict</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="s2">&quot;py/dict&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="s2">&quot;py/tuple&quot;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="s2">&quot;py/tuple&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="s2">&quot;py/set&quot;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">set</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="s2">&quot;py/set&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="s2">&quot;py/collections.namedtuple&quot;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;py/collections.namedtuple&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">namedtuple</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">],</span> <span class="n">data</span><span class="p">[</span><span class="s2">&quot;fields&quot;</span><span class="p">])(</span><span class="o">*</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="s2">&quot;py/numpy.ndarray&quot;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">dct</span><span class="p">[</span><span class="s2">&quot;py/numpy.ndarray&quot;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;values&quot;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">data</span><span class="p">[</span><span class="s2">&quot;dtype&quot;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="s2">&quot;py/collections.OrderedDict&quot;</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">OrderedDict</span><span class="p">(</span><span class="n">dct</span><span class="p">[</span><span class="s2">&quot;py/collections.OrderedDict&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">dct</span></div>
+
+
+<div class="viewcode-block" id="data_to_json"><a class="viewcode-back" href="../../stock.html#stock.serialize_json.data_to_json">[docs]</a><span class="k">def</span> <span class="nf">data_to_json</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">serialize</span><span class="p">(</span><span class="n">data</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="json_to_data"><a class="viewcode-back" href="../../stock.html#stock.serialize_json.json_to_data">[docs]</a><span class="k">def</span> <span class="nf">json_to_data</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">object_hook</span><span class="o">=</span><span class="n">restore</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="test_equivalence"><a class="viewcode-back" href="../../stock.html#stock.serialize_json.test_equivalence">[docs]</a><span class="k">def</span> <span class="nf">test_equivalence</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">nested_equal</span><span class="p">(</span><span class="n">TEST_DATA</span><span class="p">,</span> <span class="n">json_to_data</span><span class="p">(</span><span class="n">data_to_json</span><span class="p">(</span><span class="n">TEST_DATA</span><span class="p">))):</span>
+        <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">TEST_DATA</span><span class="p">:</span>
+            <span class="n">serialized_element</span> <span class="o">=</span> <span class="n">json_to_data</span><span class="p">(</span><span class="n">data_to_json</span><span class="p">(</span><span class="n">element</span><span class="p">))</span>
+            <span class="k">if</span> <span class="n">element</span> <span class="o">!=</span> <span class="n">serialized_element</span><span class="p">:</span>
+                <span class="k">print</span> <span class="s2">&quot;Mismatch: </span><span class="si">%s</span><span class="s2"> != </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">element</span><span class="p">,</span> <span class="n">serialized_element</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">print</span> <span class="s2">&quot;Success.&quot;</span>
+        <span class="k">print</span> <span class="n">data_to_json</span><span class="p">(</span><span class="n">TEST_DATA</span><span class="p">)</span>
+        <span class="k">print</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">has unserialized to</span><span class="se">\n</span><span class="s2">&quot;</span>
+        <span class="k">print</span> <span class="n">json_to_data</span><span class="p">(</span><span class="n">data_to_json</span><span class="p">(</span><span class="n">TEST_DATA</span><span class="p">))</span></div>
+
+
+<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="n">test_equivalence</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

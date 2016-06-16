@@ -1,0 +1,1282 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.models &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for stock.models</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">models</span>
+<span class="kn">from</span> <span class="nn">django.contrib</span> <span class="kn">import</span> <span class="n">admin</span>
+<span class="kn">from</span> <span class="nn">django.forms</span> <span class="kn">import</span> <span class="n">ModelForm</span>
+<span class="kn">from</span> <span class="nn">django.contrib.contenttypes.fields</span> <span class="kn">import</span> <span class="n">GenericForeignKey</span>
+<span class="kn">from</span> <span class="nn">django.contrib.contenttypes.generic</span> <span class="kn">import</span> <span class="n">GenericRelation</span>
+<span class="kn">from</span> <span class="nn">django.contrib.contenttypes.models</span> <span class="kn">import</span> <span class="n">ContentType</span>
+<span class="kn">from</span> <span class="nn">django.core.urlresolvers</span> <span class="kn">import</span> <span class="n">reverse</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth.models</span> <span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span> <span class="nn">django.utils</span> <span class="kn">import</span> <span class="n">timezone</span>
+<span class="kn">from</span> <span class="nn">annoying.fields</span> <span class="kn">import</span> <span class="n">JSONField</span>  <span class="c1"># django-annoying</span>
+<span class="kn">from</span> <span class="nn">django.db.models</span> <span class="kn">import</span> <span class="n">Q</span><span class="p">,</span> <span class="n">F</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span> <span class="k">as</span> <span class="n">dt</span>
+<span class="kn">from</span> <span class="nn">django.db.models.signals</span> <span class="kn">import</span> <span class="n">pre_save</span><span class="p">,</span> <span class="n">post_save</span>
+<span class="kn">from</span> <span class="nn">django.dispatch</span> <span class="kn">import</span> <span class="n">receiver</span>
+<span class="kn">from</span> <span class="nn">django.core.mail</span> <span class="kn">import</span> <span class="n">send_mail</span>
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">from</span> <span class="nn">django.core.validators</span> <span class="kn">import</span> <span class="n">MaxValueValidator</span><span class="p">,</span> <span class="n">MinValueValidator</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">fabs</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="MyBaseModel"><a class="viewcode-back" href="../../stock.html#stock.forms.MyBaseModel">[docs]</a><span class="k">class</span> <span class="nc">MyBaseModel</span> <span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="c1"># fields</span>
+    <span class="nb">hash</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">256</span><span class="p">,</span>  <span class="c1"># we don&#39;t expect using a hash more than 256-bit long!</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;MD5 hash&#39;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># basic value fields</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;名称&#39;</span>
+    <span class="p">)</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;描述&#39;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># help text</span>
+    <span class="n">help_text</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;帮助提示&#39;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># attachments</span>
+    <span class="n">attachments</span> <span class="o">=</span> <span class="n">GenericRelation</span><span class="p">(</span><span class="s1">&#39;Attachment&#39;</span><span class="p">)</span>
+
+    <span class="c1"># this is an Abstract model</span>
+<div class="viewcode-block" id="MyBaseModel.Meta"><a class="viewcode-back" href="../../stock.html#stock.forms.MyBaseModel.Meta">[docs]</a>    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">abstract</span> <span class="o">=</span> <span class="bp">True</span></div>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span></div>
+
+<span class="c1">######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	Tags</span>
+<span class="c1">#</span>
+<span class="c1">#####################################################</span>
+
+
+<div class="viewcode-block" id="MyTaggedItem"><a class="viewcode-back" href="../../stock.html#stock.forms.MyTaggedItem">[docs]</a><span class="k">class</span> <span class="nc">MyTaggedItem</span> <span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="c1"># basic value fields</span>
+    <span class="n">tag</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">SlugField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Tag&#39;</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tag</span></div>
+
+<span class="c1">######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	Attachments</span>
+<span class="c1">#</span>
+<span class="c1">#####################################################</span>
+
+
+<div class="viewcode-block" id="Attachment"><a class="viewcode-back" href="../../stock.html#stock.forms.Attachment">[docs]</a><span class="k">class</span> <span class="nc">Attachment</span> <span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="c1"># generic foreign key to base model</span>
+    <span class="c1"># so we can link attachment to any model defined below</span>
+    <span class="n">content_type</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">ContentType</span><span class="p">)</span>
+    <span class="n">object_id</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveIntegerField</span><span class="p">()</span>
+    <span class="n">content_object</span> <span class="o">=</span> <span class="n">GenericForeignKey</span><span class="p">(</span><span class="s1">&#39;content_type&#39;</span><span class="p">,</span> <span class="s1">&#39;object_id&#39;</span><span class="p">)</span>
+
+    <span class="c1"># instance fields</span>
+    <span class="n">created_by</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="n">User</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;创建用户&#39;</span><span class="p">,</span>
+        <span class="n">help_text</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># basic value fields</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;default name&#39;</span><span class="p">,</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;附件名称&#39;</span>
+    <span class="p">)</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;default description&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;附件描述&#39;</span>
+    <span class="p">)</span>
+    <span class="nb">file</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FileField</span><span class="p">(</span>
+        <span class="n">upload_to</span><span class="o">=</span><span class="s1">&#39;%Y/%m/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;附件&#39;</span><span class="p">,</span>
+        <span class="n">help_text</span><span class="o">=</span><span class="s1">u&#39;附件&#39;</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">file</span><span class="o">.</span><span class="n">name</span></div>
+
+
+<div class="viewcode-block" id="AttachmentForm"><a class="viewcode-back" href="../../stock.html#stock.forms.AttachmentForm">[docs]</a><span class="k">class</span> <span class="nc">AttachmentForm</span><span class="p">(</span><span class="n">ModelForm</span><span class="p">):</span>
+
+<div class="viewcode-block" id="AttachmentForm.Meta"><a class="viewcode-back" href="../../stock.html#stock.forms.AttachmentForm.Meta">[docs]</a>    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">Attachment</span>
+        <span class="n">fields</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="s1">&#39;file&#39;</span><span class="p">]</span></div></div>
+
+<span class="c1">######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	App specific models</span>
+<span class="c1">#</span>
+<span class="c1">#####################################################</span>
+
+
+<div class="viewcode-block" id="MyStockCustomManager"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStockCustomManager">[docs]</a><span class="k">class</span> <span class="nc">MyStockCustomManager</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Manager</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Custom model manager</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MyStockCustomManager.filter_by_user_pe_threshold"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStockCustomManager.filter_by_user_pe_threshold">[docs]</a>    <span class="k">def</span> <span class="nf">filter_by_user_pe_threshold</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Filter by PE threshold defined in user profile.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">                :user: User model object. Each user has a 1-1 relashionship to a UserProfile.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_queryset</span><span class="p">()</span>
+
+        <span class="c1"># get user profile</span>
+        <span class="n">user_profile</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyUserProfile</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">owner</span><span class="o">=</span><span class="n">user</span><span class="p">)</span>
+        <span class="n">pe_low</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">user_profile</span><span class="o">.</span><span class="n">pe_threshold</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">pe_high</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">user_profile</span><span class="o">.</span><span class="n">pe_threshold</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">data</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">pe__gte</span><span class="o">=</span><span class="n">pe_low</span><span class="p">,</span> <span class="n">pe__lte</span><span class="o">=</span><span class="n">pe_high</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MyStockCustomManager.in_heat"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStockCustomManager.in_heat">[docs]</a>    <span class="k">def</span> <span class="nf">in_heat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Filter previou day change is &gt; 0.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">                :user: User model object.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0,day_open__lte=F(&#39;prev_close&#39;)).order_by(&#39;-prev_change&#39;)[:top_count]</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">filter_by_user_pe_threshold</span><span class="p">(</span><span class="n">user</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">prev_change__gt</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;-prev_change&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">data</span></div></div>
+
+
+<div class="viewcode-block" id="MySector"><a class="viewcode-back" href="../../stock.html#stock.forms.MySector">[docs]</a><span class="k">class</span> <span class="nc">MySector</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sector that is used to group stocks.</span>
+
+<span class="sd">    The company that a stock represents is usually</span>
+<span class="sd">    linked to a sector. Each country may have a different way to</span>
+<span class="sd">    define these.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">parent</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="s1">&#39;self&#39;</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Parent sector&#39;</span>
+    <span class="p">)</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Sector code&#39;</span>
+    <span class="p">)</span>
+    <span class="n">source</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Definition source&#39;</span>
+    <span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span>
+    <span class="p">)</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span>
+    <span class="p">)</span>
+    <span class="n">stocks</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ManyToManyField</span><span class="p">(</span><span class="s1">&#39;MyStock&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">u&#39;{0} ({1})&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">code</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">code</span></div>
+
+
+<div class="viewcode-block" id="MyStock"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStock">[docs]</a><span class="k">class</span> <span class="nc">MyStock</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="c1"># custom managers</span>
+    <span class="c1"># Note: the 1st one defined will be taken as the default!</span>
+    <span class="n">objects</span> <span class="o">=</span> <span class="n">MyStockCustomManager</span><span class="p">()</span>
+
+    <span class="n">company_name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Company name&#39;</span>
+    <span class="p">)</span>
+    <span class="n">symbol</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Stock symbol&#39;</span>
+    <span class="p">)</span>
+    <span class="n">sector</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;unknown&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Sector name&#39;</span>
+    <span class="p">)</span>
+    <span class="n">is_sp500</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Is a SP500 stock&#39;</span>
+    <span class="p">)</span>
+    <span class="n">is_china_stock</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Is a China stock&#39;</span>
+    <span class="p">)</span>
+    <span class="n">prev_close</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Prev day closing price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">prev_open</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Prev day opening price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">prev_high</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Prev day highest price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">prev_low</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Prev day lowest price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">prev_vol</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Prev day volume&#39;</span>
+    <span class="p">)</span>
+    <span class="n">day_open</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Today opening price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">pe</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;P/E&#39;</span>
+    <span class="p">)</span>
+    <span class="n">bid</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Bid price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">ask</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Ask price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">vol</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Volume (in 000)&#39;</span>
+    <span class="p">)</span>
+    <span class="n">floating_share</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Floating share(in million)&#39;</span>
+    <span class="p">)</span>
+    <span class="n">day_high</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Day high&#39;</span>
+    <span class="p">)</span>
+    <span class="n">day_low</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Day low&#39;</span>
+    <span class="p">)</span>
+
+    <span class="n">last</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Spot price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">last_update_time</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">auto_now</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Spot sample time&#39;</span>
+    <span class="p">)</span>
+    <span class="n">is_in_play</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Has pending position&#39;</span>
+    <span class="p">)</span>
+    <span class="n">prev_change</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Prev day change (%)&#39;</span>
+    <span class="p">)</span>
+    <span class="n">day_change</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Today change(%)&#39;</span>
+    <span class="p">)</span>
+    <span class="n">spread</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Bid-ask spread&#39;</span>
+    <span class="p">)</span>
+    <span class="n">vol_over_float</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Vol/floating shares (%)&#39;</span>
+    <span class="p">)</span>
+    <span class="n">week_adjusted_close</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;1-week adjusted closing price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">month_adjusted_close</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;1-month adjusted closing price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">fib_weekly_adjusted_close</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Fibonacci timezone adjusted closing price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">fib_daily_adjusted_close</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Fibonacci timezone adjusted closing price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">fib_weekly_score</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Weighed sum of weekly adj close price&#39;</span>
+    <span class="p">)</span>
+    <span class="n">fib_daily_score</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Weighed sum of daily adj close price&#39;</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_oneday_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Midday change percentage</span>
+
+<span class="sd">        Midday change is computed as:</span>
+<span class="sd">                (last polled bid price/today&#39;s openning price) in %</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">day_open</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">day_open</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">day_open</span> <span class="o">*</span> <span class="n">Decimal</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">oneday_change</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_oneday_change</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_twoday_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Current bid over yesterday&#39;s openning price in percentage.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_open</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_open</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">prev_open</span> <span class="o">*</span> <span class="n">Decimal</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">twoday_change</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_twoday_change</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_week_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Weekly closing price over the same week&#39;s openning price.</span>
+
+<span class="sd">        Data is saved in week_adjusted_close as (open,close) delimited by comma.</span>
+<span class="sd">        This format is copied by Yahoo!Finance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">week_adjusted_close</span><span class="p">:</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">week_adjusted_close</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">/</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">Decimal</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">week_change</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_week_change</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_month_change</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Closing price over the openning price 1-month ago.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">month_adjusted_close</span><span class="p">:</span>
+            <span class="n">vals</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">month_adjusted_close</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span> <span class="o">/</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">*</span> <span class="n">Decimal</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">month_change</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_month_change</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_trend_is_consistent_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stock is growing consistently.</span>
+
+<span class="sd">        A stock is considered gaining consistent when:</span>
+<span class="sd">        1. it gained today</span>
+<span class="sd">        2. it gained since yesterday&#39;s opening</span>
+<span class="sd">        3. it gained in this week</span>
+<span class="sd">        4. it gained in this month</span>
+
+<span class="sd">        Taking four segments forces a stronger check against its price trend.</span>
+<span class="sd">        There isn&#39;t a particular theory behind such check. But IMHO,</span>
+<span class="sd">        a consistend gain is an indicator of a rare gaining period.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">oneday_change</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">twoday_change</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">week_change</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">month_change</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="n">trend_is_consistent_gain</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_trend_is_consistent_gain</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_trend_is_consistent_loss</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reverse of consistent_gain. See above.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">oneday_change</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">twoday_change</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">week_change</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">month_change</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">True</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">False</span>
+    <span class="n">trend_is_consistent_loss</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_trend_is_consistent_loss</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_fib_weekly_score_pcnt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fibonacci weekly score in %.</span>
+
+<span class="sd">        Score is calculated by sampling in time based on Fib values as time intervals.</span>
+<span class="sd">        The score is computed offline so it is historically correct.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fib_weekly_score</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">fib_weekly_score_pcnt</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_fib_weekly_score_pcnt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_fib_daily_score_pcnt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Fibonacci daily score.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">last</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">fib_daily_score</span> <span class="o">/</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last</span><span class="p">)</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">fib_daily_score_pcnt</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_fib_daily_score_pcnt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">company_name</span><span class="p">)</span></div>
+
+
+<span class="nd">@receiver</span><span class="p">(</span><span class="n">pre_save</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="n">MyStock</span><span class="p">)</span>
+<div class="viewcode-block" id="stock_update_handler"><a class="viewcode-back" href="../../stock.html#stock.forms.stock_update_handler">[docs]</a><span class="k">def</span> <span class="nf">stock_update_handler</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;MyStock presave hook.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">instance</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">id</span><span class="p">:</span>
+        <span class="n">original</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">instance</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+
+        <span class="c1"># spot price changed</span>
+        <span class="k">if</span> <span class="n">original</span><span class="o">.</span><span class="n">last</span> <span class="o">!=</span> <span class="n">instance</span><span class="o">.</span><span class="n">last</span> <span class="ow">and</span> <span class="n">instance</span><span class="o">.</span><span class="n">day_open</span><span class="p">:</span>
+            <span class="c1"># update day_change</span>
+            <span class="n">instance</span><span class="o">.</span><span class="n">day_change</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">instance</span><span class="o">.</span><span class="n">last</span> <span class="o">-</span> <span class="n">instance</span><span class="o">.</span><span class="n">day_open</span><span class="p">)</span> <span class="o">/</span> <span class="n">instance</span><span class="o">.</span><span class="n">day_open</span> <span class="o">*</span> <span class="n">Decimal</span><span class="p">(</span><span class="mi">100</span><span class="p">)</span>
+
+        <span class="c1"># if ask or bid changed</span>
+        <span class="k">if</span> <span class="n">original</span><span class="o">.</span><span class="n">ask</span> <span class="o">!=</span> <span class="n">instance</span><span class="o">.</span><span class="n">ask</span> <span class="ow">or</span> <span class="n">original</span><span class="o">.</span><span class="n">bid</span> <span class="o">!=</span> <span class="n">instance</span><span class="o">.</span><span class="n">bid</span><span class="p">:</span>
+            <span class="n">instance</span><span class="o">.</span><span class="n">spread</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">ask</span> <span class="o">-</span> <span class="n">instance</span><span class="o">.</span><span class="n">bid</span>
+
+        <span class="c1"># if vol changed</span>
+        <span class="k">if</span> <span class="n">original</span><span class="o">.</span><span class="n">vol</span> <span class="o">!=</span> <span class="n">instance</span><span class="o">.</span><span class="n">vol</span> <span class="ow">and</span> <span class="n">instance</span><span class="o">.</span><span class="n">float_share</span><span class="p">:</span>
+            <span class="n">instance</span><span class="o">.</span><span class="n">vol_over_float</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">vol</span> <span class="o">/</span> <span class="n">instance</span><span class="o">.</span><span class="n">float_share</span> <span class="o">/</span> <span class="mi">10</span></div>
+
+
+<div class="viewcode-block" id="MyStockHistorical"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStockHistorical">[docs]</a><span class="k">class</span> <span class="nc">MyStockHistorical</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Model to save historical stock data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stock</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="s1">&#39;MyStock&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Stock&#39;</span>
+    <span class="p">)</span>
+    <span class="n">date_stamp</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Date&#39;</span>
+    <span class="p">)</span>
+    <span class="n">open_price</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Open&#39;</span>
+    <span class="p">)</span>
+    <span class="n">high_price</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;High&#39;</span>
+    <span class="p">)</span>
+    <span class="n">low_price</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Low&#39;</span>
+    <span class="p">)</span>
+    <span class="n">close_price</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Close&#39;</span>
+    <span class="p">)</span>
+    <span class="n">adj_open</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Adjusted open&#39;</span>
+    <span class="p">)</span>
+    <span class="n">adj_high</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Adjusted high&#39;</span>
+    <span class="p">)</span>
+    <span class="n">adj_low</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Adjusted low&#39;</span>
+    <span class="p">)</span>
+    <span class="n">adj_close</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Adjusted close&#39;</span>
+    <span class="p">)</span>
+    <span class="n">adj_factor</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Adjustment factor&#39;</span>
+    <span class="p">)</span>
+    <span class="n">amount</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;成交金额 (000)&#39;</span>
+    <span class="p">)</span>
+    <span class="n">vol</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Volume (000)&#39;</span>
+    <span class="p">)</span>
+    <span class="n">flag_by_strategy</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;U&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Back testing flag&#39;</span>
+    <span class="p">)</span>
+    <span class="n">val_by_strategy</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Computed value based on a strategy&#39;</span>
+    <span class="p">)</span>
+    <span class="n">peer_rank</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Ranking among peers&#39;</span>
+    <span class="p">)</span>
+    <span class="n">status</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Stock trading status, eg. stopped trading on that day&#39;</span>
+    <span class="p">)</span>
+
+    <span class="c1"># pre-computed index values</span>
+    <span class="n">daily_return</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;(Today&#39;s Close - Today&#39;s Open)/Today&#39;s Open*100&quot;</span>
+    <span class="p">)</span>
+    <span class="n">relative_hl</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Relative Position (H,L)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">relative_ma</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Relative Position Moving Average&quot;</span>
+    <span class="p">)</span>
+    <span class="n">lg_slope</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Linear regression slope&quot;</span>
+    <span class="p">)</span>
+    <span class="n">si</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;SI indicator&quot;</span>
+    <span class="p">)</span>
+    <span class="n">cci</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;CCI indicator&quot;</span>
+    <span class="p">)</span>
+    <span class="n">decycler_oscillator</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Decycler oscillator&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_avg_price</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Average stock price.</span>
+
+<span class="sd">        Avg = total trading amount / total trading volume</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">amount</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">Decimal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">amount</span><span class="p">)</span> <span class="o">/</span> <span class="n">Decimal</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">None</span>
+    <span class="n">avg_price</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_avg_price</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">unique_together</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;stock&#39;</span><span class="p">,</span> <span class="s1">&#39;date_stamp&#39;</span><span class="p">)</span>
+        <span class="n">index_together</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;stock&#39;</span><span class="p">,</span> <span class="s1">&#39;date_stamp&#39;</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="MyUserProfile"><a class="viewcode-back" href="../../stock.html#stock.forms.MyUserProfile">[docs]</a><span class="k">class</span> <span class="nc">MyUserProfile</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;User profile model.</span>
+
+<span class="sd">    Mode to save user specific configuration values.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">owner</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">OneToOneField</span><span class="p">(</span>
+        <span class="n">User</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;用户&#39;</span><span class="p">,</span>
+        <span class="n">help_text</span><span class="o">=</span><span class="s1">&#39;&#39;</span>
+    <span class="p">)</span>
+    <span class="n">per_trade_total</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Per trade dollar amount&#39;</span>
+    <span class="p">)</span>
+    <span class="n">pe_threshold</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="s1">&#39;20-100&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;P/E threshold&#39;</span>
+    <span class="p">)</span>
+    <span class="n">cash</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Account balance&#39;</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_equity</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;User equity position.</span>
+
+<span class="sd">        User equity position is the aggregation</span>
+<span class="sd">        of all his open portfolio.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">pos</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">total</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">owner</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">pos</span><span class="p">)</span>
+    <span class="n">equity</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_equity</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;User asset.</span>
+
+<span class="sd">        Asset = cash + equity</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cash</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">equity</span>
+    <span class="n">asset</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MyPosition"><a class="viewcode-back" href="../../stock.html#stock.forms.MyPosition">[docs]</a><span class="k">class</span> <span class="nc">MyPosition</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Stock position on portfolio.</span>
+
+<span class="sd">    Each position is a stock that user is currently holding.</span>
+<span class="sd">    A position is like a tiny accounting book:</span>
+<span class="sd">            position: cost we paid when buying these stocks</span>
+<span class="sd">            vol: qty</span>
+<span class="sd">            close_position: price we took when selling these stocks</span>
+
+<span class="sd">    The difference between the buy and sell will be the gain/loss</span>
+<span class="sd">    we took buy doing this trade. Also, as long as we are holding it,</span>
+<span class="sd">    its value fluctuates along with the market. Thus the source</span>
+<span class="sd">    of final gain/loss came from two places:</span>
+<span class="sd">            1. diff between cost and exit price</span>
+<span class="sd">            2. fluctuation from the market</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">created</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span>
+        <span class="n">auto_now_add</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">User</span><span class="p">)</span>
+    <span class="n">stock</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="s1">&#39;MyStock&#39;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Stock&#39;</span>
+    <span class="p">)</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;We paid&#39;</span>
+    <span class="p">)</span>
+    <span class="n">vol</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Trade vol&#39;</span>
+    <span class="p">)</span>
+    <span class="n">is_open</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Is position open&#39;</span>
+    <span class="p">)</span>
+    <span class="n">last_updated_on</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span>
+        <span class="n">auto_now</span><span class="o">=</span><span class="bp">True</span>
+    <span class="p">)</span>
+    <span class="n">close_position</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+        <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+        <span class="n">decimal_places</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;We closed at&#39;</span>
+    <span class="p">)</span>
+    <span class="n">open_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Position open date&#39;</span>
+    <span class="p">)</span>
+    <span class="n">close_date</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Position close date&#39;</span>
+    <span class="p">)</span>
+    <span class="n">simulation</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="s1">&#39;MySimulationCondition&#39;</span>
+    <span class="p">)</span>
+
+<div class="viewcode-block" id="MyPosition.add"><a class="viewcode-back" href="../../stock.html#stock.forms.MyPosition.add">[docs]</a>    <span class="k">def</span> <span class="nf">add</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">price</span><span class="p">,</span> <span class="n">vol</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s1">&#39;simulation&#39;</span><span class="p">,</span> <span class="n">on_date</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Utility function to buy or sell.</span>
+
+<span class="sd">        If vol &gt; 0: buy; &lt; 0: sell.</span>
+<span class="sd">        If updated vol == 0, this position will be marked &quot;closed&quot;.</span>
+
+<span class="sd">        User profile&#39;s cash will be updated:</span>
+<span class="sd">        if buy: cash -= price * vol</span>
+<span class="sd">        if sell: cash += price * vol</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">                :user: User object. This is also the owner of this position. Buying request</span>
+<span class="sd">                will be compared against user&#39;s quota.</span>
+<span class="sd">                :price: buying at price</span>
+<span class="sd">                :vol: buying vol</span>
+<span class="sd">                :source: used to track live trading. Not used.</span>
+<span class="sd">                :on_date: trading date. Not used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># new position = weighted avg</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="o">+</span>
+                         <span class="n">price</span> <span class="o">*</span> <span class="n">vol</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="o">+</span> <span class="n">vol</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">vol</span> <span class="o">+=</span> <span class="n">vol</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">is_open</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="n">on_date</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">open_date</span> <span class="o">=</span> <span class="n">on_date</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">open_date</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MyPosition.close"><a class="viewcode-back" href="../../stock.html#stock.forms.MyPosition.close">[docs]</a>    <span class="k">def</span> <span class="nf">close</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">price</span><span class="p">,</span> <span class="n">on_date</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Close position.</span>
+
+<span class="sd">        Closed price at requested price.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">                :price: selling price.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">close_position</span> <span class="o">=</span> <span class="n">price</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_open</span> <span class="o">=</span> <span class="bp">False</span>
+        <span class="k">if</span> <span class="n">on_date</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">close_date</span> <span class="o">=</span> <span class="n">on_date</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">close_date</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_life_in_days</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+    <span class="k">def</span> <span class="nf">_cost</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Cost to establish this position.</span>
+
+<span class="sd">        cost = position price * holding volume</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span>
+    <span class="n">cost</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_cost</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Realized gain/loss.</span>
+
+<span class="sd">        Profit/loss realized by holding this stock till closing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">close_position</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span>
+    <span class="n">gain</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_gain</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_potential_gain</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unrealized gain/loss.</span>
+
+<span class="sd">        Unrealized gain/loss is estimated by comparing</span>
+<span class="sd">        the last spot price over our initial position price.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">last</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span>
+    <span class="n">potential_gain</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_potential_gain</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_to_last_pcnt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Unrealized gain/loss in pcnt.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">last</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">position</span> <span class="o">*</span> <span class="mf">100.0</span>
+    <span class="n">to_last_pcnt</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_to_last_pcnt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_total</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Spot value.</span>
+
+<span class="sd">        Current position value based on the last spot price.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">last</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">vol</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_total</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_elapse_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stock&#39;s life in days as of now.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">date</span><span class="p">()</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">created</span><span class="o">.</span><span class="n">date</span><span class="p">())</span><span class="o">.</span><span class="n">days</span>
+    <span class="n">elapse_in_days</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_elapse_in_days</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_life_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Stock&#39;s life in days from its openning to closing.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_date</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">close_date</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">close_date</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">open_date</span><span class="p">)</span><span class="o">.</span><span class="n">days</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">last_updated_on</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">created</span><span class="p">)</span><span class="o">.</span><span class="n">days</span>
+    <span class="n">life_in_days</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_life_in_days</span><span class="p">)</span></div>
+
+
+<span class="nd">@receiver</span><span class="p">(</span><span class="n">pre_save</span><span class="p">,</span> <span class="n">sender</span><span class="o">=</span><span class="n">MyPosition</span><span class="p">)</span>
+<div class="viewcode-block" id="day_change_handler"><a class="viewcode-back" href="../../stock.html#stock.forms.day_change_handler">[docs]</a><span class="k">def</span> <span class="nf">day_change_handler</span><span class="p">(</span><span class="n">sender</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">instance</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;instance&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">close_date</span><span class="p">:</span>
+        <span class="n">instance</span><span class="o">.</span><span class="n">is_open</span> <span class="o">=</span> <span class="bp">False</span>
+    <span class="k">if</span> <span class="n">instance</span><span class="o">.</span><span class="n">is_open</span><span class="p">:</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="n">instance</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">stock</span><span class="o">.</span><span class="n">is_in_play</span><span class="p">:</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">is_in_play</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="MySimulationCondition"><a class="viewcode-back" href="../../stock.html#stock.forms.MySimulationCondition">[docs]</a><span class="k">class</span> <span class="nc">MySimulationCondition</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simulation condition model.</span>
+
+<span class="sd">    A simulation condition represents a particular</span>
+<span class="sd">    set of parameters that form the context of a simulation run,</span>
+<span class="sd">    eg. which data set to use, what date period to use,</span>
+<span class="sd">    how many capital to begin with, and how much</span>
+<span class="sd">    we want to spend per trade.</span>
+
+<span class="sd">    Fields:</span>
+<span class="sd">            :strategy: Defines which strategy one would</span>
+<span class="sd">                    use for a simulation run.</span>
+<span class="sd">                    S1 strategy calls for an index value precalculated based on</span>
+<span class="sd">                    certain algorithm and trade based; S2 is a buy low sell high strategy</span>
+<span class="sd">                    that will monitor a stock&#39;s open/close/spot to determine when to buy</span>
+<span class="sd">                    and when to sell.</span>
+<span class="sd">            :buy_cutoff: If a stock has dropped over buy_cutoff percentage,</span>
+<span class="sd">                    one buys this stock. This value has different meanings in </span>
+<span class="sd">                    different strategies. In S1, this is the cutoff band</span>
+<span class="sd">                    that has grouped stocked based on a pre-computed index value;</span>
+<span class="sd">                    in S2, this is daily drop %.</span>
+<span class="sd">            :sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff</span>
+<span class="sd">                    defines a percentage that one would close a position.</span>
+<span class="sd">                    In S1 this is the band when a stock falls outof a artificial band</span>
+<span class="sd">                    determined by a pre-computed index value; in S2 this is the </span>
+<span class="sd">                    percentage relative to the initial price at buying.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">DATA_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;S&amp;P500&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;CI00*&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">&quot;WIND 8821*&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="s2">&quot;China stock&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="s1">&#39;WIND 2nd-tier sector&#39;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">DATA_SORT_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;ascending&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;descending&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">STRATEGY_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;S1 (by ranking)&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;S2 (buy low sell high)&quot;</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">STRATEGY_VALUE_CHOICES</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;Daily return&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="s2">&quot;Relative (H,L)&quot;</span><span class="p">),</span>
+        <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Relative Moving Avg&#39;</span><span class="p">),</span>
+        <span class="c1"># (4, &#39;CCI&#39;),</span>
+        <span class="c1"># (5, &#39;SI&#39;),</span>
+        <span class="c1"># (6, &#39;Linear Reg Slope&#39;),</span>
+        <span class="c1"># (7, &#39;Decycler Oscillator&#39;),</span>
+    <span class="p">)</span>
+    <span class="n">data_source</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">DATA_CHOICES</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">sector</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span>
+        <span class="s1">&#39;MySector&#39;</span><span class="p">,</span>
+        <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Data source sector&#39;</span>
+    <span class="p">)</span>
+    <span class="n">strategy</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">STRATEGY_CHOICES</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span>
+    <span class="p">)</span>
+    <span class="n">strategy_value</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">STRATEGY_VALUE_CHOICES</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Strategy value&quot;</span>
+    <span class="p">)</span>
+    <span class="n">data_sort</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">choices</span><span class="o">=</span><span class="n">DATA_SORT_CHOICES</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Sort order&quot;</span>
+    <span class="p">)</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;2014-01-01&quot;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;Start date&#39;</span>
+    <span class="p">)</span>
+    <span class="n">end</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="s2">&quot;2014-01-10&quot;</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;End date&#39;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">capital</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Starting cash&quot;</span>
+    <span class="p">)</span>
+    <span class="n">per_trade</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">u&quot;Per trade amount&quot;</span>
+    <span class="p">)</span>
+    <span class="n">buy_cutoff</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">MaxValueValidator</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+            <span class="n">MinValueValidator</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">],</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">&quot;Buy cutoff (%)&quot;</span>
+    <span class="p">)</span>
+    <span class="n">sell_cutoff</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span>
+        <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">MaxValueValidator</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span>
+            <span class="n">MinValueValidator</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="p">],</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s2">&quot;Sell cutoff (%)&quot;</span>
+    <span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__unicode__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">sector</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">u&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%d</span><span class="s1">-</span><span class="si">%d</span><span class="s1">), </span><span class="si">%s</span><span class="s1"> - </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">sector</span><span class="o">.</span><span class="n">code</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">get_strategy_display</span><span class="p">(),</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">get_strategy_value_display</span><span class="p">(),</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">buy_cutoff</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">sell_cutoff</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
+                                                   <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1">-</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%d</span><span class="s1">-</span><span class="si">%d</span><span class="s1">), </span><span class="si">%s</span><span class="s1"> - </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_data_source_display</span><span class="p">(),</span>
+                                                  <span class="bp">self</span><span class="o">.</span><span class="n">get_strategy_display</span><span class="p">(),</span>
+                                                  <span class="bp">self</span><span class="o">.</span><span class="n">get_strategy_value_display</span><span class="p">(),</span>
+                                                  <span class="bp">self</span><span class="o">.</span><span class="n">buy_cutoff</span><span class="p">,</span>
+                                                  <span class="bp">self</span><span class="o">.</span><span class="n">sell_cutoff</span><span class="p">,</span>
+                                                  <span class="bp">self</span><span class="o">.</span><span class="n">start</span><span class="p">,</span>
+                                                  <span class="bp">self</span><span class="o">.</span><span class="n">end</span><span class="p">)</span>
+
+    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">unique_together</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;data_source&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;sector&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;strategy&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;strategy_value&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;data_sort&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;start&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;end&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;capital&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;per_trade&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;buy_cutoff&quot;</span><span class="p">,</span>
+                           <span class="s2">&quot;sell_cutoff&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MySimulationResult"><a class="viewcode-back" href="../../stock.html#stock.forms.MySimulationResult">[docs]</a><span class="k">class</span> <span class="nc">MySimulationResult</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Simulation result model.</span>
+
+<span class="sd">    This is a complex model because it will save the raw data</span>
+<span class="sd">    from a simulation run so we can replay the entire simulation</span>
+<span class="sd">    step by step.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">description</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()</span>
+    <span class="n">on_dates</span> <span class="o">=</span> <span class="n">JSONField</span><span class="p">()</span>  <span class="c1"># date range</span>
+    <span class="n">asset</span> <span class="o">=</span> <span class="n">JSONField</span><span class="p">()</span>  <span class="c1"># assets</span>
+    <span class="n">cash</span> <span class="o">=</span> <span class="n">JSONField</span><span class="p">()</span>  <span class="c1"># cash</span>
+    <span class="n">equity</span> <span class="o">=</span> <span class="n">JSONField</span><span class="p">()</span>
+    <span class="n">portfolio</span> <span class="o">=</span> <span class="n">JSONField</span><span class="p">()</span>
+    <span class="n">transaction</span> <span class="o">=</span> <span class="n">JSONField</span><span class="p">()</span>
+    <span class="n">snapshot</span> <span class="o">=</span> <span class="n">JSONField</span><span class="p">()</span>
+    <span class="n">condition</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">OneToOneField</span><span class="p">(</span><span class="s1">&#39;MySimulationCondition&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_num_of_buys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Total number of buys.</span>
+
+<span class="sd">        This is computed from individual buys.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;buy&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transaction</span><span class="p">])</span>
+    <span class="n">num_of_buys</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_num_of_buys</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_num_of_sells</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Total number of sells.</span>
+
+<span class="sd">        This is computed from individual sells.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sum</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">t</span><span class="p">[</span><span class="s1">&#39;sell&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">transaction</span><span class="p">])</span>
+    <span class="n">num_of_sells</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_num_of_sells</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset_daily_return</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;User asset&#39;s daily change in pcnt.</span>
+
+<span class="sd">        This index shows how a user&#39;s asset fluctuates from day to day</span>
+<span class="sd">        during simulation period.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset</span><span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset</span><span class="p">[</span><span class="n">x</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset</span><span class="p">))]</span>
+    <span class="n">asset_daily_return</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset_daily_return</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset_cumulative_return</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Measures daily asset&#39;s return over T0&#39;s.</span>
+
+<span class="sd">        This indes shows how assets swings comparing to simulation&#39;s T0.</span>
+<span class="sd">        This can be viewed as an overall performance indicator over time.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cumulative</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">t0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">asset</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">/</span> <span class="n">t0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset</span><span class="p">))]</span>
+    <span class="n">asset_cumulative_return</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset_cumulative_return</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset_end_return</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Last&#39;s day&#39;s cumulative return.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">asset_cumulative_return</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">asset_end_return</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset_end_return</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset_max_return</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Best return % during simulation period.</span>
+
+<span class="sd">        This indicator shows the maximum potential gain from</span>
+<span class="sd">        applied strategy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset_cumulative_return</span><span class="p">)</span>
+    <span class="n">asset_max_return</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset_max_return</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset_min_return</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Worst return rate during simulation period.</span>
+
+<span class="sd">        This shows the worst moment this strategy can yield.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset_cumulative_return</span><span class="p">)</span>
+    <span class="n">asset_min_return</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset_min_return</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset_cumulative_return_mean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Average gain.</span>
+
+<span class="sd">        Numeric mean of gains. This indicates the likely gain one can achieve </span>
+<span class="sd">        by applying this strategy.	</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset_cumulative_return</span><span class="p">)</span>
+    <span class="n">asset_cumulative_return_mean</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset_cumulative_return_mean</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_asset_cumulative_return_std</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Standard deviation of cumulative gains.</span>
+
+<span class="sd">        This measures the risk of applied strategy using cumulative gain data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">asset_cumulative_return</span><span class="p">)</span>
+    <span class="n">asset_cumulative_return_std</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_asset_cumulative_return_std</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_equity_portfolio_gain_pcnt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Equity gains from holding.</span>
+
+<span class="sd">        This tracks equity gains from holding a perticular stock,</span>
+<span class="sd">        not from trading it. It indicates</span>
+<span class="sd">        how well equities were performing. This is completely determined by</span>
+<span class="sd">        how well we picked stock, thus is a good indicator of applied strategy.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># We index [1:] so the pcnt is calculated using today&#39;s gain over</span>
+        <span class="c1"># yesterday&#39;s equity value</span>
+        <span class="n">valid_equity</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;equity&#39;</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;equity&#39;</span><span class="p">])]</span>
+        <span class="n">gain_from_hold</span> <span class="o">=</span> <span class="p">[]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;gain&#39;</span><span class="p">][</span><span class="s1">&#39;hold&#39;</span><span class="p">])</span>
+                               <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_equity</span><span class="p">)]]</span>
+        <span class="k">return</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="n">y</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="n">gain_from_hold</span><span class="p">,</span> <span class="n">valid_equity</span><span class="p">)</span>
+    <span class="n">equity_portfolio_gain_pcnt</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_equity_portfolio_gain_pcnt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_equity_trade_gain_pcnt</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Equity gains from trading.</span>
+
+<span class="sd">        This tracks gains from closing stocks based on applied strategy.</span>
+<span class="sd">        This is influenced by both stock picking strategy and </span>
+<span class="sd">        trading strategy. So it measures the effect of both.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># We index [1:] so the pcnt is calculated using today&#39;s gain over</span>
+        <span class="c1"># yesterday&#39;s equity value</span>
+        <span class="n">valid_equity</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;equity&#39;</span><span class="p">])</span>
+                        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;equity&#39;</span><span class="p">])]</span>
+        <span class="n">gain_from_sell</span> <span class="o">=</span> <span class="p">[]</span> <span class="o">+</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;gain&#39;</span><span class="p">][</span><span class="s1">&#39;sell&#39;</span><span class="p">])</span>
+                               <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">1</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_equity</span><span class="p">)]]</span>
+        <span class="k">return</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">/</span> <span class="n">y</span> <span class="o">*</span> <span class="mi">100</span><span class="p">,</span> <span class="n">gain_from_sell</span><span class="p">,</span> <span class="n">valid_equity</span><span class="p">)</span>
+    <span class="n">equity_trade_gain_pcnt</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_equity_trade_gain_pcnt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_equity_portfolio_life_in_days</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Equity life in days.</span>
+
+<span class="sd">        We want to measure how long we usually hold a position. One strategy</span>
+<span class="sd">        is to dictate how long we can hold a position.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">life_in_days</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;gain&#39;</span><span class="p">][</span><span class="s1">&#39;sell&#39;</span><span class="p">][</span><span class="s1">&#39;life_in_days&#39;</span><span class="p">]</span>
+                        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="s1">&#39;gain&#39;</span><span class="p">][</span><span class="s1">&#39;sell&#39;</span><span class="p">])]</span>
+        <span class="n">life_in_days</span> <span class="o">=</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="p">[]</span> <span class="o">+</span> <span class="n">x</span><span class="p">,</span> <span class="n">life_in_days</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">life_in_days</span><span class="p">),</span> <span class="nb">min</span><span class="p">(</span><span class="n">life_in_days</span><span class="p">),</span> <span class="n">mean</span><span class="p">(</span><span class="n">life_in_days</span><span class="p">))</span>
+    <span class="n">equity_portfolio_life_in_days</span> <span class="o">=</span> <span class="nb">property</span><span class="p">(</span><span class="n">_equity_portfolio_life_in_days</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MyChenmin"><a class="viewcode-back" href="../../stock.html#stock.forms.MyChenmin">[docs]</a><span class="k">class</span> <span class="nc">MyChenmin</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Transient model.</span>
+
+<span class="sd">    Used to import initial data.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">executed_on</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;发生日期&#39;</span>
+    <span class="p">)</span>
+    <span class="n">symbol</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;证券代码&#39;</span>
+    <span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;证券名称&#39;</span>
+    <span class="p">)</span>
+    <span class="n">transaction_type</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span>
+        <span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;摘要&#39;</span>
+    <span class="p">)</span>
+    <span class="n">price</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">FloatField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;成交价格&#39;</span>
+    <span class="p">)</span>
+    <span class="n">vol</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;成交股数&#39;</span>
+    <span class="p">)</span>
+    <span class="n">total</span> <span class="o">=</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">u&#39;成交金额&#39;</span>
+    <span class="p">)</span></div>
+
+
+<span class="c1">######################################################</span>
+<span class="c1">#</span>
+<span class="c1">#	RESTful API endpoints</span>
+<span class="c1">#</span>
+<span class="c1">#####################################################</span>
+<span class="kn">from</span> <span class="nn">rest_framework</span> <span class="kn">import</span> <span class="n">serializers</span><span class="p">,</span> <span class="n">viewsets</span><span class="p">,</span> <span class="n">filters</span>
+
+<span class="c1"># Serializers define the API representation.</span>
+
+
+<div class="viewcode-block" id="MyStockSerializer"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStockSerializer">[docs]</a><span class="k">class</span> <span class="nc">MyStockSerializer</span><span class="p">(</span><span class="n">serializers</span><span class="o">.</span><span class="n">HyperlinkedModelSerializer</span><span class="p">):</span>
+
+<div class="viewcode-block" id="MyStockSerializer.Meta"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStockSerializer.Meta">[docs]</a>    <span class="k">class</span> <span class="nc">Meta</span><span class="p">:</span>
+        <span class="n">model</span> <span class="o">=</span> <span class="n">MyStock</span></div></div>
+
+<span class="c1"># ViewSets define the view behavior.</span>
+
+
+<div class="viewcode-block" id="MyStockViewSet"><a class="viewcode-back" href="../../stock.html#stock.forms.MyStockViewSet">[docs]</a><span class="k">class</span> <span class="nc">MyStockViewSet</span><span class="p">(</span><span class="n">viewsets</span><span class="o">.</span><span class="n">ModelViewSet</span><span class="p">):</span>
+    <span class="n">queryset</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+    <span class="n">serializer_class</span> <span class="o">=</span> <span class="n">MyStockSerializer</span>
+    <span class="n">filter_backends</span> <span class="o">=</span> <span class="p">(</span><span class="n">filters</span><span class="o">.</span><span class="n">DjangoFilterBackend</span><span class="p">,)</span>
+    <span class="n">filter_fields</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

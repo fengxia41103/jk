@@ -1,0 +1,508 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.simulations &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for stock.simulations</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">OrderedDict</span>
+<span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">stock.models</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="MySimulation"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulation">[docs]</a><span class="k">class</span> <span class="nc">MySimulation</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract model.</span>
+
+<span class="sd">    This model defines a common simulation run framework. All strategies</span>
+<span class="sd">    will use the same structure in 3 steps:</span>
+<span class="sd">            # get raw data</span>
+<span class="sd">            # simulate</span>
+<span class="sd">            # record transactions</span>
+
+<span class="sd">    The difference of strategies lie in the actual</span>
+<span class="sd">    implementation of &quot;buy&quot; and &quot;sell&quot;. Therefore, new simulation simply</span>
+<span class="sd">    inherit this class and define two functions: &quot;buy&quot; and &quot;sell&quot;.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">simulation</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trading_cost</span> <span class="o">=</span> <span class="mf">0.003</span>  <span class="c1"># 0.3% of buying amount</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">user</span> <span class="o">=</span> <span class="n">user</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span> <span class="o">=</span> <span class="n">simulation</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span> <span class="o">=</span> <span class="n">OrderedDict</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">capital</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">capital</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">per_trade</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">per_trade</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">buy_cutoff</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">buy_cutoff</span> <span class="o">/</span> <span class="mf">100.0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">sell_cutoff</span> <span class="o">=</span> <span class="n">simulation</span><span class="o">.</span><span class="n">sell_cutoff</span> <span class="o">/</span> <span class="mf">100.0</span>
+
+        <span class="c1"># clear previous-run positions</span>
+        <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">simulation</span><span class="o">=</span><span class="n">simulation</span><span class="p">)</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MySimulation.setup"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulation.setup">[docs]</a>    <span class="k">def</span> <span class="nf">setup</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Setup date set.</span>
+
+<span class="sd">        Return:</span>
+<span class="sd">                :boolean: False if there is not enough historical data for this simulation.</span>
+<span class="sd">                        Most likely this is caused when date ranges requested is out of sync</span>
+<span class="sd">                        with background data feeder. True otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">index_val_mapping</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;daily_return&#39;</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;relative_hl&#39;</span><span class="p">,</span>
+            <span class="mi">3</span><span class="p">:</span> <span class="s1">&#39;relative_ma&#39;</span><span class="p">,</span>
+            <span class="mi">4</span><span class="p">:</span> <span class="s1">&#39;cci&#39;</span><span class="p">,</span>
+            <span class="mi">5</span><span class="p">:</span> <span class="s1">&#39;si&#39;</span><span class="p">,</span>
+            <span class="mi">6</span><span class="p">:</span> <span class="s1">&#39;lg_slope&#39;</span><span class="p">,</span>
+            <span class="mi">7</span><span class="p">:</span> <span class="s1">&#39;decycler_oscillator&#39;</span>
+        <span class="p">}</span>
+
+        <span class="c1"># control variables</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">start</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">end</span>
+        <span class="n">strategy_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">strategy_value</span>
+
+        <span class="c1"># sample set</span>
+        <span class="n">data_source</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">data_source</span>
+        <span class="n">sector</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">sector</span>
+        <span class="n">stocks</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="n">data_source</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">is_sp500</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_source</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">symbol__startswith</span><span class="o">=</span><span class="s2">&quot;CI00&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_source</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">symbol__startswith</span><span class="o">=</span><span class="s2">&quot;8821&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_source</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">stocks</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">is_china_stock</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">data_source</span> <span class="o">==</span> <span class="mi">5</span> <span class="ow">and</span> <span class="n">sector</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">MySector</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">code__startswith</span><span class="o">=</span><span class="n">sector</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">stock</span> <span class="ow">in</span> <span class="n">s</span><span class="o">.</span><span class="n">stocks</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;8821&#39;</span><span class="p">):</span>
+                        <span class="k">continue</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">stocks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stock</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+        <span class="n">histories</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">select_related</span><span class="p">()</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stock__in</span><span class="o">=</span><span class="n">stocks</span><span class="p">,</span> <span class="n">date_stamp__range</span><span class="o">=</span><span class="p">[</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">])</span><span class="o">.</span><span class="n">values</span><span class="p">(</span>
+            <span class="s1">&#39;stock&#39;</span><span class="p">,</span> <span class="s1">&#39;stock__symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;date_stamp&#39;</span><span class="p">,</span> <span class="s1">&#39;open_price&#39;</span><span class="p">,</span> <span class="s1">&#39;close_price&#39;</span><span class="p">,</span> <span class="s1">&#39;adj_close&#39;</span><span class="p">,</span> <span class="s1">&#39;relative_hl&#39;</span><span class="p">,</span> <span class="s1">&#39;daily_return&#39;</span><span class="p">,</span> <span class="s1">&#39;val_by_strategy&#39;</span><span class="p">,</span> <span class="s1">&#39;relative_ma&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">len</span><span class="p">(</span><span class="n">histories</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">False</span>
+
+        <span class="c1"># dates</span>
+        <span class="n">dates</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span><span class="n">h</span><span class="p">[</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">histories</span><span class="p">]))</span>
+        <span class="n">dates</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">dates</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">end</span> <span class="o">=</span> <span class="n">dates</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># reconstruct historicals by dates</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">histories</span><span class="p">:</span>
+            <span class="n">on_date</span> <span class="o">=</span> <span class="n">h</span><span class="p">[</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">on_date</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="n">h</span><span class="p">[</span><span class="s1">&#39;stock__symbol&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="n">h</span>
+
+        <span class="k">for</span> <span class="n">on_date</span> <span class="ow">in</span> <span class="n">dates</span><span class="p">:</span>
+            <span class="n">his_by_symbol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;Strategy S1.</span>
+
+<span class="sd">                We sort stocks by pre-computed index value and then group</span>
+<span class="sd">                stocks into bands. Bands are defined by buy_cutoff and sell_cutoff.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">tmp</span> <span class="o">=</span> <span class="p">[(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">h</span><span class="p">[</span><span class="n">index_val_mapping</span><span class="p">[</span><span class="n">strategy_value</span><span class="p">]])</span>
+                       <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">his_by_symbol</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()]</span>
+                <span class="n">symbols_by_rank</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span>
+                    <span class="n">tmp</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">data_sort</span> <span class="o">==</span> <span class="mi">1</span><span class="p">))]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">on_date</span><span class="p">,</span> <span class="n">symbols_by_rank</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="o">.</span><span class="n">strategy</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                <span class="sd">&quot;&quot;&quot;Strategy S2.</span>
+
+<span class="sd">                Buy low sell high. We don&#39;t need to sort.</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">symbols</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbol</span> <span class="k">for</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">his_by_symbol</span><span class="o">.</span><span class="n">iteritems</span><span class="p">()]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">on_date</span><span class="p">,</span> <span class="n">symbols</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">True</span></div>
+
+<div class="viewcode-block" id="MySimulation.run"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># set up data points</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">setup</span><span class="p">():</span>
+            <span class="k">return</span>
+
+        <span class="c1"># asset simulation result</span>
+        <span class="n">assets</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">equity</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">cash</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># trading</span>
+        <span class="k">for</span> <span class="n">on_date</span><span class="p">,</span> <span class="n">symbols_by_rank</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span>
+            <span class="k">print</span> <span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span> <span class="n">on_date</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="bp">None</span>
+            <span class="n">total_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols_by_rank</span><span class="p">)</span>
+
+            <span class="c1"># record transactions</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s1">&#39;cash&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;equity&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;asset&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+                <span class="s1">&#39;portfolio&#39;</span><span class="p">:</span> <span class="p">[],</span>
+                <span class="s1">&#39;transaction&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;buy&#39;</span><span class="p">:</span> <span class="p">[],</span> <span class="s1">&#39;sell&#39;</span><span class="p">:</span> <span class="p">[]},</span>
+                <span class="s1">&#39;gain&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;hold&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;sell&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">}</span>
+            <span class="p">}</span>
+
+            <span class="c1"># Since we are computing daily return using</span>
+            <span class="c1"># the daily CLOSE price, but exiting at next day&#39;s OPEN price.</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">buy</span><span class="p">(</span><span class="n">on_date</span><span class="p">,</span> <span class="n">symbols_by_rank</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">sell</span><span class="p">(</span><span class="n">on_date</span><span class="p">,</span> <span class="n">symbols_by_rank</span><span class="p">)</span>
+
+            <span class="c1"># compute equity, cash, asset</span>
+            <span class="n">positions</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+                <span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values</span><span class="p">(</span><span class="s1">&#39;stock__symbol&#39;</span><span class="p">,</span> <span class="s1">&#39;position&#39;</span><span class="p">,</span> <span class="s1">&#39;vol&#39;</span><span class="p">)</span>
+            <span class="n">temp</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;stock__symbol&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">]:</span>
+                    <span class="c1"># if symbol&#39;s historicals are missing for some reason</span>
+                    <span class="c1"># eg. stopped trading on that day, company got bought,</span>
+                    <span class="c1"># this would result some open position at the end of</span>
+                    <span class="c1"># portfolio</span>
+                    <span class="n">his</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;stock__symbol&#39;</span><span class="p">]]</span>
+
+                    <span class="c1"># we compute equity value based on daily close price</span>
+                    <span class="k">if</span> <span class="s1">&#39;adj_close&#39;</span> <span class="ow">in</span> <span class="n">his</span> <span class="ow">and</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span>
+                    <span class="k">elif</span> <span class="s1">&#39;close_price&#39;</span> <span class="ow">in</span> <span class="n">his</span> <span class="ow">and</span> <span class="s1">&#39;close_price&#39;</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;close_price&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># we don&#39;t have a close value, use cost</span>
+                        <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;position&#39;</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># ERROR: stock symbol is missing from historical data.</span>
+                    <span class="c1"># Either we have not got all historicals yet, or the data</span>
+                    <span class="c1"># source is not good enough.</span>
+                    <span class="k">print</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;stock__symbol&#39;</span><span class="p">],</span> <span class="s1">&#39;not in historical!&#39;</span>
+                    <span class="k">continue</span>
+
+                <span class="c1"># record the spot equity value</span>
+                <span class="n">temp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">simulated_spot</span><span class="p">)</span>
+
+                <span class="c1"># compute gain/loss of the holding portfolio</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;gain&#39;</span><span class="p">][</span>
+                    <span class="s1">&#39;hold&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;vol&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">simulated_spot</span> <span class="o">-</span> <span class="n">p</span><span class="p">[</span><span class="s1">&#39;position&#39;</span><span class="p">])</span>
+
+            <span class="c1"># record equity, cash and asset on that date</span>
+            <span class="n">equity</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">temp</span><span class="p">)</span>
+            <span class="n">cash</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">capital</span>
+            <span class="n">assets</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span> <span class="o">=</span> <span class="n">equity</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span> <span class="o">+</span> <span class="n">cash</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span>
+
+            <span class="c1"># snapshot so we could replay the entire trading history</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;cash&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">cash</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;equity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">equity</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;asset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">assets</span><span class="p">[</span><span class="n">on_date</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;portfolio&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">positions</span><span class="p">)</span>
+
+        <span class="c1"># These data are simply extracted from self.data for</span>
+        <span class="c1"># purpose of easier graph drawing later in view.</span>
+        <span class="n">on_dates</span> <span class="o">=</span> <span class="p">[</span><span class="n">on_date</span> <span class="k">for</span> <span class="n">on_date</span><span class="p">,</span> <span class="n">symbols</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">]</span>
+        <span class="n">cashes</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">cash</span><span class="p">[</span><span class="n">d</span><span class="p">])</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">on_dates</span><span class="p">]</span>
+        <span class="n">equities</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">equity</span><span class="p">[</span><span class="n">d</span><span class="p">])</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">on_dates</span><span class="p">]</span>
+        <span class="n">assets</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">assets</span><span class="p">[</span><span class="n">d</span><span class="p">])</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">on_dates</span><span class="p">]</span>
+        <span class="n">portfolios</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">d</span><span class="p">][</span><span class="s1">&#39;portfolio&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">on_dates</span><span class="p">]</span>
+        <span class="n">transactions</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">d</span><span class="p">][</span><span class="s1">&#39;transaction&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">on_dates</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;on_dates&#39;</span><span class="p">:</span> <span class="n">on_dates</span><span class="p">,</span>
+                <span class="s1">&#39;cashes&#39;</span><span class="p">:</span> <span class="n">cashes</span><span class="p">,</span>
+                <span class="s1">&#39;equities&#39;</span><span class="p">:</span> <span class="n">equities</span><span class="p">,</span>
+                <span class="s1">&#39;assets&#39;</span><span class="p">:</span> <span class="n">assets</span><span class="p">,</span>
+                <span class="s1">&#39;portfolios&#39;</span><span class="p">:</span> <span class="n">portfolios</span><span class="p">,</span>
+                <span class="s1">&#39;transactions&#39;</span><span class="p">:</span> <span class="n">transactions</span><span class="p">,</span>
+                <span class="s1">&#39;snapshots&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span>
+                <span class="p">}</span></div>
+
+<div class="viewcode-block" id="MySimulation.buy"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulation.buy">[docs]</a>    <span class="k">def</span> <span class="nf">buy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Children class should override this function</span>
+<span class="sd">        to define its own buy actions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="MySimulation.sell"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulation.sell">[docs]</a>    <span class="k">def</span> <span class="nf">sell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Children class should override this function</span>
+<span class="sd">        to define its own sell actions.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="MySimulationAlpha"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulationAlpha">[docs]</a><span class="k">class</span> <span class="nc">MySimulationAlpha</span><span class="p">(</span><span class="n">MySimulation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Trading strategy:</span>
+
+<span class="sd">    1. Stocks are ranked by a pre-calculated index value</span>
+<span class="sd">    2. Buy stocks whose rank is above the buy_cutoff band, eg. if buy_cutoff = 0.25 and total samples = 20, buy if rank &lt;= 0.25*20=5</span>
+<span class="sd">    3. Sell stocks when it falls out the sell_cutoff band, eg. if sell_cutoff = 0.75 and total samples = 20, sell if rank &gt;= (1-0.75)*20 = 5</span>
+
+<span class="sd">    We simulate trades based on this strategy, then monitor the porfolio value (equity+cash).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">simulation</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MySimulationAlpha</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">simulation</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MySimulationAlpha.sell"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulationAlpha.sell">[docs]</a>    <span class="k">def</span> <span class="nf">sell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">on_date</span><span class="p">,</span> <span class="n">symbols</span><span class="p">):</span>
+        <span class="n">total_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+        <span class="c1"># sell if outside sell_cutoff</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span>
+            <span class="s2">&quot;stock__symbol&quot;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+
+        <span class="c1"># In this strategy, buy_cutoff defines the starting index,</span>
+        <span class="c1"># sell_cutoff defines the ending index. Everything outside this band is</span>
+        <span class="c1"># a sell.</span>
+        <span class="n">start_cutoff</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">total_symbols</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">buy_cutoff</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">end_cutoff</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_symbols</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sell_cutoff</span><span class="p">)</span>
+        <span class="n">buys</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">[</span><span class="n">start_cutoff</span><span class="p">:</span><span class="n">end_cutoff</span><span class="p">]</span>
+        <span class="n">sells</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">buys</span><span class="p">,</span> <span class="n">symbols</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">sells</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">symbol</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">:</span>
+                <span class="c1"># print &#39;symbol not in positions&#39;</span>
+                <span class="k">continue</span>  <span class="c1"># not an open position, next</span>
+            <span class="k">if</span> <span class="n">symbol</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">]:</span>
+                <span class="c1"># print &#39;symbol not in historical&#39;</span>
+                <span class="k">continue</span>  <span class="c1"># stock stopped trading?</span>
+
+            <span class="n">his</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="n">symbol</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;adj_close&#39;</span> <span class="ow">in</span> <span class="n">his</span> <span class="ow">and</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s1">&#39;close_price&#39;</span> <span class="ow">in</span> <span class="n">his</span> <span class="ow">and</span> <span class="s1">&#39;close_price&#39;</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;close_price&#39;</span><span class="p">]</span>
+
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                <span class="n">stock__symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span> <span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">simulated_spot</span><span class="p">,</span> <span class="n">on_date</span><span class="o">=</span><span class="n">on_date</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">capital</span> <span class="o">+=</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span> <span class="n">simulated_spot</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;transaction&#39;</span><span class="p">][</span><span class="s1">&#39;sell&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+                <span class="s1">&#39;position&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
+                <span class="s1">&#39;close_position&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">close_position</span><span class="p">,</span>
+                <span class="s1">&#39;gain&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span>
+                <span class="s1">&#39;life_in_days&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">life_in_days</span><span class="p">,</span>
+                <span class="s1">&#39;vol&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span>
+            <span class="p">})</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;gain&#39;</span><span class="p">][</span><span class="s1">&#39;sell&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">pos</span><span class="o">.</span><span class="n">gain</span></div>
+            <span class="c1"># print &#39;close: &#39;,symbol,self.capital</span>
+
+<div class="viewcode-block" id="MySimulationAlpha.buy"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulationAlpha.buy">[docs]</a>    <span class="k">def</span> <span class="nf">buy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">on_date</span><span class="p">,</span> <span class="n">symbols</span><span class="p">):</span>
+        <span class="n">total_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span>
+            <span class="s2">&quot;stock__symbol&quot;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+
+        <span class="c1"># In this strategy, buy_cutoff defines the starting index,</span>
+        <span class="c1"># sell_cutoff defines the ending index. Everything within this band is</span>
+        <span class="c1"># a buy.</span>
+        <span class="n">start_cutoff</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">total_symbols</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">buy_cutoff</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">end_cutoff</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">total_symbols</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">sell_cutoff</span><span class="p">)</span>
+        <span class="n">buys</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">[</span><span class="n">start_cutoff</span><span class="p">:</span><span class="n">end_cutoff</span><span class="p">]</span>
+        <span class="n">sells</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">buys</span><span class="p">,</span> <span class="n">symbols</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">buys</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># already in portfolio, hold</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">capital</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_trade</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># not enough fund</span>
+            <span class="k">if</span> <span class="n">symbol</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">]:</span>
+                <span class="k">continue</span>  <span class="c1"># stock stopped trading?</span>
+
+            <span class="c1"># we buy, assuming knowing the ranking based on OPEN price</span>
+            <span class="c1"># so we buy at CLOSE on that date</span>
+            <span class="n">his</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="n">symbol</span><span class="p">]</span>
+            <span class="k">if</span> <span class="s1">&#39;adj_close&#39;</span> <span class="ow">in</span> <span class="n">his</span> <span class="ow">and</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s1">&#39;close_price&#39;</span> <span class="ow">in</span> <span class="n">his</span><span class="p">:</span>
+                <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;close_price&#39;</span><span class="p">]</span>
+
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="p">(</span>
+                <span class="n">stock</span><span class="o">=</span><span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">his</span><span class="p">[</span><span class="s1">&#39;stock&#39;</span><span class="p">])),</span>
+                <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+                <span class="n">position</span><span class="o">=</span><span class="n">simulated_spot</span><span class="p">,</span>  <span class="c1"># buy</span>
+                <span class="n">vol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">per_trade</span> <span class="o">/</span> <span class="n">simulated_spot</span><span class="p">,</span>
+                <span class="n">open_date</span><span class="o">=</span><span class="n">on_date</span><span class="p">,</span>
+                <span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span>
+                <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">capital</span> <span class="o">-=</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span> <span class="n">pos</span><span class="o">.</span><span class="n">position</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;transaction&#39;</span><span class="p">][</span><span class="s1">&#39;buy&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
+                <span class="s1">&#39;position&#39;</span><span class="p">:</span> <span class="n">simulated_spot</span><span class="p">,</span>
+                <span class="s1">&#39;vol&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span>
+            <span class="p">})</span></div></div>
+            <span class="c1"># print &#39;create: &#39;,symbol, self.capital</span>
+
+
+<div class="viewcode-block" id="MySimulationJK"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulationJK">[docs]</a><span class="k">class</span> <span class="nc">MySimulationJK</span><span class="p">(</span><span class="n">MySimulation</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Trading strategy:</span>
+
+<span class="sd">    1. Stocks are ranked by one-day change percentage. If pcnt &lt; 0, price has dropped. The bigger the drop, the higher the rank.</span>
+<span class="sd">    2. Buy stocks whose rank is above the buy_cutoff band, eg. if cutoff = 0.25 and total samples = 20, buy if rank &lt;= 0.25*20=5</span>
+<span class="sd">    3. Sell if stock&#39;s price has recovered more than sell_cutoff, eg. if cutoff = 0.25 and position @ 100, selll if new price &gt;= 100*(1+0.25)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">simulation</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MySimulationJK</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">simulation</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MySimulationJK.sell"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulationJK.sell">[docs]</a>    <span class="k">def</span> <span class="nf">sell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">on_date</span><span class="p">,</span> <span class="n">symbols</span><span class="p">):</span>
+        <span class="n">total_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+        <span class="c1"># sell if outside sell_cutoff</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">:</span>
+            <span class="c1"># TODO: don&#39;t know why a symbol could stop showing up</span>
+            <span class="c1"># in historicals. To protect such case, we put a line here.</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">]:</span>
+                <span class="k">continue</span>
+
+            <span class="n">his</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="n">p</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="p">]</span>
+            <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;open_price&#39;</span><span class="p">]</span>  <span class="c1"># assume we are selling at open</span>
+
+            <span class="c1"># for example, if sell_cutoff = 0.1,</span>
+            <span class="c1"># we sell if daily spot is greater than 110% of our cost</span>
+            <span class="k">if</span> <span class="n">simulated_spot</span> <span class="o">&gt;=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">sell_cutoff</span><span class="p">)</span> <span class="o">*</span> <span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">position</span><span class="p">):</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span> <span class="n">simulated_spot</span><span class="p">,</span> <span class="n">on_date</span><span class="o">=</span><span class="n">on_date</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">capital</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span> <span class="n">simulated_spot</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;transaction&#39;</span><span class="p">][</span><span class="s1">&#39;sell&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                    <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">stock</span><span class="o">.</span><span class="n">symbol</span><span class="p">,</span>
+                    <span class="s1">&#39;position&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">position</span><span class="p">,</span>
+                    <span class="s1">&#39;close_position&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">close_position</span><span class="p">,</span>
+                    <span class="s1">&#39;gain&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">gain</span><span class="p">,</span>
+                    <span class="s1">&#39;life_in_days&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">life_in_days</span><span class="p">,</span>
+                    <span class="s1">&#39;vol&#39;</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">vol</span>
+                <span class="p">})</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;gain&#39;</span><span class="p">][</span><span class="s1">&#39;sell&#39;</span><span class="p">]</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">gain</span></div>
+                <span class="c1"># print &#39;close: &#39;,symbol,self.capital</span>
+
+<div class="viewcode-block" id="MySimulationJK.buy"><a class="viewcode-back" href="../../stock.html#stock.simulations.MySimulationJK.buy">[docs]</a>    <span class="k">def</span> <span class="nf">buy</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">on_date</span><span class="p">,</span> <span class="n">symbols</span><span class="p">):</span>
+        <span class="n">total_symbols</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+        <span class="c1"># buy if within buy_cutoff</span>
+        <span class="n">positions</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">,</span> <span class="n">is_open</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span>
+            <span class="s2">&quot;stock__symbol&quot;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)</span><span class="o">.</span><span class="n">distinct</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">symbols</span><span class="p">:</span>
+            <span class="c1"># already in portfolio, hold</span>
+            <span class="k">if</span> <span class="n">symbol</span> <span class="ow">in</span> <span class="n">positions</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># not enough fund</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">capital</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_trade</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="c1"># if buy_cutoff = 0.04,</span>
+            <span class="c1">#   - if daily_return &gt; -0.04, we skip</span>
+            <span class="c1">#   - if one day drop greater than 4%, we buy</span>
+            <span class="n">his</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">historicals</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="n">symbol</span><span class="p">]</span>
+            <span class="n">daily_return</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;daily_return&#39;</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">daily_return</span> <span class="o">&gt;</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">buy_cutoff</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="k">if</span> <span class="s1">&#39;adj_close&#39;</span> <span class="ow">in</span> <span class="n">his</span> <span class="ow">and</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;adj_close&#39;</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="s1">&#39;close_price&#39;</span> <span class="ow">in</span> <span class="n">his</span><span class="p">:</span>
+                <span class="n">simulated_spot</span> <span class="o">=</span> <span class="n">his</span><span class="p">[</span><span class="s1">&#39;close_price&#39;</span><span class="p">]</span>
+
+            <span class="n">pos</span> <span class="o">=</span> <span class="n">MyPosition</span><span class="p">(</span>
+                <span class="n">stock</span><span class="o">=</span><span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">his</span><span class="p">[</span><span class="s1">&#39;stock&#39;</span><span class="p">])),</span>
+                <span class="n">user</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">user</span><span class="p">,</span>
+                <span class="n">position</span><span class="o">=</span><span class="n">simulated_spot</span><span class="p">,</span>  <span class="c1"># buy</span>
+                <span class="n">vol</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">per_trade</span> <span class="o">/</span> <span class="n">simulated_spot</span><span class="p">,</span>
+                <span class="n">open_date</span><span class="o">=</span><span class="n">on_date</span><span class="p">,</span>
+                <span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">simulation</span><span class="p">)</span>
+            <span class="n">pos</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">capital</span> <span class="o">-=</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span> <span class="o">*</span> <span class="n">pos</span><span class="o">.</span><span class="n">position</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">snapshot</span><span class="p">[</span><span class="n">on_date</span><span class="p">][</span><span class="s1">&#39;transaction&#39;</span><span class="p">][</span><span class="s1">&#39;buy&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+                <span class="s1">&#39;symbol&#39;</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
+                <span class="s1">&#39;position&#39;</span><span class="p">:</span> <span class="n">simulated_spot</span><span class="p">,</span>
+                <span class="s1">&#39;vol&#39;</span><span class="p">:</span> <span class="n">pos</span><span class="o">.</span><span class="n">vol</span>
+            <span class="p">})</span></div></div>
+            <span class="c1"># print &#39;create: &#39;,symbol, self.capital</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

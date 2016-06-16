@@ -1,0 +1,1129 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.tasks &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for stock.tasks</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+
+<span class="kn">from</span> <span class="nn">celery</span> <span class="kn">import</span> <span class="n">shared_task</span>
+
+<span class="kn">import</span> <span class="nn">lxml.html</span>
+<span class="kn">import</span> <span class="nn">simplejson</span> <span class="kn">as</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">pytz</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">randint</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+<span class="kn">import</span> <span class="nn">urllib2</span>
+<span class="kn">from</span> <span class="nn">tempfile</span> <span class="kn">import</span> <span class="n">NamedTemporaryFile</span>
+<span class="kn">from</span> <span class="nn">django.core.files</span> <span class="kn">import</span> <span class="n">File</span>
+<span class="kn">from</span> <span class="nn">django.contrib.auth.models</span> <span class="kn">import</span> <span class="n">User</span>
+
+<span class="kn">import</span> <span class="nn">codecs</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support.ui</span> <span class="kn">import</span> <span class="n">WebDriverWait</span>  <span class="c1"># available since 2.4.0</span>
+<span class="c1"># available since 2.26.0</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support</span> <span class="kn">import</span> <span class="n">expected_conditions</span> <span class="k">as</span> <span class="n">EC</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.common.keys</span> <span class="kn">import</span> <span class="n">Keys</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.common.by</span> <span class="kn">import</span> <span class="n">By</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">cPickle</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">timedelta</span>
+<span class="kn">import</span> <span class="nn">datetime</span> <span class="kn">as</span> <span class="nn">dt</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">izip_longest</span>
+<span class="kn">from</span> <span class="nn">lxml.html.clean</span> <span class="kn">import</span> <span class="n">clean_html</span>
+<span class="kn">from</span> <span class="nn">math</span> <span class="kn">import</span> <span class="n">cos</span><span class="p">,</span> <span class="n">sin</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">stats</span>
+
+<span class="kn">from</span> <span class="nn">jk.tor_handler</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">stock.models</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">stock.simulations</span> <span class="kn">import</span> <span class="o">*</span>
+
+<span class="c1"># create logger with &#39;spam_application&#39;</span>
+<span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+<span class="n">logger</span><span class="o">.</span><span class="n">setLevel</span><span class="p">(</span><span class="n">logging</span><span class="o">.</span><span class="n">DEBUG</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="grouper"><a class="viewcode-back" href="../../stock.html#stock.tasks.grouper">[docs]</a><span class="k">def</span> <span class="nf">grouper</span><span class="p">(</span><span class="n">iterable</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">padvalue</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+    <span class="c1"># grouper(&#39;abcdefg&#39;, 3, &#39;x&#39;) --&gt; (&#39;a&#39;,&#39;b&#39;,&#39;c&#39;), (&#39;d&#39;,&#39;e&#39;,&#39;f&#39;),</span>
+    <span class="c1"># (&#39;g&#39;,&#39;x&#39;,&#39;x&#39;)</span>
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="n">izip_longest</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="nb">iter</span><span class="p">(</span><span class="n">iterable</span><span class="p">)]</span> <span class="o">*</span> <span class="n">n</span><span class="p">,</span> <span class="n">fillvalue</span><span class="o">=</span><span class="n">padvalue</span><span class="p">))</span></div>
+
+<span class="kn">from</span> <span class="nn">selenium.common.exceptions</span> <span class="kn">import</span> <span class="n">TimeoutException</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support.ui</span> <span class="kn">import</span> <span class="n">WebDriverWait</span>  <span class="c1"># available since 2.4.0</span>
+<span class="c1"># available since 2.26.0</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support</span> <span class="kn">import</span> <span class="n">expected_conditions</span> <span class="k">as</span> <span class="n">EC</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.common.keys</span> <span class="kn">import</span> <span class="n">Keys</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.common.by</span> <span class="kn">import</span> <span class="n">By</span>
+<span class="kn">from</span> <span class="nn">selenium.webdriver.support.select</span> <span class="kn">import</span> <span class="n">Select</span>
+<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">shuffle</span>
+<span class="kn">from</span> <span class="nn">decimal</span> <span class="kn">import</span> <span class="n">Decimal</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+<span class="kn">import</span> <span class="nn">StringIO</span>
+<span class="kn">from</span> <span class="nn">dateutil.relativedelta</span> <span class="kn">import</span> <span class="n">relativedelta</span>
+
+
+<div class="viewcode-block" id="MyStockFlagSP500"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockFlagSP500">[docs]</a><span class="k">class</span> <span class="nc">MyStockFlagSP500</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockFlagSP500.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockFlagSP500.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># clear is_sp500 flag</span>
+        <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">is_sp500</span> <span class="o">=</span> <span class="bp">False</span>
+            <span class="n">s</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv&#39;</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="c1"># self.logger.debug(content)</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">index</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">3</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] error, </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+                <span class="k">continue</span>
+
+            <span class="n">stock</span><span class="p">,</span> <span class="n">created</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get_or_create</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">is_sp500</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">sector</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_flag_sp500_consumer</span><span class="p">():</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockFlagSP500</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="MyStockPrevYahoo"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevYahoo">[docs]</a><span class="k">class</span> <span class="nc">MyStockPrevYahoo</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockPrevYahoo.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevYahoo.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="c1"># https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">ago</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="mi">7</span><span class="p">)</span>
+
+        <span class="n">date_str</span> <span class="o">=</span> <span class="s1">&#39;a=</span><span class="si">%d</span><span class="s1">&amp;b=</span><span class="si">%d</span><span class="s1">&amp;c=</span><span class="si">%d%%</span><span class="s1">20&amp;d=</span><span class="si">%d</span><span class="s1">&amp;e=</span><span class="si">%d</span><span class="s1">&amp;f=</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">now</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://ichart.yahoo.com/table.csv?s=</span><span class="si">%s</span><span class="s1">&amp;</span><span class="si">%s</span><span class="s1">&amp;g=d&amp;ignore=.csv&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">symbol</span><span class="p">,</span> <span class="n">date_str</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] error, </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+            <span class="k">elif</span> <span class="s1">&#39;Open&#39;</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">continue</span>  <span class="c1"># title line</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">prev_open</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">prev_high</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">prev_low</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">prev_close</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">prev_change</span> <span class="o">=</span> <span class="p">(</span>
+                    <span class="n">stock</span><span class="o">.</span><span class="n">prev_open</span> <span class="o">-</span> <span class="n">stock</span><span class="o">.</span><span class="n">prev_close</span><span class="p">)</span> <span class="o">/</span> <span class="n">stock</span><span class="o">.</span><span class="n">prev_open</span> <span class="o">*</span> <span class="n">Decimal</span><span class="p">(</span><span class="mf">100.0</span><span class="p">)</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span>
+                <span class="k">break</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_prev_yahoo_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockPrevYahoo</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockPrevWeekYahoo"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevWeekYahoo">[docs]</a><span class="k">class</span> <span class="nc">MyStockPrevWeekYahoo</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockPrevWeekYahoo.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevWeekYahoo.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="c1"># https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">ago</span> <span class="o">=</span> <span class="n">now</span> <span class="o">-</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">weeks</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">date_str</span> <span class="o">=</span> <span class="s1">&#39;a=</span><span class="si">%d</span><span class="s1">&amp;b=</span><span class="si">%d</span><span class="s1">&amp;c=</span><span class="si">%d%%</span><span class="s1">20&amp;d=</span><span class="si">%d</span><span class="s1">&amp;e=</span><span class="si">%d</span><span class="s1">&amp;f=</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">ago</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://ichart.yahoo.com/table.csv?s=</span><span class="si">%s</span><span class="s1">&amp;</span><span class="si">%s</span><span class="s1">&amp;g=d&amp;ignore=.csv&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">symbol</span><span class="p">,</span> <span class="n">date_str</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">adj_close</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">cnt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] error, </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+            <span class="k">elif</span> <span class="s1">&#39;Adj&#39;</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">cnt</span> <span class="o">&lt;</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="n">adj_close</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">cnt</span> <span class="o">&gt;=</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># persist</span>
+        <span class="n">stock</span><span class="o">.</span><span class="n">week_adjusted_close</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">adj_close</span><span class="p">)))</span>
+        <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_prev_week_yahoo_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockPrevWeekYahoo</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockPrevMonthYahoo"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevMonthYahoo">[docs]</a><span class="k">class</span> <span class="nc">MyStockPrevMonthYahoo</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockPrevMonthYahoo.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevMonthYahoo.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="c1"># https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">ago</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="n">months</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="n">date_str</span> <span class="o">=</span> <span class="s1">&#39;a=</span><span class="si">%d</span><span class="s1">&amp;b=</span><span class="si">%d</span><span class="s1">&amp;c=</span><span class="si">%d%%</span><span class="s1">20&amp;d=</span><span class="si">%d</span><span class="s1">&amp;e=</span><span class="si">%d</span><span class="s1">&amp;f=</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">ago</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://ichart.yahoo.com/table.csv?s=</span><span class="si">%s</span><span class="s1">&amp;</span><span class="si">%s</span><span class="s1">&amp;g=w&amp;ignore=.csv&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">symbol</span><span class="p">,</span> <span class="n">date_str</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">adj_close</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">f</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">cnt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] error, </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+            <span class="k">elif</span> <span class="s1">&#39;Adj&#39;</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="n">cnt</span> <span class="o">&lt;</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="n">adj_close</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">cnt</span> <span class="o">&gt;=</span> <span class="mi">4</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="c1"># persist</span>
+        <span class="n">stock</span><span class="o">.</span><span class="n">month_adjusted_close</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">adj_close</span><span class="p">)))</span>
+        <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_prev_month_yahoo_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockPrevMonthYahoo</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockPrevFibYahoo"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevFibYahoo">[docs]</a><span class="k">class</span> <span class="nc">MyStockPrevFibYahoo</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockPrevFibYahoo.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockPrevFibYahoo.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">fib</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">13</span><span class="p">,</span> <span class="mi">21</span><span class="p">,</span> <span class="mi">34</span><span class="p">,</span> <span class="mi">55</span><span class="p">,</span> <span class="mi">89</span><span class="p">,</span> <span class="mi">144</span><span class="p">,</span> <span class="mi">233</span><span class="p">,</span> <span class="mi">377</span><span class="p">]</span>
+        <span class="n">fib_ratio</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="o">/</span> <span class="mi">100</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">23.6</span><span class="p">,</span>
+                                       <span class="mf">38.2</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">61.8</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span> <span class="mf">161.8</span><span class="p">,</span> <span class="mf">261.8</span><span class="p">,</span> <span class="mf">423.6</span><span class="p">]]</span>
+
+        <span class="c1"># https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">ago</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="n">months</span><span class="o">=-</span><span class="mi">180</span><span class="p">)</span>
+
+        <span class="n">date_str</span> <span class="o">=</span> <span class="s1">&#39;a=</span><span class="si">%d</span><span class="s1">&amp;b=</span><span class="si">%d</span><span class="s1">&amp;c=</span><span class="si">%d%%</span><span class="s1">20&amp;d=</span><span class="si">%d</span><span class="s1">&amp;e=</span><span class="si">%d</span><span class="s1">&amp;f=</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">ago</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">interval</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]:</span>
+            <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://ichart.yahoo.com/table.csv?s=</span><span class="si">%s</span><span class="s1">&amp;</span><span class="si">%s</span><span class="s1">&amp;g=</span><span class="si">%s</span><span class="s1">&amp;ignore=.csv&#39;</span> <span class="o">%</span> <span class="p">(</span>
+                <span class="n">symbol</span><span class="p">,</span> <span class="n">date_str</span><span class="p">,</span> <span class="n">interval</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+            <span class="n">adj_close</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="n">f</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+            <span class="k">for</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] error, </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+                <span class="k">elif</span> <span class="s1">&#39;Adj&#39;</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="k">continue</span>
+                <span class="k">elif</span> <span class="n">cnt</span> <span class="ow">in</span> <span class="n">fib</span><span class="p">:</span>
+                    <span class="n">adj_close</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="n">cnt</span> <span class="o">&gt;</span> <span class="n">fib</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="k">break</span>  <span class="c1"># no more need</span>
+
+            <span class="c1"># compute diff = T(n+1)-T(n)</span>
+            <span class="n">adj_close</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">reversed</span><span class="p">(</span><span class="n">adj_close</span><span class="p">))</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">float</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">adj_close</span><span class="p">]</span>
+            <span class="n">tmp</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span> <span class="o">-</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tmp</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="n">tmp</span><span class="p">)]</span>
+            <span class="c1"># persist</span>
+            <span class="k">if</span> <span class="n">interval</span> <span class="o">==</span> <span class="s1">&#39;w&#39;</span><span class="p">:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">fib_weekly_adjusted_close</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">adj_close</span><span class="p">)</span>
+
+                <span class="n">stock</span><span class="o">.</span><span class="n">fib_weekly_score</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">fib_ratio</span><span class="p">)])</span>
+            <span class="k">elif</span> <span class="n">interval</span> <span class="o">==</span> <span class="s1">&#39;d&#39;</span><span class="p">:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">fib_daily_adjusted_close</span> <span class="o">=</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">adj_close</span><span class="p">)</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">fib_daily_score</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                    <span class="p">[</span><span class="n">a</span> <span class="o">*</span> <span class="n">b</span> <span class="k">for</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">tmp</span><span class="p">,</span> <span class="n">fib_ratio</span><span class="p">)])</span>
+
+            <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_prev_fib_yahoo_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockPrevFibYahoo</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockHistoricalYahoo"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockHistoricalYahoo">[docs]</a><span class="k">class</span> <span class="nc">MyStockHistoricalYahoo</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockHistoricalYahoo.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockHistoricalYahoo.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">his</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">)</span><span class="o">.</span><span class="n">values_list</span><span class="p">(</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">,</span> <span class="n">flat</span><span class="o">=</span><span class="bp">True</span><span class="p">)]</span>
+
+        <span class="c1"># https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload</span>
+        <span class="n">now</span> <span class="o">=</span> <span class="n">dt</span><span class="o">.</span><span class="n">now</span><span class="p">()</span>
+        <span class="n">ago</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="n">months</span><span class="o">=-</span><span class="mi">180</span><span class="p">)</span>  <span class="c1"># 180 months = 15 yrs</span>
+
+        <span class="n">date_str</span> <span class="o">=</span> <span class="s1">&#39;a=</span><span class="si">%d</span><span class="s1">&amp;b=</span><span class="si">%d</span><span class="s1">&amp;c=</span><span class="si">%d%%</span><span class="s1">20&amp;d=</span><span class="si">%d</span><span class="s1">&amp;e=</span><span class="si">%d</span><span class="s1">&amp;f=</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">ago</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">ago</span><span class="o">.</span><span class="n">year</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">month</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">day</span><span class="p">,</span> <span class="n">now</span><span class="o">.</span><span class="n">year</span><span class="p">)</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://ichart.yahoo.com/table.csv?s=</span><span class="si">%s</span><span class="s1">&amp;</span><span class="si">%s</span><span class="s1">&amp;g=d&amp;ignore=.csv&#39;</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">symbol</span><span class="p">,</span> <span class="n">date_str</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">vals</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">vals</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># protect from blank line or invalid symbol, eg. China stock symbols</span>
+            <span class="c1"># any empty string, None will be skipped</span>
+            <span class="k">elif</span> <span class="ow">not</span> <span class="nb">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="ow">and</span> <span class="n">y</span><span class="p">,</span> <span class="n">vals</span><span class="p">):</span> <span class="k">continue</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">7</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] error, </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+                <span class="k">continue</span>
+            <span class="k">elif</span> <span class="s1">&#39;Adj&#39;</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="k">continue</span>
+
+            <span class="n">stamp</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)]</span>
+            <span class="n">date_stamp</span> <span class="o">=</span> <span class="n">dt</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">stamp</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">month</span><span class="o">=</span><span class="n">stamp</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">day</span><span class="o">=</span><span class="n">stamp</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="c1"># # exist = MyStockHistorical.objects.filter(stock=stock,date_stamp=date_stamp)</span>
+
+            <span class="c1"># if len(exist): continue</span>
+            <span class="k">if</span> <span class="n">date_stamp</span><span class="o">.</span><span class="n">date</span><span class="p">()</span><span class="o">.</span><span class="n">isoformat</span><span class="p">()</span> <span class="ow">in</span> <span class="n">his</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># we already have these</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">open_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">open_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">high_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">high_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">low_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">low_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">close_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">close_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">vol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1000.0</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">vol</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">adj_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="n">adj_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                <span class="n">h</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="p">(</span>
+                    <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span>
+                    <span class="n">date_stamp</span><span class="o">=</span><span class="n">date_stamp</span><span class="p">,</span>
+                    <span class="n">open_price</span><span class="o">=</span><span class="n">open_p</span><span class="p">,</span>
+                    <span class="n">high_price</span><span class="o">=</span><span class="n">high_p</span><span class="p">,</span>
+                    <span class="n">low_price</span><span class="o">=</span><span class="n">low_p</span><span class="p">,</span>
+                    <span class="n">close_price</span><span class="o">=</span><span class="n">close_p</span><span class="p">,</span>
+                    <span class="n">vol</span><span class="o">=</span><span class="n">vol</span><span class="p">,</span>
+                    <span class="n">adj_close</span><span class="o">=</span><span class="n">adj_p</span>
+                <span class="p">)</span>
+                <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1000</span><span class="p">:</span>
+                    <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+                    <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># persist</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_historical_yahoo_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockHistoricalYahoo</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockMonitorYahoo"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockMonitorYahoo">[docs]</a><span class="k">class</span> <span class="nc">MyStockMonitorYahoo</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockMonitorYahoo.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockMonitorYahoo.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">):</span>
+        <span class="c1"># https://greenido.wordpress.com/2009/12/22/yahoo-finance-hidden-api/</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://finance.yahoo.com/d/quotes.csv?s=</span><span class="si">%s</span><span class="s1">&amp;f=srpoabvf6ml1n&#39;</span> <span class="o">%</span> <span class="n">symbols</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="c1"># self.logger.debug(content)</span>
+
+        <span class="n">f</span> <span class="o">=</span> <span class="n">StringIO</span><span class="o">.</span><span class="n">StringIO</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">csv</span><span class="o">.</span><span class="n">reader</span><span class="p">(</span><span class="n">f</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">11</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] error, </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)))</span>
+                <span class="k">continue</span>
+
+            <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">pe</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="c1"># at least we want the daily open</span>
+            <span class="k">if</span> <span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;N/A&#39;</span><span class="p">:</span>
+                <span class="k">continue</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">day_open</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">ask</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">bid</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>
+
+            <span class="n">stock</span><span class="o">.</span><span class="n">vol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span> <span class="o">/</span> <span class="mf">1000.0</span>
+
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">float_share</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="o">/</span> <span class="mi">1000000</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="k">pass</span>  <span class="c1"># could be N/A</span>
+
+            <span class="k">if</span> <span class="s1">&#39;-&#39;</span> <span class="ow">in</span> <span class="n">vals</span><span class="p">[</span><span class="mi">8</span><span class="p">]:</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">day_low</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">stock</span><span class="o">.</span><span class="n">day_high</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">8</span><span class="p">]</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+
+            <span class="n">stock</span><span class="o">.</span><span class="n">last</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">company_name</span> <span class="o">=</span> <span class="n">vals</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">vals</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_monitor_yahoo_consumer</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockMonitorYahoo</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockMonitorYahoo2"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockMonitorYahoo2">[docs]</a><span class="k">class</span> <span class="nc">MyStockMonitorYahoo2</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">handler</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span> <span class="o">=</span> <span class="n">handler</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">agent</span> <span class="o">=</span> <span class="n">handler</span><span class="o">.</span><span class="n">agent</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockMonitorYahoo2.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockMonitorYahoo2.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbols</span><span class="p">):</span>
+        <span class="n">url</span> <span class="o">=</span> <span class="s1">&#39;http://finance.yahoo.com/webservice/v1/symbols/</span><span class="si">%s</span><span class="s1">/quote?format=json&amp;view=detail&#39;</span> <span class="o">%</span> <span class="n">symbols</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">http_handler</span><span class="o">.</span><span class="n">request</span><span class="p">(</span><span class="n">url</span><span class="p">)</span>
+        <span class="n">content</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">content</span><span class="p">[</span><span class="s1">&#39;list&#39;</span><span class="p">][</span><span class="s1">&#39;resources&#39;</span><span class="p">]:</span>
+            <span class="n">fields</span> <span class="o">=</span> <span class="n">r</span><span class="p">[</span><span class="s1">&#39;resource&#39;</span><span class="p">][</span><span class="s1">&#39;fields&#39;</span><span class="p">]</span>
+            <span class="n">symbol</span> <span class="o">=</span> <span class="n">fields</span><span class="p">[</span><span class="s1">&#39;symbol&#39;</span><span class="p">]</span>
+            <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">last</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">fields</span><span class="p">[</span><span class="s1">&#39;price&#39;</span><span class="p">])</span>
+
+            <span class="c1"># last update time</span>
+            <span class="n">stock</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;[</span><span class="si">%s</span><span class="s1">] complete&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">stock_monitor_yahoo_consumer2</span><span class="p">(</span><span class="n">symbols</span><span class="p">):</span>
+    <span class="n">http_agent</span> <span class="o">=</span> <span class="n">PlainUtility</span><span class="p">()</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockMonitorYahoo2</span><span class="p">(</span><span class="n">http_agent</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbols</span><span class="p">)</span>
+
+<span class="kn">import</span> <span class="nn">xlrd</span>
+<span class="kn">import</span> <span class="nn">xlwt</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">os.path</span>
+
+
+<div class="viewcode-block" id="MyImportChinaStock"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyImportChinaStock">[docs]</a><span class="k">class</span> <span class="nc">MyImportChinaStock</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyImportChinaStock.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyImportChinaStock.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">val_list</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;processing </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span>
+        <span class="n">stock</span> <span class="o">=</span> <span class="n">MyStock</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span>
+        <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">cnt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">val_list</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">vals</span> <span class="ow">in</span> <span class="n">val_list</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;wrong length </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">vals</span><span class="p">))</span>
+
+            <span class="n">exec_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+            <span class="n">date_stamp</span> <span class="o">=</span> <span class="n">dt</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">][:</span><span class="mi">4</span><span class="p">]),</span> <span class="n">month</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span>
+                <span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">4</span><span class="p">:</span><span class="mi">6</span><span class="p">]),</span> <span class="n">day</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">:]))</span>
+            <span class="n">open_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+            <span class="n">high_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+            <span class="n">low_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">close_p</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">vol</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">amount</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span> <span class="o">*</span> <span class="n">Decimal</span><span class="p">(</span><span class="mf">10.0</span><span class="p">)</span>
+            <span class="n">adj</span> <span class="o">=</span> <span class="n">Decimal</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+            <span class="n">status</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">vals</span><span class="p">[</span><span class="mi">9</span><span class="p">])</span>
+
+            <span class="n">h</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="p">(</span>
+                <span class="n">stock</span><span class="o">=</span><span class="n">stock</span><span class="p">,</span>
+                <span class="n">date_stamp</span><span class="o">=</span><span class="n">date_stamp</span><span class="p">,</span>
+                <span class="n">open_price</span><span class="o">=</span><span class="n">open_p</span><span class="p">,</span>
+                <span class="n">high_price</span><span class="o">=</span><span class="n">high_p</span><span class="p">,</span>
+                <span class="n">low_price</span><span class="o">=</span><span class="n">low_p</span><span class="p">,</span>
+                <span class="n">close_price</span><span class="o">=</span><span class="n">close_p</span><span class="p">,</span>
+                <span class="n">vol</span><span class="o">=</span><span class="n">vol</span><span class="p">,</span>
+                <span class="n">amount</span><span class="o">=</span><span class="n">amount</span><span class="p">,</span>
+                <span class="n">status</span><span class="o">=</span><span class="n">status</span><span class="p">,</span>
+
+                <span class="c1"># adjusted values</span>
+                <span class="n">adj_open</span><span class="o">=</span><span class="n">open_p</span> <span class="o">*</span> <span class="n">adj</span><span class="p">,</span>
+                <span class="n">adj_high</span><span class="o">=</span><span class="n">high_p</span> <span class="o">*</span> <span class="n">adj</span><span class="p">,</span>
+                <span class="n">adj_low</span><span class="o">=</span><span class="n">low_p</span> <span class="o">*</span> <span class="n">adj</span><span class="p">,</span>
+                <span class="n">adj_close</span><span class="o">=</span><span class="n">close_p</span> <span class="o">*</span> <span class="n">adj</span><span class="p">,</span>
+            <span class="p">)</span>
+            <span class="n">records</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1000</span><span class="p">:</span>
+                <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+                <span class="n">cnt</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+                <span class="n">records</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> inserted </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">cnt</span><span class="p">,</span> <span class="n">total</span><span class="p">))</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">):</span>
+            <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">bulk_create</span><span class="p">(</span><span class="n">records</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> elapse </span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">exec_start</span><span class="p">))</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">import_china_stock_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">val_list</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyImportChinaStock</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">val_list</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyChenMin"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyChenMin">[docs]</a><span class="k">class</span> <span class="nc">MyChenMin</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyChenMin.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyChenMin.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">output</span><span class="o">=</span><span class="bp">None</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">book</span> <span class="o">=</span> <span class="n">xlrd</span><span class="o">.</span><span class="n">open_workbook</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> error&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">sh</span> <span class="o">=</span> <span class="n">book</span><span class="o">.</span><span class="n">sheet_by_index</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">sh</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s1">u&#39;账户对账单&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># range for 账户对账单</span>
+        <span class="n">first_col_vals</span> <span class="o">=</span> <span class="p">[</span><span class="n">sh</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">rowx</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">colx</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sh</span><span class="o">.</span><span class="n">nrows</span><span class="p">)]</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="n">end</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">first_col_vals</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">u&#39;对帐单&#39;</span><span class="p">:</span>
+                <span class="n">start</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="k">if</span> <span class="n">val</span> <span class="o">==</span> <span class="s1">u&#39;当日持仓清单&#39;</span><span class="p">:</span>
+                <span class="n">end</span> <span class="o">=</span> <span class="n">idx</span>
+            <span class="k">if</span> <span class="n">start</span> <span class="ow">and</span> <span class="n">end</span><span class="p">:</span>
+                <span class="k">break</span>
+
+        <span class="n">vals</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">xrange</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">):</span>
+            <span class="n">vals</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">sh</span><span class="o">.</span><span class="n">cell_value</span><span class="p">(</span><span class="n">rowx</span><span class="o">=</span><span class="n">row</span><span class="p">,</span> <span class="n">colx</span><span class="o">=</span><span class="n">c</span><span class="p">)</span>
+                         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">sh</span><span class="o">.</span><span class="n">ncols</span><span class="p">)])</span>
+
+        <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="s1">u&#39;20&#39;</span> <span class="ow">in</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vals</span><span class="p">):</span>
+            <span class="n">symbol</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+            <span class="n">transaction_type</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">price</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">7</span><span class="p">])</span>
+            <span class="n">vol</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+            <span class="n">total</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">8</span><span class="p">])</span>
+            <span class="n">name</span> <span class="o">=</span> <span class="n">row</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span>
+
+            <span class="c1"># timestamp</span>
+            <span class="n">yr</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">4</span><span class="p">])</span>
+            <span class="n">m</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">5</span><span class="p">:</span><span class="mi">6</span><span class="p">])</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">row</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="o">-</span><span class="mi">2</span><span class="p">:])</span>
+            <span class="n">executed_on</span> <span class="o">=</span> <span class="n">dt</span><span class="p">(</span><span class="n">year</span><span class="o">=</span><span class="n">yr</span><span class="p">,</span> <span class="n">month</span><span class="o">=</span><span class="n">m</span><span class="p">,</span> <span class="n">day</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+
+            <span class="n">c</span> <span class="o">=</span> <span class="n">MyChenmin</span><span class="p">(</span>
+                <span class="n">executed_on</span><span class="o">=</span><span class="n">executed_on</span><span class="p">,</span>
+                <span class="n">transaction_type</span><span class="o">=</span><span class="n">transaction_type</span><span class="p">,</span>
+                <span class="n">symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">price</span><span class="o">=</span><span class="n">price</span><span class="p">,</span>
+                <span class="n">vol</span><span class="o">=</span><span class="n">vol</span><span class="p">,</span>
+                <span class="n">total</span><span class="o">=</span><span class="n">total</span>
+            <span class="p">)</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done&#39;</span> <span class="o">%</span> <span class="n">f</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">chenmin_consumer</span><span class="p">(</span><span class="n">files</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyChenMin</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">files</span><span class="p">)</span>
+
+<span class="kn">from</span> <span class="nn">influxdb.influxdb08</span> <span class="kn">import</span> <span class="n">InfluxDBClient</span>
+<span class="kn">import</span> <span class="nn">time</span>
+
+
+<div class="viewcode-block" id="MyStockInflux"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockInflux">[docs]</a><span class="k">class</span> <span class="nc">MyStockInflux</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+        <span class="n">db_name</span> <span class="o">=</span> <span class="s1">&#39;stock&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span> <span class="o">=</span> <span class="n">InfluxDBClient</span><span class="p">(</span>
+            <span class="s1">&#39;localhost&#39;</span><span class="p">,</span> <span class="mi">8086</span><span class="p">,</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="s1">&#39;root&#39;</span><span class="p">,</span> <span class="n">db_name</span><span class="p">)</span>
+        <span class="c1"># all_dbs_list = self.client.get_list_database()</span>
+        <span class="c1"># that list comes back like: [{u&#39;name&#39;: u&#39;hello_world&#39;}]</span>
+        <span class="c1"># if db_name not in [str    (x[&#39;name&#39;]) for x in all_dbs_list]:</span>
+        <span class="c1"># 	print &quot;Creating db {0}&quot;.format(db_name)</span>
+        <span class="c1"># 	self.client.create_database(db_name)</span>
+        <span class="c1"># else:</span>
+        <span class="c1"># 	print &quot;Reusing db {0}&quot;.format(db_name)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">switch_db</span><span class="p">(</span><span class="n">db_name</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockInflux.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockInflux.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="n">points</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">h</span> <span class="ow">in</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stock__symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">):</span>
+            <span class="n">points</span> <span class="o">=</span> <span class="p">[[</span><span class="n">h</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">h</span><span class="o">.</span><span class="n">date_stamp</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s1">&#39;%Y-%m-</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">),</span> <span class="n">time</span><span class="o">.</span><span class="n">mktime</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">date_stamp</span><span class="o">.</span><span class="n">timetuple</span><span class="p">()),</span> <span class="nb">float</span><span class="p">(</span>
+                <span class="n">h</span><span class="o">.</span><span class="n">open_price</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">high_price</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">low_price</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">close_price</span><span class="p">),</span> <span class="nb">float</span><span class="p">(</span><span class="n">h</span><span class="o">.</span><span class="n">adj_close</span><span class="p">),</span> <span class="n">h</span><span class="o">.</span><span class="n">vol</span><span class="p">]]</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">write_points</span><span class="p">([{</span>
+                <span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">symbol</span><span class="p">,</span>
+                <span class="s1">&#39;columns&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="s1">&#39;date&#39;</span><span class="p">,</span> <span class="s1">&#39;time&#39;</span><span class="p">,</span> <span class="s1">&#39;open&#39;</span><span class="p">,</span> <span class="s1">&#39;high&#39;</span><span class="p">,</span> <span class="s1">&#39;low&#39;</span><span class="p">,</span> <span class="s1">&#39;close&#39;</span><span class="p">,</span> <span class="s1">&#39;adj_close&#39;</span><span class="p">,</span> <span class="s1">&#39;vol&#39;</span><span class="p">],</span>
+                <span class="s1">&#39;points&#39;</span><span class="p">:</span><span class="n">points</span>
+            <span class="p">}],</span> <span class="n">time_precision</span><span class="o">=</span><span class="s1">&#39;s&#39;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> completed&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">influx_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockInflux</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockBacktesting_1"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockBacktesting_1">[docs]</a><span class="k">class</span> <span class="nc">MyStockBacktesting_1</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockBacktesting_1.parser"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockBacktesting_1.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> starting&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span>
+        <span class="n">exec_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="n">records</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">stock__symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">)</span>
+
+        <span class="c1"># The starting point is depending on how much past data your strategy is calling for.</span>
+        <span class="c1"># For example, if we are to calculate 10 weeks of fib score, we need at</span>
+        <span class="c1"># least 10 weeks of history data.</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="k">if</span> <span class="n">start</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: not enough data&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">t0</span> <span class="o">=</span> <span class="bp">None</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)))</span>
+            <span class="n">prev_d</span> <span class="o">=</span> <span class="n">records</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># set T0</span>
+            <span class="n">now</span> <span class="o">=</span> <span class="n">t0</span><span class="o">.</span><span class="n">date_stamp</span>
+
+            <span class="c1"># day changes</span>
+            <span class="c1"># simulate a middle point between high and low as spot</span>
+            <span class="n">spot</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">t0</span><span class="o">.</span><span class="n">high_price</span> <span class="o">+</span> <span class="n">t0</span><span class="o">.</span><span class="n">low_price</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+            <span class="n">oneday_change</span> <span class="o">=</span> <span class="p">(</span><span class="n">spot</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">t0</span><span class="o">.</span><span class="n">open_price</span><span class="p">))</span> <span class="o">/</span> \
+                <span class="nb">float</span><span class="p">(</span><span class="n">t0</span><span class="o">.</span><span class="n">open_price</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+            <span class="n">twoday_change</span> <span class="o">=</span> <span class="p">(</span><span class="n">spot</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">prev_d</span><span class="o">.</span><span class="n">open_price</span><span class="p">))</span> <span class="o">/</span> \
+                <span class="nb">float</span><span class="p">(</span><span class="n">prev_d</span><span class="o">.</span><span class="n">open_price</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+
+            <span class="c1"># week changes</span>
+            <span class="n">ago</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=-</span><span class="mi">5</span><span class="p">)</span>  <span class="c1"># search for last week&#39;s</span>
+            <span class="n">prev_week</span> <span class="o">=</span> <span class="n">records</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stock</span><span class="o">=</span><span class="n">t0</span><span class="o">.</span><span class="n">stock</span><span class="p">,</span> <span class="n">date_stamp</span><span class="o">=</span><span class="n">ago</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">prev_week</span><span class="p">:</span>
+                <span class="n">prev_week</span> <span class="o">=</span> <span class="n">prev_week</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># not enough data points for this strategy</span>
+            <span class="n">week_change</span> <span class="o">=</span> <span class="p">(</span><span class="n">spot</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">prev_week</span><span class="o">.</span><span class="n">open_price</span><span class="p">))</span> <span class="o">/</span> \
+                <span class="nb">float</span><span class="p">(</span><span class="n">prev_week</span><span class="o">.</span><span class="n">open_price</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+
+            <span class="c1"># month changes</span>
+            <span class="n">ago</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="n">relativedelta</span><span class="p">(</span><span class="n">months</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># search for last month&#39;s</span>
+            <span class="n">prev_mon</span> <span class="o">=</span> <span class="n">records</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">stock</span><span class="o">=</span><span class="n">t0</span><span class="o">.</span><span class="n">stock</span><span class="p">,</span> <span class="n">date_stamp</span><span class="o">=</span><span class="n">ago</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">prev_mon</span><span class="p">:</span>
+                <span class="n">prev_mon</span> <span class="o">=</span> <span class="n">prev_mon</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">continue</span>  <span class="c1"># not enough data points for this strategy</span>
+            <span class="n">month_change</span> <span class="o">=</span> <span class="p">(</span><span class="n">spot</span> <span class="o">-</span> <span class="nb">float</span><span class="p">(</span><span class="n">prev_mon</span><span class="o">.</span><span class="n">open_price</span><span class="p">))</span> <span class="o">/</span> \
+                <span class="nb">float</span><span class="p">(</span><span class="n">prev_mon</span><span class="o">.</span><span class="n">open_price</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
+
+            <span class="c1"># consistency</span>
+            <span class="k">if</span> <span class="n">oneday_change</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">twoday_change</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">week_change</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">month_change</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">trend_is_consistent_gain</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">trend_is_consistent_gain</span> <span class="o">=</span> <span class="bp">False</span>
+
+            <span class="k">if</span> <span class="n">oneday_change</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">twoday_change</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">week_change</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">month_change</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">trend_is_consistent_loss</span> <span class="o">=</span> <span class="bp">True</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">trend_is_consistent_loss</span> <span class="o">=</span> <span class="bp">False</span>
+
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">			Strategy: marked as &quot;G&quot; if trend is consistently gaining, &quot;L&quot; if consistently losing, &quot;U&quot; if otherwise.</span>
+<span class="sd">			&quot;&quot;&quot;</span>
+            <span class="k">if</span> <span class="n">trend_is_consistent_gain</span><span class="p">:</span>
+                <span class="n">t0</span><span class="o">.</span><span class="n">flag_by_strategy</span> <span class="o">=</span> <span class="s1">&#39;G&#39;</span>  <span class="c1"># &quot;gain&quot;</span>
+            <span class="k">elif</span> <span class="n">trend_is_consistent_loss</span><span class="p">:</span>
+                <span class="n">t0</span><span class="o">.</span><span class="n">flag_by_strategy</span> <span class="o">=</span> <span class="s1">&#39;L&#39;</span>  <span class="c1"># &quot;loss&quot;</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">t0</span><span class="o">.</span><span class="n">flag_by_strategy</span> <span class="o">=</span> <span class="s1">&#39;U&#39;</span>  <span class="c1"># stands for &quot;unknown&quot;</span>
+
+            <span class="c1"># save to DB</span>
+            <span class="n">t0</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> completed, elapse </span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span>
+                          <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">exec_start</span><span class="p">))</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_s1_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockBacktesting_1</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">parser</span><span class="p">(</span><span class="n">symbol</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockBacktestingSimulation"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockBacktestingSimulation">[docs]</a><span class="k">class</span> <span class="nc">MyStockBacktestingSimulation</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">condition</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+        <span class="c1"># Model MySimulation is not json-able,</span>
+        <span class="c1"># so we are passing it over as python pickle, so cool!</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">condition</span> <span class="o">=</span> <span class="n">cPickle</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">condition</span><span class="p">))</span>
+
+<div class="viewcode-block" id="MyStockBacktestingSimulation.run"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockBacktestingSimulation.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_update</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Simulation run.</span>
+
+<span class="sd">        Arguments:</span>
+<span class="sd">                :is_update: True if we are to remove existing simulation results and run</span>
+<span class="sd">                        simulation from scratch; False will exit if there are existing results already</span>
+<span class="sd">                        so we don&#39;t run the same simulation twice.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># pick a user</span>
+        <span class="n">user</span> <span class="o">=</span> <span class="n">User</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">all</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># simulate</span>
+        <span class="n">existing_results</span> <span class="o">=</span> <span class="n">MySimulationResult</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">condition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">is_update</span><span class="p">:</span>
+            <span class="n">existing_results</span><span class="o">.</span><span class="n">delete</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">existing_results</span><span class="p">):</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> simulation starting&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">)</span>
+
+        <span class="c1"># simulate tradings</span>
+        <span class="n">exec_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+        <span class="n">simulation_methods</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="mi">1</span><span class="p">:</span> <span class="s1">&#39;MySimulationAlpha&#39;</span><span class="p">,</span>
+            <span class="mi">2</span><span class="p">:</span> <span class="s1">&#39;MySimulationJK&#39;</span>
+        <span class="p">}</span>
+        <span class="n">trading_method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">modules</span><span class="p">[</span><span class="n">__name__</span><span class="p">],</span> <span class="n">simulation_methods</span><span class="p">[</span>
+                                 <span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="o">.</span><span class="n">strategy</span><span class="p">])</span>
+        <span class="n">simulator</span> <span class="o">=</span> <span class="n">trading_method</span><span class="p">(</span><span class="n">user</span><span class="p">,</span> <span class="n">simulation</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">)</span>
+        <span class="n">simulations</span> <span class="o">=</span> <span class="n">simulator</span><span class="o">.</span><span class="n">run</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">simulations</span><span class="p">:</span>
+            <span class="c1"># if None, we had no data to run this simulation</span>
+            <span class="k">return</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39; </span><span class="si">%s</span><span class="s1"> simulation end </span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span>
+                          <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">exec_start</span><span class="p">))</span>
+
+        <span class="c1"># Save simulation result</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">MySimulationResult</span><span class="p">(</span>
+            <span class="n">description</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+            <span class="n">condition</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">condition</span><span class="p">,</span>
+            <span class="n">on_dates</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">simulations</span><span class="p">[</span><span class="s1">&#39;on_dates&#39;</span><span class="p">]),</span>
+            <span class="n">asset</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">simulations</span><span class="p">[</span><span class="s1">&#39;assets&#39;</span><span class="p">]),</span>
+            <span class="n">cash</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">simulations</span><span class="p">[</span><span class="s1">&#39;cashes&#39;</span><span class="p">]),</span>
+            <span class="n">equity</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">simulations</span><span class="p">[</span><span class="s1">&#39;equities&#39;</span><span class="p">]),</span>
+            <span class="n">portfolio</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">simulations</span><span class="p">[</span><span class="s1">&#39;portfolios&#39;</span><span class="p">]),</span>
+            <span class="n">transaction</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">simulations</span><span class="p">[</span><span class="s1">&#39;transactions&#39;</span><span class="p">]),</span>
+            <span class="c1"># to serialize OrderedDict</span>
+            <span class="n">snapshot</span><span class="o">=</span><span class="n">simulations</span><span class="p">[</span><span class="s1">&#39;snapshots&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+        <span class="p">)</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_simulation_consumer</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="n">is_update</span><span class="o">=</span><span class="bp">False</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockBacktestingSimulation</span><span class="p">(</span><span class="n">condition</span><span class="p">)</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">is_update</span><span class="p">)</span>
+
+<span class="c1">#################################</span>
+<span class="c1">#</span>
+<span class="c1">#	Alpha strategy values</span>
+<span class="c1">#</span>
+<span class="c1">#################################</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="n">mean</span><span class="p">,</span> <span class="n">std</span>
+
+
+<div class="viewcode-block" id="MyStockStrategyValue"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockStrategyValue">[docs]</a><span class="k">class</span> <span class="nc">MyStockStrategyValue</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Abstract model that defines a &quot;run&quot; method </span>
+<span class="sd">    that can overriden by children class to define</span>
+<span class="sd">    their own compute_value method, which computes</span>
+<span class="sd">    the so called index value per strategy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">(</span><span class="s1">&#39;jk&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MyStockStrategyValue.run"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockStrategyValue.run">[docs]</a>    <span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">symbol</span><span class="p">,</span> <span class="n">window_length</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> starting&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span>
+        <span class="n">exec_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+        <span class="n">records</span> <span class="o">=</span> <span class="n">MyStockHistorical</span><span class="o">.</span><span class="n">objects</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span>
+            <span class="n">stock__symbol</span><span class="o">=</span><span class="n">symbol</span><span class="p">)</span><span class="o">.</span><span class="n">order_by</span><span class="p">(</span><span class="s1">&#39;date_stamp&#39;</span><span class="p">)</span>
+
+        <span class="c1"># The starting point is depending on how much past data your strategy is calling for.</span>
+        <span class="c1"># For example, if we are to calculate 10 weeks of fib score, we need at</span>
+        <span class="c1"># least 10 weeks of history data.</span>
+        <span class="k">if</span> <span class="n">window_length</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: not enough data&#39;</span> <span class="o">%</span> <span class="n">symbol</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="n">t0</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">window_length</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">records</span><span class="p">)))</span>
+            <span class="n">window</span> <span class="o">=</span> <span class="n">records</span><span class="p">[</span><span class="n">i</span> <span class="o">-</span> <span class="n">window_length</span><span class="p">:</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">t0</span> <span class="o">=</span> <span class="n">records</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>  <span class="c1"># set T0</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">compute_value</span><span class="p">(</span><span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">)</span>
+
+            <span class="c1"># save to DB</span>
+            <span class="n">t0</span><span class="o">.</span><span class="n">save</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">logger</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> completed, elapse </span><span class="si">%f</span><span class="s1">&#39;</span> <span class="o">%</span>
+                          <span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">exec_start</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MyStockStrategyValue.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockStrategyValue.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+        <span class="k">pass</span></div></div>
+
+
+<div class="viewcode-block" id="MyStockDailyReturn"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockDailyReturn">[docs]</a><span class="k">class</span> <span class="nc">MyStockDailyReturn</span><span class="p">(</span><span class="n">MyStockStrategyValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Daily return value.</span>
+
+<span class="sd">    Compute historical oneday_change = (today&#39;s close - prev&#39;s close)/prev&#39;s close *100</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyStockDailyReturn</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MyStockDailyReturn.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockDailyReturn.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+        <span class="n">prev</span> <span class="o">=</span> <span class="n">window</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="c1"># compute index value</span>
+        <span class="k">if</span> <span class="n">t0</span><span class="o">.</span><span class="n">adj_close</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">prev</span><span class="o">.</span><span class="n">adj_close</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">t0</span><span class="o">.</span><span class="n">daily_return</span> <span class="o">=</span> <span class="p">(</span><span class="n">t0</span><span class="o">.</span><span class="n">adj_close</span> <span class="o">-</span> <span class="n">prev</span><span class="o">.</span><span class="n">adj_close</span><span class="p">)</span> <span class="o">/</span> \
+                <span class="n">prev</span><span class="o">.</span><span class="n">adj_close</span> <span class="o">*</span> <span class="mi">100</span>
+        <span class="k">elif</span> <span class="n">t0</span><span class="o">.</span><span class="n">close_price</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">prev</span><span class="o">.</span><span class="n">close_price</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">t0</span><span class="o">.</span><span class="n">daily_return</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">t0</span><span class="o">.</span><span class="n">close_price</span> <span class="o">-</span> <span class="n">prev</span><span class="o">.</span><span class="n">close_price</span><span class="p">)</span> <span class="o">/</span> <span class="n">prev</span><span class="o">.</span><span class="n">close_price</span> <span class="o">*</span> <span class="mi">100</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_daily_return_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockDailyReturn</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockRelativeHL"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockRelativeHL">[docs]</a><span class="k">class</span> <span class="nc">MyStockRelativeHL</span><span class="p">(</span><span class="n">MyStockStrategyValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Relative Position indicator in (H,L) = -100*(Highest(High,Len)-Close)/(Highest(High,Len)-Lowest(Low,Len))+50;   // Len is 40 by default </span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyStockRelativeHL</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MyStockRelativeHL.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockRelativeHL.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+        <span class="c1"># compute index value</span>
+        <span class="n">ref_high</span> <span class="o">=</span> <span class="nb">max</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">high_price</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">window</span><span class="p">])</span>
+        <span class="n">ref_low</span> <span class="o">=</span> <span class="nb">min</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">low_price</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">window</span><span class="p">])</span>
+
+        <span class="n">t0</span><span class="o">.</span><span class="n">relative_hl</span> <span class="o">=</span> <span class="o">-</span><span class="mi">100</span> <span class="o">*</span> \
+            <span class="p">(</span><span class="n">ref_high</span> <span class="o">-</span> <span class="n">t0</span><span class="o">.</span><span class="n">close_price</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="n">ref_high</span> <span class="o">-</span> <span class="n">ref_low</span><span class="p">)</span> <span class="o">+</span> <span class="mi">50</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_relative_hl_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockRelativeHL</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockRelativeMovingAvg"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockRelativeMovingAvg">[docs]</a><span class="k">class</span> <span class="nc">MyStockRelativeMovingAvg</span><span class="p">(</span><span class="n">MyStockStrategyValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Relative Position Indicator.</span>
+
+<span class="sd">    Using moving Average= (Price - Average(Price,Len))/StdDev(Price,Len). </span>
+<span class="sd">    Len is 40 by default. </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyStockRelativeMovingAvg</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MyStockRelativeMovingAvg.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockRelativeMovingAvg.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="o">=</span><span class="mi">40</span><span class="p">):</span>
+        <span class="n">ref_ma</span> <span class="o">=</span> <span class="n">mean</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">close_price</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">window</span><span class="p">])</span>
+        <span class="n">ref_std</span> <span class="o">=</span> <span class="n">std</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">close_price</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">window</span><span class="p">])</span>
+
+        <span class="c1"># compute index value</span>
+        <span class="n">t0</span><span class="o">.</span><span class="n">val_by_strategy</span> <span class="o">=</span> <span class="p">(</span><span class="n">t0</span><span class="o">.</span><span class="n">close_price</span> <span class="o">-</span> <span class="n">ref_ma</span><span class="p">)</span> <span class="o">/</span> <span class="n">ref_std</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_relative_ma_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockRelativeMovingAvg</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockCCI"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockCCI">[docs]</a><span class="k">class</span> <span class="nc">MyStockCCI</span><span class="p">(</span><span class="n">MyStockStrategyValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;CCI Indicator.</span>
+
+<span class="sd">        MA = Average(Price,Len); </span>
+<span class="sd">        value1=0; </span>
+<span class="sd">        for i=0 to Len-1 </span>
+<span class="sd">                value1+ = |Price[i]-MA|;</span>
+<span class="sd">        value1=value1/Len; </span>
+<span class="sd">        CCI = (Price-MA)/(0.015*value1); </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyStockCCI</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MyStockCCI.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockCCI.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+        <span class="n">ref_ma</span> <span class="o">=</span> <span class="n">mean</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">close_price</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">window</span><span class="p">])</span>
+        <span class="n">val</span> <span class="o">=</span> <span class="p">[</span><span class="n">r</span><span class="o">.</span><span class="n">close_price</span> <span class="o">-</span> <span class="n">ref_ma</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">window</span><span class="p">]</span>
+        <span class="n">cci</span> <span class="o">=</span> <span class="p">(</span><span class="n">t0</span><span class="o">.</span><span class="n">close_price</span> <span class="o">-</span> <span class="n">ref_ma</span><span class="p">)</span> <span class="o">/</span> <span class="p">(</span><span class="mf">0.015</span> <span class="o">*</span> <span class="n">val</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">window</span><span class="p">))</span>
+
+        <span class="c1"># compute index value</span>
+        <span class="n">t0</span><span class="o">.</span><span class="n">val_by_strategy</span> <span class="o">=</span> <span class="n">cci</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_cci_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockCCI</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockSI"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockSI">[docs]</a><span class="k">class</span> <span class="nc">MyStockSI</span><span class="p">(</span><span class="n">MyStockStrategyValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;SI indicator.</span>
+<span class="sd">            K = max( |H - C[1]|, |L-C[1]|);</span>
+<span class="sd">            R = the largest of :</span>
+<span class="sd">                    if H-C[1],  then  |H-C[1]|-0.5|L-C[1]|+0.25|C[1]-O[1]| </span>
+<span class="sd">                    if L-C[1],  then  |L-C[1]|-0.5|H-C[1]|+0.25|C[1]-O[1]| </span>
+<span class="sd">                    if H-L,         then  H-L+0.25|C[1]-O[1]| </span>
+<span class="sd">            SI Indicator = 50*(C-C[1] + 0.5*(C-O) + 0.25*(C[1]-O[1])*K/R</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyStockSI</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MyStockSI.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockSI.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+        <span class="k">pass</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_si_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockSI</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">40</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockLinearSlope"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockLinearSlope">[docs]</a><span class="k">class</span> <span class="nc">MyStockLinearSlope</span><span class="p">(</span><span class="n">MyStockStrategyValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    LinearRegSlope(Price, Len); // Len=3 by default</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyStockLinearSlope</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MyStockLinearSlope.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockLinearSlope.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">r</span><span class="o">.</span><span class="n">close_price</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">window</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t0</span><span class="o">.</span><span class="n">close_price</span><span class="p">))</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">)))</span>
+        <span class="n">slope</span><span class="p">,</span> <span class="n">intercept</span><span class="p">,</span> <span class="n">r_value</span><span class="p">,</span> <span class="n">p_value</span><span class="p">,</span> <span class="n">std_err</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">linregress</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+        <span class="n">t0</span><span class="o">.</span><span class="n">lg_slope</span> <span class="o">=</span> <span class="n">slope</span>
+        <span class="n">t0</span><span class="o">.</span><span class="n">save</span><span class="p">()</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_linear_slope_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockLinearSlope</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="MyStockDecyclerOscillator"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockDecyclerOscillator">[docs]</a><span class="k">class</span> <span class="nc">MyStockDecyclerOscillator</span><span class="p">(</span><span class="n">MyStockStrategyValue</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Decycler Oscillator (Price, HPPeriod, K);  HPPeriod=10, K=1</span>
+<span class="sd">Alpha1= (Cos(0.707*360/HPPeriod) + Sin(0.707*360/HPPeriod)-1)/Cos(0.707*360/HPPeriod)</span>
+<span class="sd">HP = (1-Alpha1/2) * (1-alpha1/2)*(Price-2*Price[1]+Price[2]) + </span>
+<span class="sd">                2*(1-Alpha1)*HP[1] -(1-Alpha1)*(1-alpha1)*HP[2];</span>
+<span class="sd">Decycle = Price-HP; </span>
+<span class="sd">Alpha2 = (Cos(0.707*360/(0.5*HPPeriod)) + Sin(0.707*360/(0.5*HPPeriod))-1)/Cos(0.707*360/(0.5*HPPeriod))</span>
+<span class="sd">DecycleOsc = (1-Alpha2/2) * (1-alpha2/2)*(Decycle-2*Decycle[1]+Decycle[2]) + </span>
+<span class="sd">                2*(1-Alpha2)*DecycleOsc[1] -(1-Alpha2)*(1-alpha2)*DecycleOsc[2];</span>
+<span class="sd">Indicator= 100*K*DecycleOsc/Price; </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">MyStockDecyclerOscillator</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">__init__</span><span class="p">()</span>
+
+<div class="viewcode-block" id="MyStockDecyclerOscillator.compute_value"><a class="viewcode-back" href="../../stock.html#stock.tasks.MyStockDecyclerOscillator.compute_value">[docs]</a>    <span class="k">def</span> <span class="nf">compute_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t0</span><span class="p">,</span> <span class="n">window</span><span class="p">):</span>
+        <span class="n">period</span> <span class="o">=</span> <span class="mi">10</span>
+        <span class="n">k</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">price</span> <span class="o">=</span> <span class="n">t0</span><span class="o">.</span><span class="n">close_price</span>
+        <span class="n">alpha1</span> <span class="o">=</span> <span class="p">(</span><span class="n">cos</span><span class="p">(</span><span class="mf">0.707</span> <span class="o">*</span> <span class="mi">360</span> <span class="o">/</span> <span class="n">period</span><span class="p">)</span> <span class="o">+</span> <span class="n">sin</span><span class="p">(</span><span class="mf">0.707</span> <span class="o">*</span>
+                                                  <span class="mi">360</span> <span class="o">/</span> <span class="n">period</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">cos</span><span class="p">(</span><span class="mf">0.707</span> <span class="o">*</span> <span class="mi">360</span> <span class="o">/</span> <span class="n">period</span><span class="p">)</span></div></div>
+
+
+<span class="nd">@shared_task</span>
+<span class="k">def</span> <span class="nf">backtesting_decycler_oscillator_consumer</span><span class="p">(</span><span class="n">symbol</span><span class="p">):</span>
+    <span class="n">crawler</span> <span class="o">=</span> <span class="n">MyStockDecyclerOscillator</span><span class="p">()</span>
+    <span class="n">crawler</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">symbol</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

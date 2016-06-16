@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.migrations.0001_initial &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for stock.migrations.0001_initial</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">unicode_literals</span>
+
+<span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">migrations</span>
+<span class="kn">from</span> <span class="nn">django.conf</span> <span class="kn">import</span> <span class="n">settings</span>
+
+
+<div class="viewcode-block" id="Migration"><a class="viewcode-back" href="../../../stock.migrations.html#stock.migrations.0001_initial.Migration">[docs]</a><span class="k">class</span> <span class="nc">Migration</span><span class="p">(</span><span class="n">migrations</span><span class="o">.</span><span class="n">Migration</span><span class="p">):</span>
+
+    <span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">swappable_dependency</span><span class="p">(</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;contenttypes&#39;</span><span class="p">,</span> <span class="s1">&#39;0001_initial&#39;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">operations</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">CreateModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;Attachment&#39;</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span>
+                                        <span class="n">serialize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">auto_created</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;object_id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">PositiveIntegerField</span><span class="p">()),</span>
+                <span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;default name&#39;</span><span class="p">,</span>
+                                          <span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\u9644\u4ef6\u540d\u79f0</span><span class="s1">&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;default description&#39;</span><span class="p">,</span>
+                                                 <span class="n">max_length</span><span class="o">=</span><span class="mi">64</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\u9644\u4ef6\u63cf\u8ff0</span><span class="s1">&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;file&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">FileField</span><span class="p">(</span><span class="n">help_text</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\u9644\u4ef6</span><span class="s1">&#39;</span><span class="p">,</span>
+                                          <span class="n">upload_to</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;%Y/%m/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\u9644\u4ef6</span><span class="s1">&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;content_type&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">to</span><span class="o">=</span><span class="s1">&#39;contenttypes.ContentType&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;created_by&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">,</span>
+                                                 <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">help_text</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\u521b\u5efa\u7528\u6237</span><span class="s1">&#39;</span><span class="p">)),</span>
+            <span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="p">{</span>
+            <span class="p">},</span>
+            <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">,),</span>
+        <span class="p">),</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">CreateModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MyStock&#39;</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span>
+                                        <span class="n">serialize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">auto_created</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;company_name&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">128</span><span class="p">,</span>
+                                                  <span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Company name&#39;</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;symbol&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">max_length</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Stock symbol&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;prev_close&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+                    <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Prev day closing price&#39;</span><span class="p">,</span> <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">15</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;prev_open&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+                    <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Prev day opening price&#39;</span><span class="p">,</span> <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">15</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;today_open&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+                    <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Today opening price&#39;</span><span class="p">,</span> <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">15</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;pe&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                           <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;P/E&#39;</span><span class="p">,</span> <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">15</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;spot&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                                             <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Spot price&#39;</span><span class="p">,</span> <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">15</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;spot_time&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">null</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span>
+                                                   <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Spot sample time&#39;</span><span class="p">,</span> <span class="n">blank</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;is_in_play&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">BooleanField</span><span class="p">(</span>
+                    <span class="n">default</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Has pending exit&#39;</span><span class="p">)),</span>
+            <span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="p">{</span>
+            <span class="p">},</span>
+            <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">,),</span>
+        <span class="p">),</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">CreateModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MyTaggedItem&#39;</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span>
+                                        <span class="n">serialize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">auto_created</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;tag&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">SlugField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                         <span class="n">max_length</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Tag&#39;</span><span class="p">)),</span>
+            <span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="p">{</span>
+            <span class="p">},</span>
+            <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">,),</span>
+        <span class="p">),</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">CreateModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MyTrade&#39;</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span>
+                                        <span class="n">serialize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">auto_created</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;created&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DateTimeField</span><span class="p">(</span><span class="n">auto_now_add</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;exit&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span>
+                    <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Exit price&#39;</span><span class="p">,</span> <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">15</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;stock&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">ForeignKey</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Stock&#39;</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="s1">&#39;stock.MyStock&#39;</span><span class="p">)),</span>
+            <span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="p">{</span>
+            <span class="p">},</span>
+            <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">,),</span>
+        <span class="p">),</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">CreateModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MyUserProfile&#39;</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span>
+                                        <span class="n">serialize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">auto_created</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;per_trade_total&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DecimalField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mf">1000.0</span><span class="p">,</span>
+                                                        <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Per trade dollar amount&#39;</span><span class="p">,</span> <span class="n">max_digits</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">decimal_places</span><span class="o">=</span><span class="mi">15</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;pe_threshold&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">CharField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;20-100&#39;</span><span class="p">,</span>
+                                                  <span class="n">max_length</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;P/E threshold&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;exit_percent&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+                                                     <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Percentage of exit over buy-in price&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;owner&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">OneToOneField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">to</span><span class="o">=</span><span class="n">settings</span><span class="o">.</span><span class="n">AUTH_USER_MODEL</span><span class="p">,</span>
+                                               <span class="n">help_text</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;</span><span class="se">\u7528\u6237</span><span class="s1">&#39;</span><span class="p">)),</span>
+            <span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="p">{</span>
+            <span class="p">},</span>
+            <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">,),</span>
+        <span class="p">),</span>
+    <span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

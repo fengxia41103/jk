@@ -1,0 +1,1212 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.migrations package &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="index.html" />
+    <link rel="up" title="stock package" href="stock.html" />
+    <link rel="prev" title="stock package" href="stock.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="stock-migrations-package">
+<h1>stock.migrations package<a class="headerlink" href="#stock-migrations-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-stock.migrations.0001_initial">
+<span id="stock-migrations-0001-initial-module"></span><h2>stock.migrations.0001_initial module<a class="headerlink" href="#module-stock.migrations.0001_initial" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0001_initial.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0001_initial.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0001_initial.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0001_initial.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0001_initial.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'auth', u'__first__'), (u'contenttypes', u'0001_initial')]</em><a class="headerlink" href="#stock.migrations.0001_initial.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0001_initial.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'object_id', &lt;django.db.models.fields.PositiveIntegerField&gt;), (u'name', &lt;django.db.models.fields.CharField&gt;), (u'description', &lt;django.db.models.fields.CharField&gt;), (u'file', &lt;django.db.models.fields.files.FileField&gt;), (u'content_type', &lt;django.db.models.fields.related.ForeignKey&gt;), (u'created_by', &lt;django.db.models.fields.related.ForeignKey&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'Attachment'&gt;, &lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'company_name', &lt;django.db.models.fields.CharField&gt;), (u'symbol', &lt;django.db.models.fields.CharField&gt;), (u'prev_close', &lt;django.db.models.fields.DecimalField&gt;), (u'prev_open', &lt;django.db.models.fields.DecimalField&gt;), (u'today_open', &lt;django.db.models.fields.DecimalField&gt;), (u'pe', &lt;django.db.models.fields.DecimalField&gt;), (u'spot', &lt;django.db.models.fields.DecimalField&gt;), (u'spot_time', &lt;django.db.models.fields.DateTimeField&gt;), (u'is_in_play', &lt;django.db.models.fields.BooleanField&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MyStock'&gt;, &lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'tag', &lt;django.db.models.fields.SlugField&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MyTaggedItem'&gt;, &lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'created', &lt;django.db.models.fields.DateTimeField&gt;), (u'exit', &lt;django.db.models.fields.DecimalField&gt;), (u'stock', &lt;django.db.models.fields.related.ForeignKey&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MyTrade'&gt;, &lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'per_trade_total', &lt;django.db.models.fields.DecimalField&gt;), (u'pe_threshold', &lt;django.db.models.fields.CharField&gt;), (u'exit_percent', &lt;django.db.models.fields.IntegerField&gt;), (u'owner', &lt;django.db.models.fields.related.OneToOneField&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MyUserProfile'&gt;]</em><a class="headerlink" href="#stock.migrations.0001_initial.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0002_auto_20150709_1404">
+<span id="stock-migrations-0002-auto-20150709-1404-module"></span><h2>stock.migrations.0002_auto_20150709_1404 module<a class="headerlink" href="#module-stock.migrations.0002_auto_20150709_1404" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0002_auto_20150709_1404.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0002_auto_20150709_1404.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0002_auto_20150709_1404.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0002_auto_20150709_1404.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0002_auto_20150709_1404.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0001_initial')]</em><a class="headerlink" href="#stock.migrations.0002_auto_20150709_1404.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0002_auto_20150709_1404.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'prev_high', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'prev_low', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'prev_vol', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0002_auto_20150709_1404.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0003_auto_20150709_1426">
+<span id="stock-migrations-0003-auto-20150709-1426-module"></span><h2>stock.migrations.0003_auto_20150709_1426 module<a class="headerlink" href="#module-stock.migrations.0003_auto_20150709_1426" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0003_auto_20150709_1426.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0003_auto_20150709_1426.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0003_auto_20150709_1426.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0003_auto_20150709_1426.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0003_auto_20150709_1426.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0002_auto_20150709_1404')]</em><a class="headerlink" href="#stock.migrations.0003_auto_20150709_1426.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0003_auto_20150709_1426.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RenameField  new_name=u'last', model_name=u'mystock', old_name=u'spot'&gt;, &lt;RenameField  new_name=u'last_update_time', model_name=u'mystock', old_name=u'spot_time'&gt;]</em><a class="headerlink" href="#stock.migrations.0003_auto_20150709_1426.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0004_auto_20150709_1534">
+<span id="stock-migrations-0004-auto-20150709-1534-module"></span><h2>stock.migrations.0004_auto_20150709_1534 module<a class="headerlink" href="#module-stock.migrations.0004_auto_20150709_1534" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0004_auto_20150709_1534.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0004_auto_20150709_1534.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0004_auto_20150709_1534.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0004_auto_20150709_1534.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0004_auto_20150709_1534.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0003_auto_20150709_1426')]</em><a class="headerlink" href="#stock.migrations.0004_auto_20150709_1534.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0004_auto_20150709_1534.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.DateTimeField&gt;, preserve_default=True, name=u'last_update_time', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0004_auto_20150709_1534.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0005_auto_20150709_1621">
+<span id="stock-migrations-0005-auto-20150709-1621-module"></span><h2>stock.migrations.0005_auto_20150709_1621 module<a class="headerlink" href="#module-stock.migrations.0005_auto_20150709_1621" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0005_auto_20150709_1621.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0005_auto_20150709_1621.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0005_auto_20150709_1621.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0005_auto_20150709_1621.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0005_auto_20150709_1621.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0004_auto_20150709_1534')]</em><a class="headerlink" href="#stock.migrations.0005_auto_20150709_1621.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0005_auto_20150709_1621.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RenameField  new_name=u'day_open', model_name=u'mystock', old_name=u'today_open'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'ask', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'bid', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.CharField&gt;, preserve_default=True, name=u'day_range', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'float_share', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'vol', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0005_auto_20150709_1621.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0006_auto_20150709_1712">
+<span id="stock-migrations-0006-auto-20150709-1712-module"></span><h2>stock.migrations.0006_auto_20150709_1712 module<a class="headerlink" href="#module-stock.migrations.0006_auto_20150709_1712" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0006_auto_20150709_1712.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0006_auto_20150709_1712.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0006_auto_20150709_1712.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0006_auto_20150709_1712.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0006_auto_20150709_1712.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0005_auto_20150709_1621')]</em><a class="headerlink" href="#stock.migrations.0006_auto_20150709_1712.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0006_auto_20150709_1712.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'float_share', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0006_auto_20150709_1712.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0007_auto_20150709_1740">
+<span id="stock-migrations-0007-auto-20150709-1740-module"></span><h2>stock.migrations.0007_auto_20150709_1740 module<a class="headerlink" href="#module-stock.migrations.0007_auto_20150709_1740" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0007_auto_20150709_1740.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0007_auto_20150709_1740.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0007_auto_20150709_1740.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0007_auto_20150709_1740.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0007_auto_20150709_1740.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0006_auto_20150709_1712')]</em><a class="headerlink" href="#stock.migrations.0007_auto_20150709_1740.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0007_auto_20150709_1740.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'vol', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0007_auto_20150709_1740.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0008_auto_20150709_1806">
+<span id="stock-migrations-0008-auto-20150709-1806-module"></span><h2>stock.migrations.0008_auto_20150709_1806 module<a class="headerlink" href="#module-stock.migrations.0008_auto_20150709_1806" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0008_auto_20150709_1806.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0008_auto_20150709_1806.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0008_auto_20150709_1806.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0008_auto_20150709_1806.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0008_auto_20150709_1806.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0007_auto_20150709_1740')]</em><a class="headerlink" href="#stock.migrations.0008_auto_20150709_1806.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0008_auto_20150709_1806.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'vol', model_name=u'mytrade'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'exit', model_name=u'mytrade'&gt;]</em><a class="headerlink" href="#stock.migrations.0008_auto_20150709_1806.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0009_auto_20150709_1841">
+<span id="stock-migrations-0009-auto-20150709-1841-module"></span><h2>stock.migrations.0009_auto_20150709_1841 module<a class="headerlink" href="#module-stock.migrations.0009_auto_20150709_1841" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0009_auto_20150709_1841.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0009_auto_20150709_1841.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0009_auto_20150709_1841.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0009_auto_20150709_1841.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0009_auto_20150709_1841.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0008_auto_20150709_1806')]</em><a class="headerlink" href="#stock.migrations.0009_auto_20150709_1841.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0009_auto_20150709_1841.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'created', &lt;django.db.models.fields.DateTimeField&gt;), (u'position', &lt;django.db.models.fields.DecimalField&gt;), (u'exit_bid', &lt;django.db.models.fields.DecimalField&gt;), (u'vol', &lt;django.db.models.fields.IntegerField&gt;), (u'is_open', &lt;django.db.models.fields.BooleanField&gt;), (u'last_updated_on', &lt;django.db.models.fields.DateTimeField&gt;), (u'stock', &lt;django.db.models.fields.related.ForeignKey&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MyPosition'&gt;, &lt;RemoveField  name=u'stock', model_name=u'mytrade'&gt;, &lt;DeleteModel  name=u'MyTrade'&gt;, &lt;RemoveField  name=u'day_range', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'day_high', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'day_low', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.BooleanField&gt;, preserve_default=True, name=u'is_in_play', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0009_auto_20150709_1841.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0010_mystock_prev_change">
+<span id="stock-migrations-0010-mystock-prev-change-module"></span><h2>stock.migrations.0010_mystock_prev_change module<a class="headerlink" href="#module-stock.migrations.0010_mystock_prev_change" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0010_mystock_prev_change.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0010_mystock_prev_change.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0010_mystock_prev_change.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0010_mystock_prev_change.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0010_mystock_prev_change.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0009_auto_20150709_1841')]</em><a class="headerlink" href="#stock.migrations.0010_mystock_prev_change.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0010_mystock_prev_change.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'prev_change', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0010_mystock_prev_change.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0011_auto_20150714_1831">
+<span id="stock-migrations-0011-auto-20150714-1831-module"></span><h2>stock.migrations.0011_auto_20150714_1831 module<a class="headerlink" href="#module-stock.migrations.0011_auto_20150714_1831" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0011_auto_20150714_1831.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0011_auto_20150714_1831.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0011_auto_20150714_1831.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0011_auto_20150714_1831.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0011_auto_20150714_1831.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0010_mystock_prev_change')]</em><a class="headerlink" href="#stock.migrations.0011_auto_20150714_1831.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0011_auto_20150714_1831.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'day_change', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'spread', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'vol_over_float', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0011_auto_20150714_1831.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0012_auto_20150715_1513">
+<span id="stock-migrations-0012-auto-20150715-1513-module"></span><h2>stock.migrations.0012_auto_20150715_1513 module<a class="headerlink" href="#module-stock.migrations.0012_auto_20150715_1513" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0012_auto_20150715_1513.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0012_auto_20150715_1513.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0012_auto_20150715_1513.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0012_auto_20150715_1513.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0012_auto_20150715_1513.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0011_auto_20150714_1831')]</em><a class="headerlink" href="#stock.migrations.0012_auto_20150715_1513.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0012_auto_20150715_1513.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=True, name=u'month_adjusted_close', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=True, name=u'week_adjusted_close', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0012_auto_20150715_1513.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0013_mystock_fib_adjusted_close">
+<span id="stock-migrations-0013-mystock-fib-adjusted-close-module"></span><h2>stock.migrations.0013_mystock_fib_adjusted_close module<a class="headerlink" href="#module-stock.migrations.0013_mystock_fib_adjusted_close" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0013_mystock_fib_adjusted_close.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0013_mystock_fib_adjusted_close.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0013_mystock_fib_adjusted_close.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0013_mystock_fib_adjusted_close.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0013_mystock_fib_adjusted_close.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0012_auto_20150715_1513')]</em><a class="headerlink" href="#stock.migrations.0013_mystock_fib_adjusted_close.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0013_mystock_fib_adjusted_close.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=True, name=u'fib_adjusted_close', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0013_mystock_fib_adjusted_close.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0014_mychenmin">
+<span id="stock-migrations-0014-mychenmin-module"></span><h2>stock.migrations.0014_mychenmin module<a class="headerlink" href="#module-stock.migrations.0014_mychenmin" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0014_mychenmin.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0014_mychenmin.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0014_mychenmin.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0014_mychenmin.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0014_mychenmin.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0013_mystock_fib_adjusted_close')]</em><a class="headerlink" href="#stock.migrations.0014_mychenmin.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0014_mychenmin.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'executed_on', &lt;django.db.models.fields.DateField&gt;), (u'symbol', &lt;django.db.models.fields.CharField&gt;), (u'transaction_type', &lt;django.db.models.fields.CharField&gt;), (u'price', &lt;django.db.models.fields.FloatField&gt;), (u'vol', &lt;django.db.models.fields.IntegerField&gt;), (u'total', &lt;django.db.models.fields.IntegerField&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MyChenmin'&gt;]</em><a class="headerlink" href="#stock.migrations.0014_mychenmin.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0015_mychenmin_name">
+<span id="stock-migrations-0015-mychenmin-name-module"></span><h2>stock.migrations.0015_mychenmin_name module<a class="headerlink" href="#module-stock.migrations.0015_mychenmin_name" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0015_mychenmin_name.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0015_mychenmin_name.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0015_mychenmin_name.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0015_mychenmin_name.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0015_mychenmin_name.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0014_mychenmin')]</em><a class="headerlink" href="#stock.migrations.0015_mychenmin_name.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0015_mychenmin_name.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.CharField&gt;, preserve_default=False, name=u'name', model_name=u'mychenmin'&gt;]</em><a class="headerlink" href="#stock.migrations.0015_mychenmin_name.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0016_auto_20150716_1917">
+<span id="stock-migrations-0016-auto-20150716-1917-module"></span><h2>stock.migrations.0016_auto_20150716_1917 module<a class="headerlink" href="#module-stock.migrations.0016_auto_20150716_1917" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0016_auto_20150716_1917.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0016_auto_20150716_1917.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0016_auto_20150716_1917.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0016_auto_20150716_1917.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0016_auto_20150716_1917.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0015_mychenmin_name')]</em><a class="headerlink" href="#stock.migrations.0016_auto_20150716_1917.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0016_auto_20150716_1917.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RemoveField  name=u'fib_adjusted_close', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=True, name=u'fib_daily_adjusted_close', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=True, name=u'fib_weekly_adjusted_close', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0016_auto_20150716_1917.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0017_mystockhistorical">
+<span id="stock-migrations-0017-mystockhistorical-module"></span><h2>stock.migrations.0017_mystockhistorical module<a class="headerlink" href="#module-stock.migrations.0017_mystockhistorical" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0017_mystockhistorical.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0017_mystockhistorical.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0017_mystockhistorical.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0017_mystockhistorical.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0017_mystockhistorical.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0016_auto_20150716_1917')]</em><a class="headerlink" href="#stock.migrations.0017_mystockhistorical.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0017_mystockhistorical.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'datestamp', &lt;django.db.models.fields.DateField&gt;), (u'open_price', &lt;django.db.models.fields.DecimalField&gt;), (u'high_price', &lt;django.db.models.fields.DecimalField&gt;), (u'low_price', &lt;django.db.models.fields.DecimalField&gt;), (u'close_price', &lt;django.db.models.fields.DecimalField&gt;), (u'adj_close', &lt;django.db.models.fields.DecimalField&gt;), (u'vol', &lt;django.db.models.fields.FloatField&gt;), (u'stock', &lt;django.db.models.fields.related.ForeignKey&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MyStockHistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0017_mystockhistorical.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0018_auto_20150716_2036">
+<span id="stock-migrations-0018-auto-20150716-2036-module"></span><h2>stock.migrations.0018_auto_20150716_2036 module<a class="headerlink" href="#module-stock.migrations.0018_auto_20150716_2036" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0018_auto_20150716_2036.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0018_auto_20150716_2036.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0018_auto_20150716_2036.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0018_auto_20150716_2036.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0018_auto_20150716_2036.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0017_mystockhistorical')]</em><a class="headerlink" href="#stock.migrations.0018_auto_20150716_2036.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0018_auto_20150716_2036.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RenameField  new_name=u'date_stamp', model_name=u'mystockhistorical', old_name=u'datestamp'&gt;]</em><a class="headerlink" href="#stock.migrations.0018_auto_20150716_2036.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0019_auto_20150728_1514">
+<span id="stock-migrations-0019-auto-20150728-1514-module"></span><h2>stock.migrations.0019_auto_20150728_1514 module<a class="headerlink" href="#module-stock.migrations.0019_auto_20150728_1514" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0019_auto_20150728_1514.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0019_auto_20150728_1514.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0019_auto_20150728_1514.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0019_auto_20150728_1514.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0019_auto_20150728_1514.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'auth', u'__first__'), (u'stock', u'0018_auto_20150716_2036')]</em><a class="headerlink" href="#stock.migrations.0019_auto_20150728_1514.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0019_auto_20150728_1514.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RemoveField  name=u'exit_bid', model_name=u'myposition'&gt;, &lt;RemoveField  name=u'exit_percent', model_name=u'myuserprofile'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=False, name=u'close_position', model_name=u'myposition'&gt;, &lt;AddField  field=&lt;django.db.models.fields.related.ForeignKey&gt;, preserve_default=False, name=u'user', model_name=u'myposition'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'balance', model_name=u'myuserprofile'&gt;]</em><a class="headerlink" href="#stock.migrations.0019_auto_20150728_1514.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0020_auto_20150728_1757">
+<span id="stock-migrations-0020-auto-20150728-1757-module"></span><h2>stock.migrations.0020_auto_20150728_1757 module<a class="headerlink" href="#module-stock.migrations.0020_auto_20150728_1757" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0020_auto_20150728_1757.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0020_auto_20150728_1757.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0020_auto_20150728_1757.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0020_auto_20150728_1757.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0020_auto_20150728_1757.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0019_auto_20150728_1514')]</em><a class="headerlink" href="#stock.migrations.0020_auto_20150728_1757.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0020_auto_20150728_1757.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'fib_daily_score', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'fib_weekly_score', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'close_position', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0020_auto_20150728_1757.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0021_auto_20150728_2128">
+<span id="stock-migrations-0021-auto-20150728-2128-module"></span><h2>stock.migrations.0021_auto_20150728_2128 module<a class="headerlink" href="#module-stock.migrations.0021_auto_20150728_2128" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0021_auto_20150728_2128.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0021_auto_20150728_2128.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0021_auto_20150728_2128.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0021_auto_20150728_2128.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0021_auto_20150728_2128.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0020_auto_20150728_1757')]</em><a class="headerlink" href="#stock.migrations.0021_auto_20150728_2128.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0021_auto_20150728_2128.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RenameField  new_name=u'cash', model_name=u'myuserprofile', old_name=u'balance'&gt;]</em><a class="headerlink" href="#stock.migrations.0021_auto_20150728_2128.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0022_mystockhistorical_flag_by_strategy">
+<span id="stock-migrations-0022-mystockhistorical-flag-by-strategy-module"></span><h2>stock.migrations.0022_mystockhistorical_flag_by_strategy module<a class="headerlink" href="#module-stock.migrations.0022_mystockhistorical_flag_by_strategy" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0022_mystockhistorical_flag_by_strategy.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0022_mystockhistorical_flag_by_strategy.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0022_mystockhistorical_flag_by_strategy.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0022_mystockhistorical_flag_by_strategy.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0022_mystockhistorical_flag_by_strategy.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0021_auto_20150728_2128')]</em><a class="headerlink" href="#stock.migrations.0022_mystockhistorical_flag_by_strategy.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0022_mystockhistorical_flag_by_strategy.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.CharField&gt;, preserve_default=True, name=u'flag_by_strategy', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0022_mystockhistorical_flag_by_strategy.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0023_auto_20151016_1515">
+<span id="stock-migrations-0023-auto-20151016-1515-module"></span><h2>stock.migrations.0023_auto_20151016_1515 module<a class="headerlink" href="#module-stock.migrations.0023_auto_20151016_1515" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0023_auto_20151016_1515.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0023_auto_20151016_1515.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0023_auto_20151016_1515.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0023_auto_20151016_1515.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0023_auto_20151016_1515.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0022_mystockhistorical_flag_by_strategy')]</em><a class="headerlink" href="#stock.migrations.0023_auto_20151016_1515.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0023_auto_20151016_1515.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterUniqueTogether  unique_together=set([(u'stock', u'date_stamp')]), name=u'mystockhistorical'&gt;, &lt;AlterIndexTogether  name=u'mystockhistorical', index_together=set([(u'stock', u'date_stamp')])&gt;]</em><a class="headerlink" href="#stock.migrations.0023_auto_20151016_1515.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0024_mystockhistorical_val_by_strategy">
+<span id="stock-migrations-0024-mystockhistorical-val-by-strategy-module"></span><h2>stock.migrations.0024_mystockhistorical_val_by_strategy module<a class="headerlink" href="#module-stock.migrations.0024_mystockhistorical_val_by_strategy" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0024_mystockhistorical_val_by_strategy.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0024_mystockhistorical_val_by_strategy.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0024_mystockhistorical_val_by_strategy.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0024_mystockhistorical_val_by_strategy.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0024_mystockhistorical_val_by_strategy.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0023_auto_20151016_1515')]</em><a class="headerlink" href="#stock.migrations.0024_mystockhistorical_val_by_strategy.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0024_mystockhistorical_val_by_strategy.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'val_by_strategy', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0024_mystockhistorical_val_by_strategy.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0025_auto_20151017_1223">
+<span id="stock-migrations-0025-auto-20151017-1223-module"></span><h2>stock.migrations.0025_auto_20151017_1223 module<a class="headerlink" href="#module-stock.migrations.0025_auto_20151017_1223" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0025_auto_20151017_1223.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0025_auto_20151017_1223.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0025_auto_20151017_1223.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0025_auto_20151017_1223.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0025_auto_20151017_1223.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0024_mystockhistorical_val_by_strategy')]</em><a class="headerlink" href="#stock.migrations.0025_auto_20151017_1223.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0025_auto_20151017_1223.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.BooleanField&gt;, preserve_default=True, name=u'is_sp500', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.CharField&gt;, preserve_default=True, name=u'sector', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0025_auto_20151017_1223.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0026_mystockhistorical_peer_rank">
+<span id="stock-migrations-0026-mystockhistorical-peer-rank-module"></span><h2>stock.migrations.0026_mystockhistorical_peer_rank module<a class="headerlink" href="#module-stock.migrations.0026_mystockhistorical_peer_rank" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0026_mystockhistorical_peer_rank.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0026_mystockhistorical_peer_rank.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0026_mystockhistorical_peer_rank.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0026_mystockhistorical_peer_rank.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0026_mystockhistorical_peer_rank.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0025_auto_20151017_1223')]</em><a class="headerlink" href="#stock.migrations.0026_mystockhistorical_peer_rank.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0026_mystockhistorical_peer_rank.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'peer_rank', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0026_mystockhistorical_peer_rank.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0027_auto_20151018_0245">
+<span id="stock-migrations-0027-auto-20151018-0245-module"></span><h2>stock.migrations.0027_auto_20151018_0245 module<a class="headerlink" href="#module-stock.migrations.0027_auto_20151018_0245" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0027_auto_20151018_0245.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0027_auto_20151018_0245.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0027_auto_20151018_0245.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0027_auto_20151018_0245.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0027_auto_20151018_0245.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0026_mystockhistorical_peer_rank')]</em><a class="headerlink" href="#stock.migrations.0027_auto_20151018_0245.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0027_auto_20151018_0245.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'vol', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0027_auto_20151018_0245.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0028_auto_20151018_0248">
+<span id="stock-migrations-0028-auto-20151018-0248-module"></span><h2>stock.migrations.0028_auto_20151018_0248 module<a class="headerlink" href="#module-stock.migrations.0028_auto_20151018_0248" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0028_auto_20151018_0248.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0028_auto_20151018_0248.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0028_auto_20151018_0248.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0028_auto_20151018_0248.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0028_auto_20151018_0248.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0027_auto_20151018_0245')]</em><a class="headerlink" href="#stock.migrations.0028_auto_20151018_0248.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0028_auto_20151018_0248.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'vol', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0028_auto_20151018_0248.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0029_auto_20151018_1317">
+<span id="stock-migrations-0029-auto-20151018-1317-module"></span><h2>stock.migrations.0029_auto_20151018_1317 module<a class="headerlink" href="#module-stock.migrations.0029_auto_20151018_1317" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0029_auto_20151018_1317.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0029_auto_20151018_1317.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0029_auto_20151018_1317.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0029_auto_20151018_1317.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0029_auto_20151018_1317.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0028_auto_20151018_0248')]</em><a class="headerlink" href="#stock.migrations.0029_auto_20151018_1317.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0029_auto_20151018_1317.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'position', model_name=u'myposition'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'vol', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0029_auto_20151018_1317.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0030_auto_20151018_1320">
+<span id="stock-migrations-0030-auto-20151018-1320-module"></span><h2>stock.migrations.0030_auto_20151018_1320 module<a class="headerlink" href="#module-stock.migrations.0030_auto_20151018_1320" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0030_auto_20151018_1320.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0030_auto_20151018_1320.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0030_auto_20151018_1320.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0030_auto_20151018_1320.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0030_auto_20151018_1320.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0029_auto_20151018_1317')]</em><a class="headerlink" href="#stock.migrations.0030_auto_20151018_1320.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0030_auto_20151018_1320.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'cash', model_name=u'myuserprofile'&gt;]</em><a class="headerlink" href="#stock.migrations.0030_auto_20151018_1320.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0031_auto_20151019_1534">
+<span id="stock-migrations-0031-auto-20151019-1534-module"></span><h2>stock.migrations.0031_auto_20151019_1534 module<a class="headerlink" href="#module-stock.migrations.0031_auto_20151019_1534" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0031_auto_20151019_1534.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0031_auto_20151019_1534.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0031_auto_20151019_1534.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0031_auto_20151019_1534.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0031_auto_20151019_1534.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0030_auto_20151018_1320')]</em><a class="headerlink" href="#stock.migrations.0031_auto_20151019_1534.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0031_auto_20151019_1534.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.DateField&gt;, preserve_default=True, name=u'close_date', model_name=u'myposition'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DateField&gt;, preserve_default=True, name=u'open_date', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0031_auto_20151019_1534.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0032_mystockhistorical_oneday_change_pcnt">
+<span id="stock-migrations-0032-mystockhistorical-oneday-change-pcnt-module"></span><h2>stock.migrations.0032_mystockhistorical_oneday_change_pcnt module<a class="headerlink" href="#module-stock.migrations.0032_mystockhistorical_oneday_change_pcnt" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0032_mystockhistorical_oneday_change_pcnt.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0032_mystockhistorical_oneday_change_pcnt.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0032_mystockhistorical_oneday_change_pcnt.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0032_mystockhistorical_oneday_change_pcnt.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0032_mystockhistorical_oneday_change_pcnt.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0031_auto_20151019_1534')]</em><a class="headerlink" href="#stock.migrations.0032_mystockhistorical_oneday_change_pcnt.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0032_mystockhistorical_oneday_change_pcnt.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'oneday_change_pcnt', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0032_mystockhistorical_oneday_change_pcnt.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0033_myposition_category">
+<span id="stock-migrations-0033-myposition-category-module"></span><h2>stock.migrations.0033_myposition_category module<a class="headerlink" href="#module-stock.migrations.0033_myposition_category" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0033_myposition_category.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0033_myposition_category.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0033_myposition_category.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0033_myposition_category.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0033_myposition_category.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0032_mystockhistorical_oneday_change_pcnt')]</em><a class="headerlink" href="#stock.migrations.0033_myposition_category.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0033_myposition_category.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.CharField&gt;, preserve_default=True, name=u'category', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0033_myposition_category.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0034_auto_20151022_1951">
+<span id="stock-migrations-0034-auto-20151022-1951-module"></span><h2>stock.migrations.0034_auto_20151022_1951 module<a class="headerlink" href="#module-stock.migrations.0034_auto_20151022_1951" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0034_auto_20151022_1951.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0034_auto_20151022_1951.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0034_auto_20151022_1951.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0034_auto_20151022_1951.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0034_auto_20151022_1951.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0033_myposition_category')]</em><a class="headerlink" href="#stock.migrations.0034_auto_20151022_1951.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0034_auto_20151022_1951.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.CharField&gt;, preserve_default=True, name=u'category', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0034_auto_20151022_1951.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0035_auto_20151023_1716">
+<span id="stock-migrations-0035-auto-20151023-1716-module"></span><h2>stock.migrations.0035_auto_20151023_1716 module<a class="headerlink" href="#module-stock.migrations.0035_auto_20151023_1716" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0035_auto_20151023_1716.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0035_auto_20151023_1716.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0035_auto_20151023_1716.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0035_auto_20151023_1716.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0035_auto_20151023_1716.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0034_auto_20151022_1951')]</em><a class="headerlink" href="#stock.migrations.0035_auto_20151023_1716.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0035_auto_20151023_1716.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RemoveField  name=u'oneday_change_pcnt', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'oneday_change', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0035_auto_20151023_1716.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0036_auto_20151024_1628">
+<span id="stock-migrations-0036-auto-20151024-1628-module"></span><h2>stock.migrations.0036_auto_20151024_1628 module<a class="headerlink" href="#module-stock.migrations.0036_auto_20151024_1628" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0036_auto_20151024_1628.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0036_auto_20151024_1628.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0036_auto_20151024_1628.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0036_auto_20151024_1628.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0036_auto_20151024_1628.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0035_auto_20151023_1716')]</em><a class="headerlink" href="#stock.migrations.0036_auto_20151024_1628.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0036_auto_20151024_1628.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'adj_factor', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_high', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_low', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_open', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'amount', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'status', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_close', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0036_auto_20151024_1628.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0037_auto_20151026_1356">
+<span id="stock-migrations-0037-auto-20151026-1356-module"></span><h2>stock.migrations.0037_auto_20151026_1356 module<a class="headerlink" href="#module-stock.migrations.0037_auto_20151026_1356" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0037_auto_20151026_1356.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0037_auto_20151026_1356.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0037_auto_20151026_1356.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0037_auto_20151026_1356.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0037_auto_20151026_1356.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0036_auto_20151024_1628')]</em><a class="headerlink" href="#stock.migrations.0037_auto_20151026_1356.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0037_auto_20151026_1356.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'close_position', model_name=u'myposition'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'ask', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'bid', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'day_high', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'day_low', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'day_open', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'last', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'pe', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'prev_close', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'prev_high', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'prev_low', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'prev_open', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'spread', model_name=u'mystock'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_close', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_high', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_low', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'adj_open', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'close_price', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'high_price', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'low_price', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'open_price', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.DecimalField&gt;, preserve_default=True, name=u'per_trade_total', model_name=u'myuserprofile'&gt;]</em><a class="headerlink" href="#stock.migrations.0037_auto_20151026_1356.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0038_mystock_is_china_stock">
+<span id="stock-migrations-0038-mystock-is-china-stock-module"></span><h2>stock.migrations.0038_mystock_is_china_stock module<a class="headerlink" href="#module-stock.migrations.0038_mystock_is_china_stock" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0038_mystock_is_china_stock.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0038_mystock_is_china_stock.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0038_mystock_is_china_stock.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0038_mystock_is_china_stock.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0038_mystock_is_china_stock.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0037_auto_20151026_1356')]</em><a class="headerlink" href="#stock.migrations.0038_mystock_is_china_stock.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0038_mystock_is_china_stock.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.BooleanField&gt;, preserve_default=True, name=u'is_china_stock', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0038_mystock_is_china_stock.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0039_auto_20151103_0124">
+<span id="stock-migrations-0039-auto-20151103-0124-module"></span><h2>stock.migrations.0039_auto_20151103_0124 module<a class="headerlink" href="#module-stock.migrations.0039_auto_20151103_0124" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0039_auto_20151103_0124.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0039_auto_20151103_0124.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0039_auto_20151103_0124.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0039_auto_20151103_0124.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0039_auto_20151103_0124.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0038_mystock_is_china_stock')]</em><a class="headerlink" href="#stock.migrations.0039_auto_20151103_0124.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0039_auto_20151103_0124.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'twoday_change', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'oneday_change', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0039_auto_20151103_0124.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0040_auto_20151103_0204">
+<span id="stock-migrations-0040-auto-20151103-0204-module"></span><h2>stock.migrations.0040_auto_20151103_0204 module<a class="headerlink" href="#module-stock.migrations.0040_auto_20151103_0204" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0040_auto_20151103_0204.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0040_auto_20151103_0204.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0040_auto_20151103_0204.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0040_auto_20151103_0204.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0040_auto_20151103_0204.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0039_auto_20151103_0124')]</em><a class="headerlink" href="#stock.migrations.0040_auto_20151103_0204.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0040_auto_20151103_0204.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RemoveField  name=u'float_share', model_name=u'mystock'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'floating_share', model_name=u'mystock'&gt;]</em><a class="headerlink" href="#stock.migrations.0040_auto_20151103_0204.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0041_auto_20151103_0410">
+<span id="stock-migrations-0041-auto-20151103-0410-module"></span><h2>stock.migrations.0041_auto_20151103_0410 module<a class="headerlink" href="#module-stock.migrations.0041_auto_20151103_0410" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0041_auto_20151103_0410.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0041_auto_20151103_0410.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0041_auto_20151103_0410.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0041_auto_20151103_0410.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0041_auto_20151103_0410.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0040_auto_20151103_0204')]</em><a class="headerlink" href="#stock.migrations.0041_auto_20151103_0410.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0041_auto_20151103_0410.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RemoveField  name=u'twoday_change', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'relative_hl', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0041_auto_20151103_0410.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0042_auto_20151103_0432">
+<span id="stock-migrations-0042-auto-20151103-0432-module"></span><h2>stock.migrations.0042_auto_20151103_0432 module<a class="headerlink" href="#module-stock.migrations.0042_auto_20151103_0432" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0042_auto_20151103_0432.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0042_auto_20151103_0432.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0042_auto_20151103_0432.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0042_auto_20151103_0432.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0042_auto_20151103_0432.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0041_auto_20151103_0410')]</em><a class="headerlink" href="#stock.migrations.0042_auto_20151103_0432.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0042_auto_20151103_0432.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RenameField  new_name=u'daily_return', model_name=u'mystockhistorical', old_name=u'oneday_change'&gt;]</em><a class="headerlink" href="#stock.migrations.0042_auto_20151103_0432.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0043_mysector">
+<span id="stock-migrations-0043-mysector-module"></span><h2>stock.migrations.0043_mysector module<a class="headerlink" href="#module-stock.migrations.0043_mysector" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0043_mysector.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0043_mysector.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0043_mysector.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0043_mysector.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0043_mysector.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0042_auto_20151103_0432')]</em><a class="headerlink" href="#stock.migrations.0043_mysector.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0043_mysector.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'code', &lt;django.db.models.fields.CharField&gt;), (u'source', &lt;django.db.models.fields.CharField&gt;), (u'parent', &lt;django.db.models.fields.related.ForeignKey&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MySector'&gt;]</em><a class="headerlink" href="#stock.migrations.0043_mysector.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0044_mysector_description">
+<span id="stock-migrations-0044-mysector-description-module"></span><h2>stock.migrations.0044_mysector_description module<a class="headerlink" href="#module-stock.migrations.0044_mysector_description" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0044_mysector_description.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0044_mysector_description.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0044_mysector_description.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0044_mysector_description.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0044_mysector_description.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0043_mysector')]</em><a class="headerlink" href="#stock.migrations.0044_mysector_description.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0044_mysector_description.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=True, name=u'description', model_name=u'mysector'&gt;]</em><a class="headerlink" href="#stock.migrations.0044_mysector_description.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0045_auto_20151103_1924">
+<span id="stock-migrations-0045-auto-20151103-1924-module"></span><h2>stock.migrations.0045_auto_20151103_1924 module<a class="headerlink" href="#module-stock.migrations.0045_auto_20151103_1924" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0045_auto_20151103_1924.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0045_auto_20151103_1924.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0045_auto_20151103_1924.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0045_auto_20151103_1924.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0045_auto_20151103_1924.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0044_mysector_description')]</em><a class="headerlink" href="#stock.migrations.0045_auto_20151103_1924.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0045_auto_20151103_1924.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.CharField&gt;, preserve_default=True, name=u'name', model_name=u'mysector'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=True, name=u'description', model_name=u'mysector'&gt;]</em><a class="headerlink" href="#stock.migrations.0045_auto_20151103_1924.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0046_mysector_stocks">
+<span id="stock-migrations-0046-mysector-stocks-module"></span><h2>stock.migrations.0046_mysector_stocks module<a class="headerlink" href="#module-stock.migrations.0046_mysector_stocks" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0046_mysector_stocks.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0046_mysector_stocks.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0046_mysector_stocks.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0046_mysector_stocks.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0046_mysector_stocks.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0045_auto_20151103_1924')]</em><a class="headerlink" href="#stock.migrations.0046_mysector_stocks.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0046_mysector_stocks.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.related.ManyToManyField&gt;, preserve_default=True, name=u'stocks', model_name=u'mysector'&gt;]</em><a class="headerlink" href="#stock.migrations.0046_mysector_stocks.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0047_auto_20151104_0113">
+<span id="stock-migrations-0047-auto-20151104-0113-module"></span><h2>stock.migrations.0047_auto_20151104_0113 module<a class="headerlink" href="#module-stock.migrations.0047_auto_20151104_0113" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0047_auto_20151104_0113.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0047_auto_20151104_0113.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0047_auto_20151104_0113.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0047_auto_20151104_0113.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0047_auto_20151104_0113.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0046_mysector_stocks')]</em><a class="headerlink" href="#stock.migrations.0047_auto_20151104_0113.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0047_auto_20151104_0113.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'cci', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'decycler_oscillator', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'lg_slope', model_name=u'mystockhistorical'&gt;, &lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'si', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0047_auto_20151104_0113.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0048_mysimulationcondition_mysimulationresult">
+<span id="stock-migrations-0048-mysimulationcondition-mysimulationresult-module"></span><h2>stock.migrations.0048_mysimulationcondition_mysimulationresult module<a class="headerlink" href="#module-stock.migrations.0048_mysimulationcondition_mysimulationresult" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0048_mysimulationcondition_mysimulationresult.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0048_mysimulationcondition_mysimulationresult.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0048_mysimulationcondition_mysimulationresult.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0048_mysimulationcondition_mysimulationresult.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0048_mysimulationcondition_mysimulationresult.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0047_auto_20151104_0113')]</em><a class="headerlink" href="#stock.migrations.0048_mysimulationcondition_mysimulationresult.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0048_mysimulationcondition_mysimulationresult.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'data_source', &lt;django.db.models.fields.IntegerField&gt;), (u'strategy', &lt;django.db.models.fields.IntegerField&gt;), (u'strategy_value', &lt;django.db.models.fields.IntegerField&gt;), (u'data_sort', &lt;django.db.models.fields.IntegerField&gt;), (u'start', &lt;django.db.models.fields.DateField&gt;), (u'end', &lt;django.db.models.fields.DateField&gt;), (u'capital', &lt;django.db.models.fields.IntegerField&gt;), (u'per_trade', &lt;django.db.models.fields.IntegerField&gt;), (u'buy_cutoff', &lt;django.db.models.fields.IntegerField&gt;), (u'sell_cutoff', &lt;django.db.models.fields.IntegerField&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MySimulationCondition'&gt;, &lt;CreateModel  fields=[(u'id', &lt;django.db.models.fields.AutoField&gt;), (u'description', &lt;django.db.models.fields.TextField&gt;), (u'result', &lt;django.db.models.fields.TextField&gt;), (u'condition', &lt;django.db.models.fields.related.OneToOneField&gt;)], bases=(&lt;class 'django.db.models.base.Model'&gt;,), options={}, name=u'MySimulationResult'&gt;]</em><a class="headerlink" href="#stock.migrations.0048_mysimulationcondition_mysimulationresult.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0049_auto_20151105_1717">
+<span id="stock-migrations-0049-auto-20151105-1717-module"></span><h2>stock.migrations.0049_auto_20151105_1717 module<a class="headerlink" href="#module-stock.migrations.0049_auto_20151105_1717" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0049_auto_20151105_1717.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0049_auto_20151105_1717.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0049_auto_20151105_1717.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0049_auto_20151105_1717.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0049_auto_20151105_1717.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0048_mysimulationcondition_mysimulationresult')]</em><a class="headerlink" href="#stock.migrations.0049_auto_20151105_1717.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0049_auto_20151105_1717.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RemoveField  name=u'category', model_name=u'myposition'&gt;, &lt;AddField  field=&lt;django.db.models.fields.related.ForeignKey&gt;, preserve_default=False, name=u'simulation', model_name=u'myposition'&gt;]</em><a class="headerlink" href="#stock.migrations.0049_auto_20151105_1717.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0050_auto_20151105_2154">
+<span id="stock-migrations-0050-auto-20151105-2154-module"></span><h2>stock.migrations.0050_auto_20151105_2154 module<a class="headerlink" href="#module-stock.migrations.0050_auto_20151105_2154" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0050_auto_20151105_2154.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0050_auto_20151105_2154.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0050_auto_20151105_2154.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0050_auto_20151105_2154.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0050_auto_20151105_2154.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0049_auto_20151105_1717')]</em><a class="headerlink" href="#stock.migrations.0050_auto_20151105_2154.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0050_auto_20151105_2154.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'relative_ma', model_name=u'mystockhistorical'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'strategy_value', model_name=u'mysimulationcondition'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.FloatField&gt;, preserve_default=True, name=u'relative_hl', model_name=u'mystockhistorical'&gt;]</em><a class="headerlink" href="#stock.migrations.0050_auto_20151105_2154.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0051_auto_20151106_1435">
+<span id="stock-migrations-0051-auto-20151106-1435-module"></span><h2>stock.migrations.0051_auto_20151106_1435 module<a class="headerlink" href="#module-stock.migrations.0051_auto_20151106_1435" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0051_auto_20151106_1435.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0051_auto_20151106_1435.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0051_auto_20151106_1435.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0051_auto_20151106_1435.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0051_auto_20151106_1435.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0050_auto_20151105_2154')]</em><a class="headerlink" href="#stock.migrations.0051_auto_20151106_1435.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0051_auto_20151106_1435.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;RemoveField  name=u'result', model_name=u'mysimulationresult'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=False, name=u'asset', model_name=u'mysimulationresult'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=False, name=u'cash', model_name=u'mysimulationresult'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=False, name=u'equity', model_name=u'mysimulationresult'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=False, name=u'on_dates', model_name=u'mysimulationresult'&gt;]</em><a class="headerlink" href="#stock.migrations.0051_auto_20151106_1435.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0052_auto_20151106_1457">
+<span id="stock-migrations-0052-auto-20151106-1457-module"></span><h2>stock.migrations.0052_auto_20151106_1457 module<a class="headerlink" href="#module-stock.migrations.0052_auto_20151106_1457" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0052_auto_20151106_1457.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0052_auto_20151106_1457.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0052_auto_20151106_1457.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0052_auto_20151106_1457.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0052_auto_20151106_1457.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0051_auto_20151106_1435')]</em><a class="headerlink" href="#stock.migrations.0052_auto_20151106_1457.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0052_auto_20151106_1457.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=False, name=u'portfolio', model_name=u'mysimulationresult'&gt;, &lt;AddField  field=&lt;django.db.models.fields.TextField&gt;, preserve_default=False, name=u'transaction', model_name=u'mysimulationresult'&gt;]</em><a class="headerlink" href="#stock.migrations.0052_auto_20151106_1457.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0053_auto_20151106_1722">
+<span id="stock-migrations-0053-auto-20151106-1722-module"></span><h2>stock.migrations.0053_auto_20151106_1722 module<a class="headerlink" href="#module-stock.migrations.0053_auto_20151106_1722" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0053_auto_20151106_1722.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0053_auto_20151106_1722.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0053_auto_20151106_1722.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0053_auto_20151106_1722.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0053_auto_20151106_1722.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0052_auto_20151106_1457')]</em><a class="headerlink" href="#stock.migrations.0053_auto_20151106_1722.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0053_auto_20151106_1722.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;annoying.fields.JSONField&gt;, preserve_default=False, name=u'snapshot', model_name=u'mysimulationresult'&gt;, &lt;AlterField  field=&lt;annoying.fields.JSONField&gt;, preserve_default=True, name=u'asset', model_name=u'mysimulationresult'&gt;, &lt;AlterField  field=&lt;annoying.fields.JSONField&gt;, preserve_default=True, name=u'cash', model_name=u'mysimulationresult'&gt;, &lt;AlterField  field=&lt;annoying.fields.JSONField&gt;, preserve_default=True, name=u'equity', model_name=u'mysimulationresult'&gt;, &lt;AlterField  field=&lt;annoying.fields.JSONField&gt;, preserve_default=True, name=u'on_dates', model_name=u'mysimulationresult'&gt;, &lt;AlterField  field=&lt;annoying.fields.JSONField&gt;, preserve_default=True, name=u'portfolio', model_name=u'mysimulationresult'&gt;, &lt;AlterField  field=&lt;annoying.fields.JSONField&gt;, preserve_default=True, name=u'transaction', model_name=u'mysimulationresult'&gt;]</em><a class="headerlink" href="#stock.migrations.0053_auto_20151106_1722.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0054_auto_20151108_1555">
+<span id="stock-migrations-0054-auto-20151108-1555-module"></span><h2>stock.migrations.0054_auto_20151108_1555 module<a class="headerlink" href="#module-stock.migrations.0054_auto_20151108_1555" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0054_auto_20151108_1555.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0054_auto_20151108_1555.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0054_auto_20151108_1555.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0054_auto_20151108_1555.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0054_auto_20151108_1555.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0053_auto_20151106_1722')]</em><a class="headerlink" href="#stock.migrations.0054_auto_20151108_1555.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0054_auto_20151108_1555.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AddField  field=&lt;django.db.models.fields.related.ForeignKey&gt;, preserve_default=True, name=u'sector', model_name=u'mysimulationcondition'&gt;, &lt;AlterField  field=&lt;django.db.models.fields.IntegerField&gt;, preserve_default=True, name=u'data_source', model_name=u'mysimulationcondition'&gt;]</em><a class="headerlink" href="#stock.migrations.0054_auto_20151108_1555.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations.0055_auto_20151110_0315">
+<span id="stock-migrations-0055-auto-20151110-0315-module"></span><h2>stock.migrations.0055_auto_20151110_0315 module<a class="headerlink" href="#module-stock.migrations.0055_auto_20151110_0315" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="stock.migrations.0055_auto_20151110_0315.Migration">
+<em class="property">class </em><code class="descclassname">stock.migrations.0055_auto_20151110_0315.</code><code class="descname">Migration</code><span class="sig-paren">(</span><em>name</em>, <em>app_label</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/stock/migrations/0055_auto_20151110_0315.html#Migration"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#stock.migrations.0055_auto_20151110_0315.Migration" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">django.db.migrations.migration.Migration</span></code></p>
+<dl class="attribute">
+<dt id="stock.migrations.0055_auto_20151110_0315.Migration.dependencies">
+<code class="descname">dependencies</code><em class="property"> = [(u'stock', u'0054_auto_20151108_1555')]</em><a class="headerlink" href="#stock.migrations.0055_auto_20151110_0315.Migration.dependencies" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="stock.migrations.0055_auto_20151110_0315.Migration.operations">
+<code class="descname">operations</code><em class="property"> = [&lt;AlterUniqueTogether  unique_together=set([(u'data_source', u'sector', u'strategy', u'strategy_value', u'data_sort', u'start', u'end', u'capital', u'per_trade', u'buy_cutoff', u'sell_cutoff')]), name=u'mysimulationcondition'&gt;]</em><a class="headerlink" href="#stock.migrations.0055_auto_20151110_0315.Migration.operations" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="module-stock.migrations">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-stock.migrations" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">stock.migrations package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0001_initial">stock.migrations.0001_initial module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0002_auto_20150709_1404">stock.migrations.0002_auto_20150709_1404 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0003_auto_20150709_1426">stock.migrations.0003_auto_20150709_1426 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0004_auto_20150709_1534">stock.migrations.0004_auto_20150709_1534 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0005_auto_20150709_1621">stock.migrations.0005_auto_20150709_1621 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0006_auto_20150709_1712">stock.migrations.0006_auto_20150709_1712 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0007_auto_20150709_1740">stock.migrations.0007_auto_20150709_1740 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0008_auto_20150709_1806">stock.migrations.0008_auto_20150709_1806 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0009_auto_20150709_1841">stock.migrations.0009_auto_20150709_1841 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0010_mystock_prev_change">stock.migrations.0010_mystock_prev_change module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0011_auto_20150714_1831">stock.migrations.0011_auto_20150714_1831 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0012_auto_20150715_1513">stock.migrations.0012_auto_20150715_1513 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0013_mystock_fib_adjusted_close">stock.migrations.0013_mystock_fib_adjusted_close module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0014_mychenmin">stock.migrations.0014_mychenmin module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0015_mychenmin_name">stock.migrations.0015_mychenmin_name module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0016_auto_20150716_1917">stock.migrations.0016_auto_20150716_1917 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0017_mystockhistorical">stock.migrations.0017_mystockhistorical module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0018_auto_20150716_2036">stock.migrations.0018_auto_20150716_2036 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0019_auto_20150728_1514">stock.migrations.0019_auto_20150728_1514 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0020_auto_20150728_1757">stock.migrations.0020_auto_20150728_1757 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0021_auto_20150728_2128">stock.migrations.0021_auto_20150728_2128 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0022_mystockhistorical_flag_by_strategy">stock.migrations.0022_mystockhistorical_flag_by_strategy module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0023_auto_20151016_1515">stock.migrations.0023_auto_20151016_1515 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0024_mystockhistorical_val_by_strategy">stock.migrations.0024_mystockhistorical_val_by_strategy module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0025_auto_20151017_1223">stock.migrations.0025_auto_20151017_1223 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0026_mystockhistorical_peer_rank">stock.migrations.0026_mystockhistorical_peer_rank module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0027_auto_20151018_0245">stock.migrations.0027_auto_20151018_0245 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0028_auto_20151018_0248">stock.migrations.0028_auto_20151018_0248 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0029_auto_20151018_1317">stock.migrations.0029_auto_20151018_1317 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0030_auto_20151018_1320">stock.migrations.0030_auto_20151018_1320 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0031_auto_20151019_1534">stock.migrations.0031_auto_20151019_1534 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0032_mystockhistorical_oneday_change_pcnt">stock.migrations.0032_mystockhistorical_oneday_change_pcnt module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0033_myposition_category">stock.migrations.0033_myposition_category module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0034_auto_20151022_1951">stock.migrations.0034_auto_20151022_1951 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0035_auto_20151023_1716">stock.migrations.0035_auto_20151023_1716 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0036_auto_20151024_1628">stock.migrations.0036_auto_20151024_1628 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0037_auto_20151026_1356">stock.migrations.0037_auto_20151026_1356 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0038_mystock_is_china_stock">stock.migrations.0038_mystock_is_china_stock module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0039_auto_20151103_0124">stock.migrations.0039_auto_20151103_0124 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0040_auto_20151103_0204">stock.migrations.0040_auto_20151103_0204 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0041_auto_20151103_0410">stock.migrations.0041_auto_20151103_0410 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0042_auto_20151103_0432">stock.migrations.0042_auto_20151103_0432 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0043_mysector">stock.migrations.0043_mysector module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0044_mysector_description">stock.migrations.0044_mysector_description module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0045_auto_20151103_1924">stock.migrations.0045_auto_20151103_1924 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0046_mysector_stocks">stock.migrations.0046_mysector_stocks module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0047_auto_20151104_0113">stock.migrations.0047_auto_20151104_0113 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0048_mysimulationcondition_mysimulationresult">stock.migrations.0048_mysimulationcondition_mysimulationresult module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0049_auto_20151105_1717">stock.migrations.0049_auto_20151105_1717 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0050_auto_20151105_2154">stock.migrations.0050_auto_20151105_2154 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0051_auto_20151106_1435">stock.migrations.0051_auto_20151106_1435 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0052_auto_20151106_1457">stock.migrations.0052_auto_20151106_1457 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0053_auto_20151106_1722">stock.migrations.0053_auto_20151106_1722 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0054_auto_20151108_1555">stock.migrations.0054_auto_20151108_1555 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations.0055_auto_20151110_0315">stock.migrations.0055_auto_20151110_0315 module</a></li>
+<li><a class="reference internal" href="#module-stock.migrations">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  <li><a href="stock.html">stock package</a><ul>
+      <li>Previous: <a href="stock.html" title="previous chapter">stock package</a></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/stock.migrations.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+      |
+      <a href="_sources/stock.migrations.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

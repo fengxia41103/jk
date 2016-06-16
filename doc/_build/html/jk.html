@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>jk package &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="index.html" />
+    <link rel="next" title="manage module" href="manage.html" />
+    <link rel="prev" title="data_import module" href="data_import.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="jk-package">
+<h1>jk package<a class="headerlink" href="#jk-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-jk.celery">
+<span id="jk-celery-module"></span><h2>jk.celery module<a class="headerlink" href="#module-jk.celery" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-jk.production_envvars">
+<span id="jk-production-envvars-module"></span><h2>jk.production_envvars module<a class="headerlink" href="#module-jk.production_envvars" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-jk.settings">
+<span id="jk-settings-module"></span><h2>jk.settings module<a class="headerlink" href="#module-jk.settings" title="Permalink to this headline">¶</a></h2>
+<p>Django settings for jinneng project.</p>
+<p>For more information on this file, see
+<a class="reference external" href="https://docs.djangoproject.com/en/1.7/topics/settings/">https://docs.djangoproject.com/en/1.7/topics/settings/</a></p>
+<p>For the full list of settings and their values, see
+<a class="reference external" href="https://docs.djangoproject.com/en/1.7/ref/settings/">https://docs.djangoproject.com/en/1.7/ref/settings/</a></p>
+</div>
+<div class="section" id="module-jk.tor_handler">
+<span id="jk-tor-handler-module"></span><h2>jk.tor_handler module<a class="headerlink" href="#module-jk.tor_handler" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="jk.tor_handler.PlainUtility">
+<em class="property">class </em><code class="descclassname">jk.tor_handler.</code><code class="descname">PlainUtility</code><a class="reference internal" href="_modules/jk/tor_handler.html#PlainUtility"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.PlainUtility" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="jk.tor_handler.PlainUtility.current_ip">
+<code class="descname">current_ip</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#PlainUtility.current_ip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.PlainUtility.current_ip" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="jk.tor_handler.PlainUtility.request">
+<code class="descname">request</code><span class="sig-paren">(</span><em>url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#PlainUtility.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.PlainUtility.request" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jk.tor_handler.SeleniumUtility">
+<em class="property">class </em><code class="descclassname">jk.tor_handler.</code><code class="descname">SeleniumUtility</code><span class="sig-paren">(</span><em>use_tor=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#SeleniumUtility"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.SeleniumUtility" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="jk.tor_handler.SeleniumUtility.request">
+<code class="descname">request</code><span class="sig-paren">(</span><em>url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#SeleniumUtility.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.SeleniumUtility.request" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="jk.tor_handler.TorUtility">
+<em class="property">class </em><code class="descclassname">jk.tor_handler.</code><code class="descname">TorUtility</code><a class="reference internal" href="_modules/jk/tor_handler.html#TorUtility"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.TorUtility" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="jk.tor_handler.TorUtility.current_ip">
+<code class="descname">current_ip</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#TorUtility.current_ip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.TorUtility.current_ip" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="jk.tor_handler.TorUtility.renewTorIdentity">
+<code class="descname">renewTorIdentity</code><span class="sig-paren">(</span><em>passAuth</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#TorUtility.renewTorIdentity"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.TorUtility.renewTorIdentity" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="jk.tor_handler.TorUtility.renew_connection">
+<code class="descname">renew_connection</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#TorUtility.renew_connection"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.TorUtility.renew_connection" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="jk.tor_handler.TorUtility.request">
+<code class="descname">request</code><span class="sig-paren">(</span><em>url</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/jk/tor_handler.html#TorUtility.request"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#jk.tor_handler.TorUtility.request" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+<div class="section" id="jk-urls-module">
+<h2>jk.urls module<a class="headerlink" href="#jk-urls-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-jk.wsgi">
+<span id="jk-wsgi-module"></span><h2>jk.wsgi module<a class="headerlink" href="#module-jk.wsgi" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-jk">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-jk" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">jk package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-jk.celery">jk.celery module</a></li>
+<li><a class="reference internal" href="#module-jk.production_envvars">jk.production_envvars module</a></li>
+<li><a class="reference internal" href="#module-jk.settings">jk.settings module</a></li>
+<li><a class="reference internal" href="#module-jk.tor_handler">jk.tor_handler module</a></li>
+<li><a class="reference internal" href="#jk-urls-module">jk.urls module</a></li>
+<li><a class="reference internal" href="#module-jk.wsgi">jk.wsgi module</a></li>
+<li><a class="reference internal" href="#module-jk">Module contents</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="data_import.html" title="previous chapter">data_import module</a></li>
+      <li>Next: <a href="manage.html" title="next chapter">manage module</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/jk.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+      |
+      <a href="_sources/jk.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>stock.migrations.0048_mysimulationcondition_mysimulationresult &mdash; jk  documentation</title>
+    
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../../_static/doctools.js"></script>
+    <link rel="top" title="jk  documentation" href="../../../index.html" />
+    <link rel="up" title="Module code" href="../../index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for stock.migrations.0048_mysimulationcondition_mysimulationresult</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">unicode_literals</span>
+
+<span class="kn">from</span> <span class="nn">django.db</span> <span class="kn">import</span> <span class="n">models</span><span class="p">,</span> <span class="n">migrations</span>
+<span class="kn">import</span> <span class="nn">django.core.validators</span>
+
+
+<div class="viewcode-block" id="Migration"><a class="viewcode-back" href="../../../stock.migrations.html#stock.migrations.0048_mysimulationcondition_mysimulationresult.Migration">[docs]</a><span class="k">class</span> <span class="nc">Migration</span><span class="p">(</span><span class="n">migrations</span><span class="o">.</span><span class="n">Migration</span><span class="p">):</span>
+
+    <span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;stock&#39;</span><span class="p">,</span> <span class="s1">&#39;0047_auto_20151104_0113&#39;</span><span class="p">),</span>
+    <span class="p">]</span>
+
+    <span class="n">operations</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">CreateModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MySimulationCondition&#39;</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span>
+                                        <span class="n">serialize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">auto_created</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;data_source&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+                 <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;S&amp;P500&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;CI sector&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;WIND sector&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;China stock&#39;</span><span class="p">)])),</span>
+                <span class="p">(</span><span class="s1">&#39;strategy&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+                 <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;S1 (by ranking)&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;S2 (buy low sell high)&#39;</span><span class="p">)])),</span>
+                <span class="p">(</span><span class="s1">&#39;strategy_value&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Strategy value&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[(</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;Daily return&#39;</span><span class="p">),</span> <span class="p">(</span>
+                    <span class="mi">2</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;Relative (H,L)&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;Relative Moving Avg&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;CCI&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;SI&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;Linear Reg Slope&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;Decycler Oscillator&#39;</span><span class="p">)])),</span>
+                <span class="p">(</span><span class="s1">&#39;data_sort&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Sort order&#39;</span><span class="p">,</span> <span class="n">choices</span><span class="o">=</span><span class="p">[</span>
+                 <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;ascending&#39;</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">b</span><span class="s1">&#39;descending&#39;</span><span class="p">)])),</span>
+                <span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span>
+                    <span class="n">default</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;2014-01-01&#39;</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Start date&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">DateField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;2014-01-10&#39;</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;End date&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;capital&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+                    <span class="n">default</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Starting cash&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;per_trade&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span>
+                    <span class="n">default</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;Per trade amount&#39;</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;buy_cutoff&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;Buy cutoff (%)&#39;</span><span class="p">,</span> <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+                 <span class="n">django</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">validators</span><span class="o">.</span><span class="n">MaxValueValidator</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="n">django</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">validators</span><span class="o">.</span><span class="n">MinValueValidator</span><span class="p">(</span><span class="mi">0</span><span class="p">)])),</span>
+                <span class="p">(</span><span class="s1">&#39;sell_cutoff&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">IntegerField</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">75</span><span class="p">,</span> <span class="n">verbose_name</span><span class="o">=</span><span class="n">b</span><span class="s1">&#39;Sell cutoff (%)&#39;</span><span class="p">,</span> <span class="n">validators</span><span class="o">=</span><span class="p">[</span>
+                 <span class="n">django</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">validators</span><span class="o">.</span><span class="n">MaxValueValidator</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="n">django</span><span class="o">.</span><span class="n">core</span><span class="o">.</span><span class="n">validators</span><span class="o">.</span><span class="n">MinValueValidator</span><span class="p">(</span><span class="mi">0</span><span class="p">)])),</span>
+            <span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="p">{</span>
+            <span class="p">},</span>
+            <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">,),</span>
+        <span class="p">),</span>
+        <span class="n">migrations</span><span class="o">.</span><span class="n">CreateModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;MySimulationResult&#39;</span><span class="p">,</span>
+            <span class="n">fields</span><span class="o">=</span><span class="p">[</span>
+                <span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">AutoField</span><span class="p">(</span><span class="n">verbose_name</span><span class="o">=</span><span class="s1">&#39;ID&#39;</span><span class="p">,</span>
+                                        <span class="n">serialize</span><span class="o">=</span><span class="bp">False</span><span class="p">,</span> <span class="n">auto_created</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">primary_key</span><span class="o">=</span><span class="bp">True</span><span class="p">)),</span>
+                <span class="p">(</span><span class="s1">&#39;description&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()),</span>
+                <span class="p">(</span><span class="s1">&#39;result&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">TextField</span><span class="p">()),</span>
+                <span class="p">(</span><span class="s1">&#39;condition&#39;</span><span class="p">,</span> <span class="n">models</span><span class="o">.</span><span class="n">OneToOneField</span><span class="p">(</span>
+                    <span class="n">to</span><span class="o">=</span><span class="s1">&#39;stock.MySimulationCondition&#39;</span><span class="p">)),</span>
+            <span class="p">],</span>
+            <span class="n">options</span><span class="o">=</span><span class="p">{</span>
+            <span class="p">},</span>
+            <span class="n">bases</span><span class="o">=</span><span class="p">(</span><span class="n">models</span><span class="o">.</span><span class="n">Model</span><span class="p">,),</span>
+        <span class="p">),</span>
+    <span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.4.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
