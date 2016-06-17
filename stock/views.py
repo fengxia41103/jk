@@ -670,19 +670,26 @@ class MySimulationConditionDetail(DetailView):
         context['snapshots'] = result.snapshot
         context['equity_gain_from_hold_pcnt'] = result.equity_portfolio_gain_pcnt
         context['equity_gain_from_trade_pcnt'] = result.equity_trade_gain_pcnt
+        context['asset_cumulative'] = result.asset_cumulative_return
 
-        # if viewing a China data, we pull China SP500 index
-        # value for comparison purpose
+        # Pull index data for comparison
         if self.object.data_source in [2, 3, 4, 5]:
-            context['asset_cumulative'] = result.asset_cumulative_return
+            # if viewing a China data, we pull China SP500 index
+            index_symbol = '000001'
+        elif self.object.data_source == 1:
+            # if viewing SP500 data, we pull SP500 index GSPC
+            index_symbol = 'GSPC'
 
-            # compute china index cumulative return for selected time period
-            china_index = MyStock.objects.get(symbol="000001")
-            china_historicals = MyStockHistorical.objects.filter(
-                stock=china_index, date_stamp__in=result.on_dates).values('adj_close').order_by('date_stamp')
-            china_t0 = china_historicals[0]['adj_close']
-            context['china_index_cumulative'] = [float(china_historicals[x][
-                                                       'adj_close'] / china_t0) for x in range(1, len(china_historicals))]
-            context['alpha_return'] = map(lambda x: x[
-                                          0] - x[1], zip(context['asset_cumulative'], context['china_index_cumulative']))
+        # compute china index cumulative return for selected time period
+        index = MyStock.objects.get(symbol=index_symbol)
+        index_historicals = MyStockHistorical.objects.filter(
+            stock=index, date_stamp__in=result.on_dates).values('adj_close').order_by('date_stamp')
+        index_t0 = index_historicals[0]['adj_close']
+        context['index_cumulative'] = [float(index_historicals[x][
+                                                   'adj_close'] / index_t0) for x in range(1, len(index_historicals))]
+ 
+        # alpha return is the diff between measured asset returns and index returns
+        # < 0: when portfolio is underforming index; >0: overperforming
+        context['alpha_return'] = map(lambda x: x[0] - x[1], zip(context['asset_cumulative'], context['index_cumulative']))
+
         return context

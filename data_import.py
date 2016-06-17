@@ -122,7 +122,7 @@ from stock.tasks import backtesting_daily_return_consumer
 
 
 def consumer_daily_return():
-    for symbol in MyStock.objects.filter(is_sp500=True).values_list('symbol', flat=True):
+    for symbol in MyStock.objects.filter(is_sp500=True,symbol='GSPC').values_list('symbol', flat=True):
         backtesting_daily_return_consumer.delay(symbol)
 
 from stock.tasks import backtesting_relative_hl_consumer
@@ -496,11 +496,7 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
     sectors = [None] + reduce(lambda x, y: x + y,
                               [list(s.mysector_set.all()) for s in stock_8211])
 
-    # start = ['2016-01-01']
-    # end = ['2017-01-01']
-    # start = ['2015-01-01']
-    # end = ['2015-01-10']
-
+    # simulation run
     conditions = []
     for (source, strategy, strategy_value, sector) in itertools.product(sources, strategies, strategy_values, sectors):
         for (start,end) in date_range:      
@@ -512,6 +508,7 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
             if sector and source != 5:
                 continue
 
+            # simulation parameters
             logger.debug(source, strategy, strategy_value, start, end, sector)
 
             # cutoffs have different meanings based on strategy
@@ -525,6 +522,10 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
                 sell_cutoff = range(1,11,1)
                 cutoffs = itertools.product(buy_cutoff, sell_cutoff)
 
+            # Set up simulation condition objects based on
+            # combination of specified parameters. Note that
+            # the count of this matrix increases dramatically 
+            # if we expand this parameter list.
             for (buy_cutoff, sell_cutoff) in cutoffs:
                 condition, created = MySimulationCondition.objects.get_or_create(
                     data_source=source,
@@ -608,7 +609,8 @@ def main():
     batch_simulation_daily_return(
         date_range = [
             ('2016-01-01', '2017-01-01'),
-            ('2015-01-01', '2016-01-01')],
+            # ('2015-01-01', '2016-01-01')
+        ],
         strategies = [2]
     )
 

@@ -67,7 +67,7 @@ class MySimulation(object):
         stocks = []
         if data_source == 1:
             stocks = MyStock.objects.filter(
-                is_sp500=True).values_list('id', flat=True)
+                is_sp500=True, is_index=False).values_list('id', flat=True)
         elif data_source == 2:
             stocks = MyStock.objects.filter(
                 symbol__startswith="CI00").values_list('id', flat=True)
@@ -87,7 +87,7 @@ class MySimulation(object):
         histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks, date_stamp__range=[start, end]).values(
             'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'val_by_strategy', 'relative_ma')
         if not len(histories):
-            self.logger.error('MySimulation: no historicals found! Aborting setup.')
+            logger.error('MySimulation: no historicals found! Aborting setup.')
             return False
 
         # dates
@@ -181,12 +181,12 @@ class MySimulation(object):
                     # ERROR: stock symbol is missing from historical data.
                     # Either we have not got all historicals yet, or the data
                     # source is not good enough.
-                    self.logger.error('MySimulation.run: %s not in historical!'%p['stock__symbol'])
+                    logger.error('MySimulation.run: %s not in historical!'%p['stock__symbol'], on_date)
                     continue
 
                 # record the spot equity value
                 if p['vol'] * simulated_spot == 0:
-                    self.logger.error('spot equity = 0!')
+                    logger.error('spot equity = 0!')
                     1/0
                 daily_equity.append(p['vol'] * simulated_spot)
 
@@ -399,7 +399,7 @@ class MySimulationJK(MySimulation):
 
             # not enough fund
             if self.capital < self.per_trade:
-                logger.debug('%s: Not enough capital to execute buy.'%symbol)
+                # logger.debug('%s: Not enough capital to execute buy.'%symbol)
                 continue
 
             # if buy_cutoff = 0.04,

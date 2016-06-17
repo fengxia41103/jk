@@ -238,6 +238,11 @@ class MyStock(models.Model):
         default=False,
         verbose_name=u'Is a China stock'
     )
+    is_index = models.BooleanField(
+    	default = False,
+    	verbose_name = u'Is an index',
+    	help_text = u'Index is a derived value from basket of stocks'
+    )
     prev_close = models.DecimalField(
         max_digits=20,
         decimal_places=5,
@@ -1054,7 +1059,7 @@ class MySimulationResult(models.Model):
     def _asset_cumulative_return(self):
         """Measures daily asset's return over T0's.
 
-        This indes shows how assets swings comparing to simulation's T0.
+        This index shows how assets swings comparing to simulation's T0.
         This can be viewed as an overall performance indicator over time.
         """
         cumulative = []

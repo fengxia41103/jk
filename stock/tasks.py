@@ -869,9 +869,14 @@ class MyStockStrategyValue(object):
         t0 = ''
         for i in range(window_length, len(records)):
             logger.debug('%s: %d/%d' % (symbol, i, len(records)))
-            window = records[i - window_length:i]
-            t0 = records[i]  # set T0
 
+            # sliding window
+            window = records[i - window_length:i]
+
+            # set T0
+            t0 = records[i]
+
+            # compute value
             self.compute_value(t0, window)
 
             # save to DB
@@ -890,7 +895,7 @@ class MyStockDailyReturn(MyStockStrategyValue):
     Compute historical oneday_change = (today's close - prev's close)/prev's close *100
     """
 
-    def __init__(self,):
+    def __init__(self):
         super(MyStockDailyReturn, self).__init__()
 
     def compute_value(self, t0, window):
