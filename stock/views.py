@@ -685,8 +685,10 @@ class MySimulationConditionDetail(DetailView):
         index_historicals = MyStockHistorical.objects.filter(
             stock=index, date_stamp__in=result.on_dates).values('adj_close').order_by('date_stamp')
         index_t0 = index_historicals[0]['adj_close']
-        context['index_cumulative'] = [float(index_historicals[x][
-                                                   'adj_close'] / index_t0) for x in range(1, len(index_historicals))]
+
+        # index historicals normalized to its T0 value
+        context['index_cumulative'] = [float(index_historicals[x]['adj_close'] / index_t0) 
+            for x in range(1, len(index_historicals))]
  
         # alpha return is the diff between measured asset returns and index returns
         # < 0: when portfolio is underforming index; >0: overperforming
