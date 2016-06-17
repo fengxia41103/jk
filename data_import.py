@@ -521,7 +521,9 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
                 sell_cutoff = [b + step for b in buy_cutoff]
                 cutoffs = zip(buy_cutoff, sell_cutoff)
             elif strategy == 2:
-                cutoffs = itertools.product([1, 5, 10], [1, 5, 10])
+                buy_cutoff = range(1,11,1)
+                sell_cutoff = range(1,11,1)
+                cutoffs = itertools.product(buy_cutoff, sell_cutoff)
 
             for (buy_cutoff, sell_cutoff) in cutoffs:
                 condition, created = MySimulationCondition.objects.get_or_create(
@@ -548,10 +550,16 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
         # But it is safe in this context.
         if strategy == 2:
             # buy low sell high
+            # Set is_update=True will remove all existing results first
+            # and then rerun all simulations. This is necessary
+            # because SP500 is gettting new data each day.
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=True)
         else:
             # alpha
+            # Because computing alpha index values are very time consuming,
+            # so we are to skip existing results to save time. Ideally
+            # we should set is_update=True to recompute from a clean sheet.
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=False)
 
@@ -598,7 +606,9 @@ def main():
     simulation
     '''
     batch_simulation_daily_return(
-        date_range = [('2016-01-01','2017-01-01')],
+        date_range = [
+            ('2016-01-01', '2017-01-01'),
+            ('2015-01-01', '2016-01-01')],
         strategies = [2]
     )
 

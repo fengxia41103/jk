@@ -87,6 +87,7 @@ class MySimulation(object):
         histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks, date_stamp__range=[start, end]).values(
             'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'val_by_strategy', 'relative_ma')
         if not len(histories):
+            self.logger.error('MySimulation: no historicals found! Aborting setup.')
             return False
 
         # dates
@@ -138,8 +139,6 @@ class MySimulation(object):
 
         # trading
         for on_date, symbols_by_rank in self.data:
-            print self.simulation, on_date.isoformat()
-            positions = None
             total_symbols = len(symbols_by_rank)
 
             # record transactions
@@ -159,9 +158,9 @@ class MySimulation(object):
             self.buy(on_date, symbols_by_rank)
 
             # compute equity, cash, asset
+            daily_equity = []
             positions = MyPosition.objects.filter(
                 simulation=self.simulation, is_open=True).values('stock__symbol', 'position', 'vol')
-            temp = []
             for p in positions:
                 if p['stock__symbol'] in self.historicals[on_date]:
                     # if symbol's historicals are missing for some reason
@@ -182,18 +181,21 @@ class MySimulation(object):
                     # ERROR: stock symbol is missing from historical data.
                     # Either we have not got all historicals yet, or the data
                     # source is not good enough.
-                    print p['stock__symbol'], 'not in historical!'
+                    self.logger.error('MySimulation.run: %s not in historical!'%p['stock__symbol'])
                     continue
 
                 # record the spot equity value
-                temp.append(p['vol'] * simulated_spot)
+                if p['vol'] * simulated_spot == 0:
+                    self.logger.error('spot equity = 0!')
+                    1/0
+                daily_equity.append(p['vol'] * simulated_spot)
 
                 # compute gain/loss of the holding portfolio
                 self.snapshot[on_date]['gain'][
                     'hold'] += p['vol'] * (simulated_spot - p['position'])
 
             # record equity, cash and asset on that date
-            equity[on_date] = sum(temp)
+            equity[on_date] = sum(daily_equity)
             cash[on_date] = self.capital
             assets[on_date] = equity[on_date] + cash[on_date]
 
@@ -397,7 +399,7 @@ class MySimulationJK(MySimulation):
 
             # not enough fund
             if self.capital < self.per_trade:
-            	logger.debug('%s: Not enough capital to execute buy.'%symbol)
+                logger.debug('%s: Not enough capital to execute buy.'%symbol)
                 continue
 
             # if buy_cutoff = 0.04,

@@ -610,7 +610,6 @@ class MySimulationResultList(ListView):
     template_name = 'stock/backtesting/simulation_result_list.html'
 
     def get_queryset(self):
-        # return MySimulationCondition.objects.filter(mysimulationresult__isnull=False)
         return MySimulationCondition.objects.filter(
             mysimulationresult__isnull=False,
             strategy = 2,

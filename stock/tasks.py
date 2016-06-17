@@ -64,7 +64,6 @@ class MyStockFlagSP500():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self):
         # clear is_sp500 flag
@@ -74,21 +73,21 @@ class MyStockFlagSP500():
 
         url = 'https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv'
         content = self.http_handler.request(url)
-        # self.logger.debug(content)
+        # logger.debug(content)
 
         f = StringIO.StringIO(content)
         for index, vals in enumerate(csv.reader(f)):
             if not index:
                 continue
             if len(vals) != 3:
-                self.logger.error('[%s] error, %d' % (vals[0], len(vals)))
+                logger.error('[%s] error, %d' % (vals[0], len(vals)))
                 continue
 
             stock, created = MyStock.objects.get_or_create(symbol=vals[0])
             stock.is_sp500 = True
             stock.sector = vals[-1]
             stock.save()
-            self.logger.debug('[%s] complete' % vals[0])
+            logger.debug('[%s] complete' % vals[0])
 
 
 @shared_task
@@ -103,7 +102,6 @@ class MyStockPrevYahoo():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self, symbol):
         # https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
@@ -114,14 +112,14 @@ class MyStockPrevYahoo():
             now.month - 1, now.day, now.year, ago.month - 1, ago.day, ago.year)
         url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (
             symbol, date_str)
-        self.logger.debug(url)
+        logger.debug(url)
         content = self.http_handler.request(url)
 
         stock = MyStock.objects.get(symbol=symbol)
         f = StringIO.StringIO(content)
         for vals in csv.reader(f):
             if len(vals) != 7:
-                self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+                logger.error('[%s] error, %d' % (symbol, len(vals)))
             elif 'Open' in vals[1]:
                 continue  # title line
             else:
@@ -132,7 +130,7 @@ class MyStockPrevYahoo():
                 stock.prev_change = (
                     stock.prev_open - stock.prev_close) / stock.prev_open * Decimal(100.0)
                 stock.save()
-                self.logger.debug('[%s] complete' % symbol)
+                logger.debug('[%s] complete' % symbol)
                 break
 
 
@@ -148,7 +146,6 @@ class MyStockPrevWeekYahoo():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self, symbol):
         # https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
@@ -159,7 +156,7 @@ class MyStockPrevWeekYahoo():
             ago.month - 1, ago.day, ago.year, now.month - 1, now.day, now.year)
         url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (
             symbol, date_str)
-        self.logger.debug(url)
+        logger.debug(url)
         content = self.http_handler.request(url)
 
         stock = MyStock.objects.get(symbol=symbol)
@@ -168,7 +165,7 @@ class MyStockPrevWeekYahoo():
         cnt = 0
         for vals in csv.reader(f):
             if len(vals) != 7:
-                self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+                logger.error('[%s] error, %d' % (symbol, len(vals)))
             elif 'Adj' in vals[-1]:
                 continue
             elif cnt < 7:
@@ -180,7 +177,7 @@ class MyStockPrevWeekYahoo():
         # persist
         stock.week_adjusted_close = ','.join(list(reversed(adj_close)))
         stock.save()
-        self.logger.debug('[%s] complete' % symbol)
+        logger.debug('[%s] complete' % symbol)
 
 
 @shared_task
@@ -195,7 +192,6 @@ class MyStockPrevMonthYahoo():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self, symbol):
         # https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
@@ -206,7 +202,7 @@ class MyStockPrevMonthYahoo():
             ago.month - 1, ago.day, ago.year, now.month - 1, now.day, now.year)
         url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=w&ignore=.csv' % (
             symbol, date_str)
-        self.logger.debug(url)
+        logger.debug(url)
         content = self.http_handler.request(url)
 
         stock = MyStock.objects.get(symbol=symbol)
@@ -215,7 +211,7 @@ class MyStockPrevMonthYahoo():
         cnt = 0
         for vals in csv.reader(f):
             if len(vals) != 7:
-                self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+                logger.error('[%s] error, %d' % (symbol, len(vals)))
             elif 'Adj' in vals[-1]:
                 continue
             elif cnt < 4:
@@ -227,7 +223,7 @@ class MyStockPrevMonthYahoo():
         # persist
         stock.month_adjusted_close = ','.join(list(reversed(adj_close)))
         stock.save()
-        self.logger.debug('[%s] complete' % symbol)
+        logger.debug('[%s] complete' % symbol)
 
 
 @shared_task
@@ -242,7 +238,6 @@ class MyStockPrevFibYahoo():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self, symbol):
         stock = MyStock.objects.get(symbol=symbol)
@@ -259,14 +254,14 @@ class MyStockPrevFibYahoo():
         for interval in ['w', 'd']:
             url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=%s&ignore=.csv' % (
                 symbol, date_str, interval)
-            self.logger.debug(url)
+            logger.debug(url)
             content = self.http_handler.request(url)
             adj_close = []
 
             f = StringIO.StringIO(content)
             for cnt, vals in enumerate(csv.reader(f)):
                 if len(vals) != 7:
-                    self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+                    logger.error('[%s] error, %d' % (symbol, len(vals)))
                 elif 'Adj' in vals[-1]:
                     continue
                 elif cnt in fib:
@@ -290,7 +285,7 @@ class MyStockPrevFibYahoo():
                     [a * b for a, b in zip(tmp, fib_ratio)])
 
             stock.save()
-        self.logger.debug('[%s] complete' % symbol)
+        logger.debug('[%s] complete' % symbol)
 
 
 @shared_task
@@ -305,7 +300,6 @@ class MyStockHistoricalYahoo():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self, symbol):
         """Parse Yahoo api stock historical data.
@@ -334,24 +328,24 @@ class MyStockHistoricalYahoo():
             ago.month, ago.day, ago.year, now.month, now.day, now.year+1)
         url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (
             symbol, date_str)
-        self.logger.debug(url)
+        logger.debug(url)
         content = self.http_handler.request(url)
 
         # Parse data to update stock historicals
         f = StringIO.StringIO(content)
         records = []
         for cnt, vals in enumerate(csv.reader(f)):
-            # self.logger.debug(vals)
+            # logger.debug(vals)
             if not vals:
                 # protect from blank line or invalid symbol, eg. China stock symbols
-                # self.logger.debug('not vals')
+                # logger.debug('not vals')
                 continue
             elif not reduce(lambda x, y: x and y, vals): 
                 # any empty string, None will be skipped
-                # self.logger.debug('not all columns have value')
+                # logger.debug('not all columns have value')
                 continue
             elif len(vals) != 7:
-                self.logger.error('[%s] error, %d' % (symbol, len(vals)))
+                logger.error('[%s] error, %d' % (symbol, len(vals)))
                 continue
             elif 'Adj' in vals[-1]:
                 # this is to skip the column header line
@@ -361,7 +355,7 @@ class MyStockHistoricalYahoo():
             # date_stamp = dt(year=stamp[0], month=stamp[1], day=stamp[2])
             date_stamp = dt.strptime(vals[0],'%Y-%m-%d')
             if date_stamp.date().isoformat() in his:
-                # self.logger.debug('already have this')
+                # logger.debug('already have this')
                 continue  # we already have these
             else:
                 try:
@@ -408,7 +402,7 @@ class MyStockHistoricalYahoo():
             MyStockHistorical.objects.bulk_create(records)
 
         # persist
-        self.logger.debug('[%s] complete' % symbol)
+        logger.debug('[%s] complete' % symbol)
 
 
 @shared_task
@@ -423,18 +417,17 @@ class MyStockMonitorYahoo():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self, symbols):
         # https://greenido.wordpress.com/2009/12/22/yahoo-finance-hidden-api/
         url = 'http://finance.yahoo.com/d/quotes.csv?s=%s&f=srpoabvf6ml1n' % symbols
         content = self.http_handler.request(url)
-        # self.logger.debug(content)
+        # logger.debug(content)
 
         f = StringIO.StringIO(content)
         for vals in csv.reader(f):
             if len(vals) != 11:
-                self.logger.error('[%s] error, %d' % (vals[0], len(vals)))
+                logger.error('[%s] error, %d' % (vals[0], len(vals)))
                 continue
 
             stock = MyStock.objects.get(symbol=vals[0])
@@ -471,7 +464,7 @@ class MyStockMonitorYahoo():
             stock.last = Decimal(vals[9])
             stock.company_name = vals[10]
             stock.save()
-            self.logger.debug('[%s] complete' % vals[0])
+            logger.debug('[%s] complete' % vals[0])
 
 
 @shared_task
@@ -486,7 +479,6 @@ class MyStockMonitorYahoo2():
     def __init__(self, handler):
         self.http_handler = handler
         self.agent = handler.agent
-        self.logger = logging.getLogger('jk')
 
     def parser(self, symbols):
         url = 'http://finance.yahoo.com/webservice/v1/symbols/%s/quote?format=json&view=detail' % symbols
@@ -499,14 +491,14 @@ class MyStockMonitorYahoo2():
             try:
                 stock = MyStock.objects.get(symbol=symbol)
             except:
-                self.logger.error('MyStockMonitorYahoo2: symbol [%s] not found in DB' % symbol)
+                logger.error('MyStockMonitorYahoo2: symbol [%s] not found in DB' % symbol)
                 continue
 
             stock.last = Decimal(fields['price'])
 
             # last update time
             stock.save()
-            self.logger.debug('[%s] complete' % symbol)
+            logger.debug('[%s] complete' % symbol)
 
 
 @shared_task
@@ -524,17 +516,17 @@ import os.path
 class MyImportChinaStock():
 
     def __init__(self):
-        self.logger = logging.getLogger('jk')
+        pass
 
     def parser(self, symbol, val_list):
-        self.logger.info('processing %s' % symbol)
+        logger.info('processing %s' % symbol)
         stock = MyStock.objects.get(symbol=symbol)
         records = []
         cnt = 0
         total = len(val_list)
         for vals in val_list:
             if len(vals) < 10:
-                self.logger.error('wrong length %s' % ','.join(vals))
+                logger.error('wrong length %s' % ','.join(vals))
 
             exec_start = time.time()
             date_stamp = dt(year=int(vals[1][:4]), month=int(
@@ -570,10 +562,10 @@ class MyImportChinaStock():
                 MyStockHistorical.objects.bulk_create(records)
                 cnt += len(records)
                 records = []
-                self.logger.info('%s inserted %d/%d' % (symbol, cnt, total))
+                logger.info('%s inserted %d/%d' % (symbol, cnt, total))
         if len(records):
             MyStockHistorical.objects.bulk_create(records)
-        self.logger.info('%s elapse %f' % (symbol, time.time() - exec_start))
+        logger.info('%s elapse %f' % (symbol, time.time() - exec_start))
 
 
 @shared_task
@@ -585,18 +577,18 @@ def import_china_stock_consumer(symbol, val_list):
 class MyChenMin():
 
     def __init__(self):
-        self.logger = logging.getLogger('jk')
+        pass
 
     def parser(self, f, output=None):
         try:
             book = xlrd.open_workbook(f)
         except:
-            self.logger.error('%s error' % f)
+            logger.error('%s error' % f)
             return
 
         sh = book.sheet_by_index(0)
         if sh.name != u'账户对账单':
-            self.logger.error(f)
+            logger.error(f)
 
         # range for 账户对账单
         first_col_vals = [sh.cell_value(rowx=i, colx=0)
@@ -639,7 +631,7 @@ class MyChenMin():
                 total=total
             )
             c.save()
-        self.logger.debug('%s done' % f)
+        logger.debug('%s done' % f)
 
 
 @shared_task
@@ -654,8 +646,6 @@ import time
 class MyStockInflux():
 
     def __init__(self):
-        self.logger = logging.getLogger('jk')
-
         db_name = 'stock'
         self.client = InfluxDBClient(
             'localhost', 8086, 'root', 'root', db_name)
@@ -680,7 +670,7 @@ class MyStockInflux():
                 'points':points
             }], time_precision='s')
 
-        self.logger.debug('%s completed' % symbol)
+        logger.debug('%s completed' % symbol)
 
 
 @shared_task
@@ -692,10 +682,10 @@ def influx_consumer(symbol):
 class MyStockBacktesting_1():
 
     def __init__(self):
-        self.logger = logging.getLogger('jk')
+        pass
 
     def parser(self, symbol):
-        self.logger.debug('%s starting' % symbol)
+        logger.debug('%s starting' % symbol)
         exec_start = time.time()
 
         records = MyStockHistorical.objects.filter(
@@ -706,12 +696,12 @@ class MyStockBacktesting_1():
         # least 10 weeks of history data.
         start = 10
         if start > len(records):
-            self.logger.error('%s: not enough data' % symbol)
+            logger.error('%s: not enough data' % symbol)
             return
 
         t0 = None
         for i in range(start, len(records)):
-            self.logger.debug('%s: %d/%d' % (symbol, i, len(records)))
+            logger.debug('%s: %d/%d' % (symbol, i, len(records)))
             prev_d = records[i - 1]
             t0 = records[i]  # set T0
             now = t0.date_stamp
@@ -768,7 +758,7 @@ class MyStockBacktesting_1():
             # save to DB
             t0.save()
 
-        self.logger.debug('%s completed, elapse %f' %
+        logger.debug('%s completed, elapse %f' %
                           (symbol, time.time() - exec_start))
 
 
@@ -781,8 +771,6 @@ def backtesting_s1_consumer(symbol):
 class MyStockBacktestingSimulation():
 
     def __init__(self, condition):
-        self.logger = logging.getLogger('jk')
-
         # Model MySimulation is not json-able,
         # so we are passing it over as python pickle, so cool!
         self.condition = cPickle.loads(str(condition))
@@ -806,7 +794,7 @@ class MyStockBacktestingSimulation():
         elif len(existing_results):
             return
 
-        self.logger.debug('%s simulation starting' % self.condition)
+        logger.debug('%s simulation starting' % self.condition)
 
         # simulate tradings
         exec_start = time.time()
@@ -822,7 +810,7 @@ class MyStockBacktestingSimulation():
             # if None, we had no data to run this simulation
             return
 
-        self.logger.debug(' %s simulation end %f' %
+        logger.debug(' %s simulation end %f' %
                           (self.condition, time.time() - exec_start))
 
         # Save simulation result
@@ -862,10 +850,10 @@ class MyStockStrategyValue(object):
     """
 
     def __init__(self):
-        self.logger = logging.getLogger('jk')
-
+        pass
+        
     def run(self, symbol, window_length):
-        self.logger.debug('%s starting' % symbol)
+        logger.debug('%s starting' % symbol)
         exec_start = time.time()
 
         records = MyStockHistorical.objects.filter(
@@ -875,12 +863,12 @@ class MyStockStrategyValue(object):
         # For example, if we are to calculate 10 weeks of fib score, we need at
         # least 10 weeks of history data.
         if window_length > len(records):
-            self.logger.error('%s: not enough data' % symbol)
+            logger.error('%s: not enough data' % symbol)
             return
 
         t0 = ''
         for i in range(window_length, len(records)):
-            self.logger.debug('%s: %d/%d' % (symbol, i, len(records)))
+            logger.debug('%s: %d/%d' % (symbol, i, len(records)))
             window = records[i - window_length:i]
             t0 = records[i]  # set T0
 
@@ -889,7 +877,7 @@ class MyStockStrategyValue(object):
             # save to DB
             t0.save()
 
-        self.logger.debug('%s completed, elapse %f' %
+        logger.debug('%s completed, elapse %f' %
                           (symbol, time.time() - exec_start))
 
     def compute_value(self, t0, window):
