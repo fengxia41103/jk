@@ -42,9 +42,9 @@ class MySimulation(object):
         """Setup date set.
 
         Return:
-                :boolean: False if there is not enough historical data for this simulation.
-                        Most likely this is caused when date ranges requested is out of sync
-                        with background data feeder. True otherwise.
+            :boolean: False if there is not enough historical data for this simulation.
+                    Most likely this is caused when date ranges requested is out of sync
+                    with background data feeder. True otherwise.
         """
         index_val_mapping = {
             1: 'daily_return',
@@ -85,7 +85,7 @@ class MySimulation(object):
                     else:
                         stocks.append(stock.id)
         histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks, date_stamp__range=[start, end]).values(
-            'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'val_by_strategy', 'relative_ma')
+            'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'val_by_strategy', 'relative_ma', 'overnight_return')
         if not len(histories):
             logger.error('MySimulation: no historicals found! Aborting setup.')
             return False
@@ -142,6 +142,13 @@ class MySimulation(object):
             total_symbols = len(symbols_by_rank)
 
             # record transactions
+            # This is a key data structure to hold simulation transcation detail:
+            # cash: is the cash value on date
+            # equity: equity value calculated by holding vol * spot price on that date
+            # asset: cash + equity, this is the total value of portfolio on that date
+            # transaction: [buy] is a list of all buys executed; likewise, for [sell]
+            # gain: [hold] equity gain/loss comparing spot price to cost of stocks remaining on portolio after this run;
+            #       [sell] equity gain/loss by closing position of stocks.
             self.snapshot[on_date] = {
                 'cash': 0,
                 'equity': 0,
@@ -153,9 +160,8 @@ class MySimulation(object):
 
             # Since we are computing daily return using
             # the daily CLOSE price, but exiting at next day's OPEN price.
-            # Always sell first so we may get more cash to buy :)
-            self.sell(on_date, symbols_by_rank)
             self.buy(on_date, symbols_by_rank)
+            self.sell(on_date, symbols_by_rank)
 
             # compute equity, cash, asset
             daily_equity = []
@@ -181,7 +187,8 @@ class MySimulation(object):
                     # ERROR: stock symbol is missing from historical data.
                     # Either we have not got all historicals yet, or the data
                     # source is not good enough.
-                    logger.error('MySimulation.run: %s not in historical!'%p['stock__symbol'], on_date)
+                    logger.error('MySimulation.run: %s not in historical!'%p['stock__symbol'])
+                    logger.debug(self.historicals[on_date])
                     continue
 
                 # record the spot equity value
@@ -403,11 +410,11 @@ class MySimulationJK(MySimulation):
                 continue
 
             # if buy_cutoff = 0.04,
-            #   - if daily_return > -0.04, we skip
+            #   - if overnight_return > -0.04, we skip
             #   - if one day drop greater than 4%, we buy
             his = self.historicals[on_date][symbol]
-            daily_return = his['daily_return']
-            if daily_return > -1 * self.buy_cutoff:
+            overnight_return = his['overnight_return']
+            if overnight_return > -1 * self.buy_cutoff:
                 continue
 
             if 'adj_close' in his and his['adj_close'] > 0:

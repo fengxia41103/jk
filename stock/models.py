@@ -19,6 +19,7 @@ from decimal import Decimal
 from django.core.validators import MaxValueValidator, MinValueValidator
 from math import fabs
 import numpy as np
+import itertools
 
 import logging
 logger = logging.getLogger('jk')
@@ -66,7 +67,7 @@ class MyBaseModel (models.Model):
 
 ######################################################
 #
-#	Tags
+#   Tags
 #
 #####################################################
 
@@ -84,7 +85,7 @@ class MyTaggedItem (models.Model):
 
 ######################################################
 #
-#	Attachments
+#   Attachments
 #
 #####################################################
 
@@ -135,7 +136,7 @@ class AttachmentForm(ModelForm):
 
 ######################################################
 #
-#	App specific models
+#   App specific models
 #
 #####################################################
 
@@ -239,9 +240,9 @@ class MyStock(models.Model):
         verbose_name=u'Is a China stock'
     )
     is_index = models.BooleanField(
-    	default = False,
-    	verbose_name = u'Is an index',
-    	help_text = u'Index is a derived value from basket of stocks'
+        default = False,
+        verbose_name = u'Is an index',
+        help_text = u'Index is a derived value from basket of stocks'
     )
     prev_close = models.DecimalField(
         max_digits=20,
@@ -590,6 +591,12 @@ class MyStockHistorical(models.Model):
         blank=True,
         default=None,
         verbose_name=u"(Today's Close - Today's Open)/Today's Open*100"
+    )
+    overnight_return = models.FloatField(
+        null=True,
+        blank=True,
+        default=None,
+        verbose_name=u"(Today's Open - Yesterday's adj close)/Yesterday's adj close*100"
     )
     relative_hl = models.FloatField(
         null=True,
@@ -1094,7 +1101,7 @@ class MySimulationResult(models.Model):
         """Average gain.
 
         Numeric mean of gains. This indicates the likely gain one can achieve 
-        by applying this strategy.	
+        by applying this strategy.  
         """
         return np.mean(self.asset_cumulative_return)
     asset_cumulative_return_mean = property(_asset_cumulative_return_mean)
@@ -1116,7 +1123,9 @@ class MySimulationResult(models.Model):
         how well we picked stock, thus is a good indicator of applied strategy.
         """
         # We index [1:] so the pcnt is calculated using today's gain over
-        # yesterday's equity value
+        # yesterday's equity value.
+        # self.snapshot is in form of :
+        # [['date',{'equity':.....}]], so each snapshot needs an index of 1, eg s[1]['equity']
         valid_equity = [float(s[1]['equity'])
                         for s in self.snapshot[:-1] if float(s[1]['equity'])]
         gain_from_hold = [] + [float(s[1]['gain']['hold'])
@@ -1147,10 +1156,12 @@ class MySimulationResult(models.Model):
         this value, we could apply a strategy that dictate 
         by how long we can hold a position.
         """
-        life_in_days = [s[1]['gain']['sell']['life_in_days']
-                        for s in self.snapshot if len(s[1]['gain']['sell'])]
-        life_in_days = reduce(lambda x: [] + x, life_in_days)
-        return (max(life_in_days), min(life_in_days), mean(life_in_days))
+        sells = [s[1]['transaction']['sell']
+                        for s in self.snapshot if len(s[1]['transaction']['sell'])]
+        sells = itertools.chain.from_iterable(sells)
+        life_in_days = [(s['symbol'],s['life_in_days']) for s in sells]
+        life_in_days.sort(key=lambda tup: tup[1])
+        return (life_in_days[0], life_in_days[-1])
     equity_portfolio_life_in_days = property(_equity_portfolio_life_in_days)
 
 class MyChenmin(models.Model):
@@ -1186,7 +1197,7 @@ class MyChenmin(models.Model):
 
 ######################################################
 #
-#	RESTful API endpoints
+#   RESTful API endpoints
 #
 #####################################################
 from rest_framework import serializers, viewsets, filters

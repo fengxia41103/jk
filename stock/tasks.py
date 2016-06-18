@@ -481,6 +481,11 @@ class MyStockMonitorYahoo2():
         self.agent = handler.agent
 
     def parser(self, symbols):
+        # We are passing in symboles in CSV format,
+        # if nothing is here, skip.
+        if not len(symbols):
+            return
+
         url = 'http://finance.yahoo.com/webservice/v1/symbols/%s/quote?format=json&view=detail' % symbols
         content = self.http_handler.request(url)
         content = json.loads(content)
@@ -901,13 +906,17 @@ class MyStockDailyReturn(MyStockStrategyValue):
     def compute_value(self, t0, window):
         prev = window[-1]
 
-        # compute index value
-        if t0.adj_close > 0 and prev.adj_close > 0:
-            t0.daily_return = (t0.adj_close - prev.adj_close) / \
-                prev.adj_close * 100
-        elif t0.close_price > 0 and prev.close_price > 0:
+        # compute daily return
+        if t0.adj_close > 0 and t0.open_price > 0:
+            t0.daily_return = (t0.adj_close - t0.open_price) / \
+                t0.open_price * 100
+        elif t0.close_price > 0 and t0.open_price > 0:
             t0.daily_return = (
-                t0.close_price - prev.close_price) / prev.close_price * 100
+                t0.close_price - t0.open_price) / t0.open_price * 100
+
+        # compute nightly return
+        if t0.open_price:
+            t0.overnight_return = (t0.open_price - prev.adj_close)/prev.adj_close*100
 
 
 @shared_task

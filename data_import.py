@@ -18,6 +18,7 @@ import simplejson as json
 import datetime as dt
 from decimal import Decimal
 import itertools
+import inspect
 
 # setup Django
 import django
@@ -60,7 +61,7 @@ from stock.tasks import stock_monitor_yahoo_consumer
 
 def crawl_stock_yahoo_spot():
     step = 100
-    total = 500
+    total = 600
     symbols = MyStock.objects.filter(
         is_sp500=True).values_list('symbol', flat=True)
     for i in xrange(total / step):
@@ -71,10 +72,14 @@ from stock.tasks import stock_monitor_yahoo_consumer2
 
 
 def crawl_update_sp500_spot_yahoo():
+    """Yahoo! api can take comma delimitered symbols,
+    so we batch them 100 per set to save number of queries.
+    """
     step = 100
-    total = 500
+    total = 600
     symbols = MyStock.objects.filter(
         is_sp500=True).values_list('symbol', flat=True)
+    logger.debug('Updating S&P 500: %d symbols' % len(symbols))
     for i in xrange(total / step):
         stock_monitor_yahoo_consumer2.delay(
             ','.join(symbols[i * step:(i * step + step)]))
@@ -122,7 +127,7 @@ from stock.tasks import backtesting_daily_return_consumer
 
 
 def consumer_daily_return():
-    for symbol in MyStock.objects.filter(is_sp500=True,symbol='GSPC').values_list('symbol', flat=True):
+    for symbol in MyStock.objects.filter(is_sp500=True).values_list('symbol', flat=True):
         backtesting_daily_return_consumer.delay(symbol)
 
 from stock.tasks import backtesting_relative_hl_consumer
@@ -487,7 +492,7 @@ def import_wind_sector_index():
         # print 'done', symbol, len(records)
 
 from stock.tasks import backtesting_simulation_consumer
-def batch_simulation_daily_return(date_range, strategies = [1,2]):
+def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 10000, per_trade = 1000):
     sources = [1, 2, 3, 5]
     strategy_values = [1]
 
@@ -518,8 +523,8 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
                 sell_cutoff = [b + step for b in buy_cutoff]
                 cutoffs = zip(buy_cutoff, sell_cutoff)
             elif strategy == 2:
-                buy_cutoff = range(1,11,1)
-                sell_cutoff = range(1,11,1)
+                buy_cutoff = range(1,6,1)
+                sell_cutoff = range(1,6,1)
                 cutoffs = itertools.product(buy_cutoff, sell_cutoff)
 
             # Set up simulation condition objects based on
@@ -535,8 +540,8 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
                     strategy_value=strategy_value,
                     start=start,
                     end=end,
-                    capital=100000,
-                    per_trade=10000,
+                    capital=capital,
+                    per_trade=per_trade,
                     buy_cutoff=buy_cutoff,
                     sell_cutoff=sell_cutoff
                 )
@@ -564,6 +569,13 @@ def batch_simulation_daily_return(date_range, strategies = [1,2]):
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=False)
 
+def rerun_existing_simulations():
+    total_count = len(MySimulationCondition.objects.all())
+    for counter, condition in enumerate(MySimulationCondition.objects.all()):
+        logger.debug('%s: %d/%d'%(inspect.stack()[1][3], counter, total_count))
+
+        # simulation run
+        backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=True)
 
 def main():
     django.setup()
@@ -608,11 +620,19 @@ def main():
     '''
     batch_simulation_daily_return(
         date_range = [
+            # ('2014-01-01', '2015-01-01'),
             ('2016-01-01', '2017-01-01'),
             # ('2015-01-01', '2016-01-01')
         ],
-        strategies = [2]
+        strategies = [2],
+        capital = 10000,
+        per_trade = 500
     )
+
+    '''
+    rerun simulations
+    '''
+    # rerun_existing_simulations()
 
 if __name__ == '__main__':
     main()

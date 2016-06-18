@@ -613,7 +613,7 @@ class MySimulationResultList(ListView):
         return MySimulationCondition.objects.filter(
             mysimulationresult__isnull=False,
             strategy = 2,
-        )
+        )[:3]
 
 @class_view_decorator(login_required)
 class MySimulationResultComp(TemplateView):
