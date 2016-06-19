@@ -551,14 +551,13 @@ class MySimulationExec(FormView):
             **form.cleaned_data)
 
         # run simulation for 1st time
-        if not MySimulationResult.objects.filter(condition=condition):
+        if not MyPosition.objects.filter(simulation=condition):
             # MySimulationCondition is not JSON serializable
             # so we use cPickle to pass object to background queue task
             backtesting_simulation_consumer.delay(cPickle.dumps(condition))
             return HttpResponseRedirect(reverse_lazy('simulation_result_list'))
         else:
             return HttpResponseRedirect(reverse_lazy('condition_detail', kwargs={'pk': condition.id}))
-
 
 @class_view_decorator(login_required)
 class MyStockHistoricalList(FormView):
@@ -611,7 +610,6 @@ class MySimulationResultList(ListView):
 
     def get_queryset(self):
         return MySimulationCondition.objects.filter(
-            mysimulationresult__isnull=False,
             strategy = 2,
         )[:10]
 
@@ -659,18 +657,20 @@ class MySimulationConditionDetail(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(DetailView, self).get_context_data(**kwargs)
-        result = self.object.mysimulationresult
-        context['strategy'] = self.object
-        context['start'] = self.object.start
-        context['end'] = self.object.end
-        context['on_dates'] = [str(d) for d in result.on_dates]
-        context['assets'] = result.asset
-        context['cashes'] = result.cash
-        context['equities'] = result.equity
-        context['snapshots'] = result.snapshot
-        context['equity_gain_from_hold_pcnt'] = result.equity_portfolio_gain_pcnt
-        context['equity_gain_from_trade_pcnt'] = result.equity_trade_gain_pcnt
-        context['asset_cumulative'] = result.asset_cumulative_return
+        cond = self.object
+        snapshots = MySimulationSnapshot.objects.filter(simulation=cond).order_by('on_date')
+
+        context['strategy'] = cond
+        context['start'] = cond.start
+        context['end'] = cond.end
+        context['on_dates'] = [s.on_date.strftime('%Y-%m-%d') for s in snapshots]
+        context['assets'] = [float(s.asset) for s in snapshots]
+        context['cashes'] = [float(s.cash) for s in snapshots]
+        context['equities'] = [float(s.equity) for s in snapshots]
+        context['snapshots'] = snapshots
+        context['gain_from_holding'] = [float(x) for x in cond.gain_from_holding]
+        context['gain_from_exit'] = [float(x) for x in cond.gain_from_exit]
+        context['asset_cumulative'] = cond.asset_cumulative_gain_pcnt
 
         # Pull index data for comparison
         if self.object.data_source in [2, 3, 4, 5]:
@@ -683,7 +683,7 @@ class MySimulationConditionDetail(DetailView):
         # compute china index cumulative return for selected time period
         index = MyStock.objects.get(symbol=index_symbol)
         index_historicals = MyStockHistorical.objects.filter(
-            stock=index, date_stamp__in=result.on_dates).values('adj_close').order_by('date_stamp')
+            stock=index, date_stamp__in=context['on_dates']).values('adj_close').order_by('date_stamp')
         index_t0 = index_historicals[0]['adj_close']
 
         # index historicals normalized to its T0 value

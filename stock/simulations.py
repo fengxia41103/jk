@@ -30,7 +30,6 @@ class MySimulation(object):
         self.simulation = simulation
         self.data = []
         self.historicals = None
-        self.snapshot = OrderedDict()
         self.capital = simulation.capital
         self.per_trade = simulation.per_trade
         self.buy_cutoff = simulation.buy_cutoff / 100.0
@@ -139,33 +138,25 @@ class MySimulation(object):
         cash = {}
 
         # trading
+        snapshot_records = []
         for on_date, symbols_by_rank in self.data:
             total_symbols = len(symbols_by_rank)
-
-            # record transactions
-            # This is a key data structure to hold simulation transcation detail:
-            # cash: is the cash value on date
-            # equity: equity value calculated by holding vol * spot price on that date
-            # asset: cash + equity, this is the total value of portfolio on that date
-            # transaction: [buy] is a list of all buys executed; likewise, for [sell]
-            # gain: [hold] equity gain/loss comparing spot price to cost of stocks remaining on portolio after this run;
-            #       [sell] equity gain/loss by closing position of stocks.
-            self.snapshot[on_date] = {
-                'cash': 0,
-                'equity': 0,
-                'asset': 0,
-                'portfolio': [],
-                'transaction': {'buy': [], 'sell': []},
-                'gain': {'hold': 0, 'sell': 0}
-            }
 
             # Since we are computing daily return using
             # the daily CLOSE price, but exiting at next day's OPEN price.
             self.buy(on_date, symbols_by_rank)
             self.sell(on_date, symbols_by_rank)
 
+            # snapshot
+            snapshot = MySimulationSnapshot(
+                simulation = self.simulation,
+                on_date = on_date,
+                cash = self.capital,
+            )
+
             # compute equity, cash, asset
             daily_equity = []
+            gain_from_holding = 0
             positions = MyPosition.objects.filter(
                 simulation=self.simulation, is_open=True).values('stock__symbol', 'position', 'vol')
             for p in positions:
@@ -198,37 +189,41 @@ class MySimulation(object):
                 daily_equity.append(p['vol'] * simulated_spot)
 
                 # compute gain/loss of the holding portfolio
-                self.snapshot[on_date]['gain'][
-                    'hold'] += p['vol'] * (simulated_spot - p['position'])
+                # self.snapshot[on_date]['gain'][
+                #     'hold'] 
+                gain_from_holding += p['vol'] * (simulated_spot - p['position'])
 
-            # record equity, cash and asset on that date
-            equity[on_date] = sum(daily_equity)
-            cash[on_date] = self.capital
-            assets[on_date] = equity[on_date] + cash[on_date]
+            # computed values
+            if snapshot_records:
+                prev = snapshot_records[-1]
+                t0 = snapshot_records[0]
+            else:
+                # I'm the first one
+                prev = None
+                t0 = None
 
-            # snapshot so we could replay the entire trading history
-            self.snapshot[on_date]['cash'] = cash[on_date]
-            self.snapshot[on_date]['equity'] = equity[on_date]
-            self.snapshot[on_date]['asset'] = assets[on_date]
-            self.snapshot[on_date]['portfolio'] = list(positions)
+            snapshot.equity = sum(daily_equity)
 
-        # These data are simply extracted from self.data for
-        # purpose of easier graph drawing later in view.
-        on_dates = [on_date for on_date, symbols in self.data]
-        cashes = [float(cash[d]) for d in on_dates]
-        equities = [float(equity[d]) for d in on_dates]
-        assets = [float(assets[d]) for d in on_dates]
-        portfolios = [self.snapshot[d]['portfolio'] for d in on_dates]
-        transactions = [self.snapshot[d]['transaction'] for d in on_dates]
+            # gain from holding as pcnt of prev day's equity
+            if prev:
+                snapshot.gain_from_holding = gain_from_holding/prev.equity*100
+            else:
+                snapshot.gain_from_holding = 0
 
-        return {'on_dates': on_dates,
-                'cashes': cashes,
-                'equities': equities,
-                'assets': assets,
-                'portfolios': portfolios,
-                'transactions': transactions,
-                'snapshots': self.snapshot
-                }
+            snapshot.asset = snapshot.equity+snapshot.cash
+
+            if prev:
+                snapshot.asset_gain_pcnt = (snapshot.asset - prev.asset)/prev.asset*100
+            else:
+                snapshot.asset_gain_pcnt = 0
+
+            if t0:
+                snapshot.asset_cumulative_gain_pcnt = (snapshot.asset - t0.asset)/t0.asset*100
+            else:
+                snapshot.asset_cumulative_gain_pcnt = 0
+
+            snapshot_records.append(snapshot)
+        MySimulationSnapshot.objects.bulk_create(snapshot_records)
 
     def buy(self, **kargs):
         """Children class should override this function
@@ -383,26 +378,17 @@ class MySimulationJK(MySimulation):
             # for example, if sell_cutoff = 0.1,
             # we sell if daily spot is greater than 110% of our cost
             if simulated_spot >= (1 + self.sell_cutoff) * float(p.position):
+                # close position
                 p.close(self.user, simulated_spot, on_date=on_date)
 
                 self.capital += p.vol * simulated_spot
-                self.snapshot[on_date]['transaction']['sell'].append({
-                    'symbol': p.stock.symbol,
-                    'position': p.position,
-                    'close_position': p.close_position,
-                    'gain': p.gain, # gain from exiting this position
-                    'life_in_days': p.life_in_days,
-                    'vol': p.vol
-                })
-                self.snapshot[on_date]['gain']['sell'] += p.gain
-                # print 'close: ',symbol,self.capital
 
     def buy(self, on_date, symbols):
-        total_symbols = len(symbols)
-
         # buy if within buy_cutoff
         positions = MyPosition.objects.filter(simulation=self.simulation, is_open=True).values_list(
             "stock__symbol", flat=True).distinct()
+
+        buy_records = []
         for symbol in symbols:
             # already in portfolio, hold
             if symbol in positions:
@@ -424,11 +410,14 @@ class MySimulationJK(MySimulation):
             if overnight_return > -1 * self.buy_cutoff:
                 continue
 
-            if 'adj_close' in his and his['adj_close'] > 0:
-                simulated_spot = his['adj_close']
-            elif 'close_price' in his:
-                simulated_spot = his['close_price']
+            # if it passed threshold test, buy at today's open
+            # This can be tweaked to buy at avg(open,close)
+            # so to imitate buying at intraday average
+            simulated_spot = his['open_price']
 
+            # Set up position.
+            # Notice that position's open_date = on_date, so we could
+            # match MyPosition open_date to get portfolio on a given date.
             pos = MyPosition(
                 stock=MyStock.objects.get(id=int(his['stock'])),
                 user=self.user,
@@ -436,12 +425,7 @@ class MySimulationJK(MySimulation):
                 vol=self.per_trade / simulated_spot,
                 open_date=on_date,
                 simulation=self.simulation)
-            pos.save()
+            buy_records.append(pos)
 
             self.capital -= pos.vol * pos.position
-            self.snapshot[on_date]['transaction']['buy'].append({
-                'symbol': symbol,
-                'position': simulated_spot,
-                'vol': pos.vol
-            })
-            # print 'create: ',symbol, self.capital
+        MyPosition.objects.bulk_create(buy_records)

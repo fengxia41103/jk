@@ -94,22 +94,22 @@ Result details
 		</td><td>
 			{{ object.buy_cutoff }}% &mdash; {{ object.sell_cutoff }}%
 		</td><td>
-			{{ object.mysimulationresult.asset_end_return|floatformat:"2" }}
+			{{ object.asset_end_return|floatformat:"2" }}
 		</td><td>
-			{{ object.mysimulationresult.asset_max_return|floatformat:"2" }}
+			{{ object.asset_max_return|floatformat:"2" }}
 		</td><td>
-			{{ object.mysimulationresult.asset_min_return|floatformat:"2" }}
+			{{ object.asset_min_return|floatformat:"2" }}
 		</td><td>
-			{{ object.mysimulationresult.asset_cumulative_return_mean|floatformat:"2" }}
+			{{ object.asset_cumulative_return_mean|floatformat:"2" }}
 		</td><td>
-			{{ object.mysimulationresult.asset_cumulative_return_std|floatformat:"4" }}
+			{{ object.asset_cumulative_return_std|floatformat:"4" }}
 		</td><td>
-			{{ object.mysimulationresult.num_of_buys|intcomma }}
+			{{ object.num_of_buys|intcomma }}
 		</td><td>
-			{{ object.mysimulationresult.num_of_sells|intcomma }}
+			{{ object.num_of_sells|intcomma }}
 		</td><td>
 			<dl>
-			{% for symbol,life in object.mysimulationresult.equity_portfolio_life_in_days %}
+			{% for symbol,life in object.equity_life_in_days %}
 				<dt>{{ symbol }}</dt>
 				<dd>{{ life|floatformat:"2" }}</dd>
 			{% endfor %}
@@ -120,50 +120,10 @@ Result details
     </tbody>
 </table>
 
-{# Trading Stats #}
-<ul class="nav nav-tabs">
-    <li class="active"><a data-toggle="tab" href="#sell-stats">Sell</a></li>
-</ul>
-
-<div class="tab-content">
-	<div id="#sell-stats" class="tab-pane fade in active">
-		<table class="table table-striped">
-	    <thead>	   
-	    	<th>Symbol</th>
-	    	<th>Max life(days)</th>
-	    	<th>Min life(days)</th>
-	    	<th>Mean life(days)</th>
-	    	<th>Num of trades</th>
-	    	<th>Gain</th>
-	    	<th>Gain per trade</th>
-	    </thead>
-	    <tbody>
-			{% for symbol, stats in object.mysimulationresult.stock_sell_stat.iteritems %}
-			<tr><td>
-				{{ symbol }}
-			</td><td>
-				{{ stats.max|floatformat:"2" }}
-			</td><td>
-				{{ stats.min|floatformat:"2" }}
-			</td><td>
-				{{ stats.avg|floatformat:"2" }}
-			</td><td>
-				{{ stats.count|intcomma }}
-			</td><td>
-				{{ stats.gain|floatformat:"2" }}
-			</td><td>
-				{{ stats.efficiency|floatformat:"2" }}
-			</td></tr>
-			{% endfor %}
-		</tbody>
-		</table>
-	</div>	
-</div>
-
 <h2 class="page-header">Traces</h1>
-{% for on_date, sp in snapshots %}
+{% for sp in snapshots %}
 <div>
-<h3 class="my-section-header">{{ on_date }}</h3>
+<h3 class="my-section-header">{{ sp.on_date }}</h3>
 
 <ul class="list-inline text-center">
 	<li><span class="label label-default">asset</span>{{ sp.asset|floatformat:2 }}</li>
@@ -173,37 +133,37 @@ Result details
 	<li><span class="label label-default">equity</span>{{ sp.equity|floatformat:2 }}</li>
 	<li> | </li>
 	<li><span class="label label-default">Gain from equity exit</span>
-		{% if sp.gain.sell < 0 %}
-			<font color="red">{{ sp.gain.sell|floatformat:2 }}</font>
+		{% if sp.gain_from_exit < 0 %}
+			<font color="red">{{ sp.gain.sell|floatformat:"2" }}</font>
 		{% else %}
-			{{ sp.gain.sell|floatformat:2 }}
+			{{ sp.gain_from_exit|floatformat:"2" }}
 		{% endif %}
 	</li>
 	<li><span class="label label-default">Gain from equity portfolio</span>
-		{% if sp.gain.hold < 0 %}
-			<font color="red">{{ sp.gain.hold|floatformat:2 }}</font>
+		{% if sp.gain_from_holding < 0 %}
+			<font color="red">{{ sp.gain_from_holding|floatformat:"2" }}</font>
 		{% else %}
-			{{ sp.gain.hold|floatformat:2 }}
+			{{ sp.gain_from_holding|floatformat:"2" }}
 		{% endif %}
 	</li>
 </ul>
 
 <ul class="nav nav-tabs">
-	{% if sp.transaction.buy %}
+	{% if sp.buy_transactions %}
     <li class="active"><a data-toggle="tab" href="#{{on_date}}-buy">Buy</a></li>
     {% endif %}
 
-    {% if sp.transaction.sell %}
+    {% if sp.sell_transactions %}
     <li><a data-toggle="tab" href="#{{on_date}}-sell">Sell</a></li>
     {% endif %}
 
-    {% if sp.portfolio %}
+    {% if sp.equities %}
     <li><a data-toggle="tab" href="#{{on_date}}-portfolio">Portfolio</a></li>
     {% endif %}    
 </ul>
 
 <div class="tab-content">
-	{% if sp.transaction.buy %}
+	{% if sp.buy_transactions %}
 	<div id="{{on_date}}-buy" class="tab-pane fade in active">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
@@ -213,11 +173,11 @@ Result details
 				<th>Vol</th>
 			</thead>
 			<tbody>
-				{% for p in sp.transaction.buy %}
+				{% for p in sp.buy_transactions %}
 				<tr><td>
 					{{ forloop.counter }}
 				</td><td>
-					{{ p.symbol }}
+					{{ p.stock }}
 				</td><td>
 					{{ p.position|floatformat:2 }}
 				</td><td>
@@ -229,7 +189,7 @@ Result details
 	</div>
 	{% endif %}
 
-	{% if sp.transaction.sell %}
+	{% if sp.sell_transactions %}
 	<div id="{{on_date}}-sell" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
@@ -241,11 +201,11 @@ Result details
 				<th>Life in days</th>
 			</thead>
 			<tbody>
-				{% for p in sp.transaction.sell %}
+				{% for p in sp.sell_transactions %}
 				<tr><td>
 					{{ forloop.counter }}
 				</td><td>
-					{{ p.symbol }}
+					{{ p.stock }}
 				</td><td>
 					{{ p.position|floatformat:2 }}
 				</td><td>
@@ -261,7 +221,7 @@ Result details
 	</div>
 	{% endif %}
 
-	{% if sp.portfolio %}
+	{% if sp.equities %}
 	<div id="{{on_date}}-portfolio" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
@@ -271,11 +231,11 @@ Result details
 				<th>Vol</th>
 			</thead>
 			<tbody>
-				{% for p in sp.portfolio %}
+				{% for p in sp.equities %}
 				<tr><td>
 					{{ forloop.counter }}
 				</td><td>
-					{{ p.stock__symbol }}
+					{{ p.stock }}
 				</td><td>
 					{{ p.position|floatformat:2 }}
 				</td><td>
@@ -436,7 +396,7 @@ j$(document).ready(function(){
 	    }, // end of option
         series: [{
         	name: 'Gain from equity portfolio',
-        	data: {{ equity_gain_from_hold_pcnt }},	    	
+        	data: {{ gain_from_holding }},	    	
         }]
 	});// end of highcharts
    j$('#equity-gain-from-trade').highcharts({
@@ -494,7 +454,7 @@ j$(document).ready(function(){
 	    }, // end of option
         series: [{
         	name: 'Gain from equity trading',
-        	data: {{ equity_gain_from_trade_pcnt }},	    	
+        	data: {{ gain_from_exit }},	    	
         }]
 	});// end of highcharts
 

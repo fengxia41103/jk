@@ -53,11 +53,11 @@
 	    		</td><td>
 	    			{{ cond.sector }}
 	    		</td><td>
-	    			{{ cond.mysimulationresult.num_of_buys|intcomma }}
+	    			{{ cond.num_of_buys|intcomma }}
 	    		</td><td>
-	    			{{ cond.mysimulationresult.num_of_sells|intcomma }}
+	    			{{ cond.num_of_sells|intcomma }}
 	    		</td><td>
-	    			{{ cond.mysimulationresult.asset_end_return|floatformat:"2" }}
+	    			{{ cond.asset_end_return|floatformat:"2" }}
 	    		</td><td>
 	    			<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
 	    			|

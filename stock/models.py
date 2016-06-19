@@ -17,6 +17,8 @@ from django.dispatch import receiver
 from django.core.mail import send_mail
 from decimal import Decimal
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.db.models import Avg, Max, Min, Count
+
 from math import fabs
 import numpy as np
 import itertools
@@ -705,21 +707,24 @@ class MyPosition(models.Model):
 
     Each position is a stock that user is currently holding.
     A position is like a tiny accounting book:
-            position: cost we paid when buying these stocks
-            vol: qty
-            close_position: price we took when selling these stocks
+        :position: cost we paid when buying these stocks
+        :vol: qty
+        :close_position: price we took when selling these stocks
 
     The difference between the buy and sell will be the gain/loss
     we took buy doing this trade. Also, as long as we are holding it,
     its value fluctuates along with the market. Thus the source
     of final gain/loss came from two places:
-            1. diff between cost and exit price
-            2. fluctuation from the market
+        1. diff between cost and exit price
+        2. fluctuation from the market
     """
     created = models.DateTimeField(
         auto_now_add=True,
     )
     user = models.ForeignKey(User)
+    simulation = models.ForeignKey(
+        'MySimulationCondition'
+    )
     stock = models.ForeignKey(
         'MyStock',
         verbose_name=u'Stock'
@@ -756,10 +761,12 @@ class MyPosition(models.Model):
     close_date = models.DateField(
         null=True,
         blank=True,
+        default = None, # if close_date == None, this is an open position
         verbose_name=u'Position close date'
     )
-    simulation = models.ForeignKey(
-        'MySimulationCondition'
+    life_in_days = models.IntegerField(
+        default = 0,
+        verbose_name = u'Life in days'
     )
 
     def add(self, user, price, vol, source='simulation', on_date=None):
@@ -808,7 +815,7 @@ class MyPosition(models.Model):
             self.close_date = on_date
         else:
             self.close_date = dt.now().date()
-        self._life_in_days()
+        self.life_in_days = (self.close_date - self.open_date).days            
         self.save()
 
     def _cost(self):
@@ -855,16 +862,6 @@ class MyPosition(models.Model):
         """
         return (dt.now().date() - self.created.date()).days
     elapse_in_days = property(_elapse_in_days)
-
-    def _life_in_days(self):
-        """Stock's life in days from its openning to closing.
-        """
-        if self.open_date and self.close_date:
-            return (self.close_date - self.open_date).days
-        else:
-            return (self.last_updated_on - self.created).days
-    life_in_days = property(_life_in_days)
-
 
 @receiver(pre_save, sender=MyPosition)
 def day_change_handler(sender, **kwargs):
@@ -1018,32 +1015,32 @@ class MySimulationCondition(models.Model):
                            "buy_cutoff",
                            "sell_cutoff")
 
+    def _snapshots(self):
+        return MySimulationSnapshot.objects.filter(simulation = self)
+    snapshots = property(_snapshots)
 
-class MySimulationResult(models.Model):
-    """Simulation result model.
+    def _snapshots_sort_by_date(self):
+        return MySimulationSnapshot.objects.filter(simulation=self).order_by('on_date')
+    snapshots_sort_by_date = property(_snapshots_sort_by_date)
 
-    This is a complex model because it will save the raw data
-    from a simulation run so we can replay the entire simulation
-    step by step.
-    """
-    description = models.TextField()
-    on_dates = JSONField()  # date range
-    asset = JSONField()  # assets
-    cash = JSONField()  # cash
-    equity = JSONField()
-    portfolio = JSONField()
-    transaction = JSONField()
-    snapshot = JSONField()
+    def _assets(self):
+        return [x.asset for x in self.snapshots_sort_by_date]
+    assets = property(_assets)
 
-    # each simulation condition has a 1-1 simulation result
-    condition = models.OneToOneField('MySimulationCondition')
+    def _equities(self):
+        return [x.equity for x in self.snapshots_sort_by_date]
+    equities = property(_equities)
+
+    def _cashes(self):
+        return [x.cash for x in self.snapshots_sort_by_date]
+    cashes = property(_cashes)
 
     def _num_of_buys(self):
         """Total number of buys.
 
         This is computed from individual buys.
         """
-        return sum([len(t['buy']) for t in self.transaction])
+        return sum(len(x.buy_transactions) for x in self.snapshots)
     num_of_buys = property(_num_of_buys)
 
     def _num_of_sells(self):
@@ -1051,7 +1048,7 @@ class MySimulationResult(models.Model):
 
         This is computed from individual sells.
         """
-        return sum([len(t['sell']) for t in self.transaction])
+        return sum(len(x.sell_transactions) for x in self.snapshots)
     num_of_sells = property(_num_of_sells)
 
     def _asset_daily_return(self):
@@ -1060,24 +1057,24 @@ class MySimulationResult(models.Model):
         This index shows how a user's asset fluctuates from day to day
         during simulation period.
         """
-        return [1] + [(self.asset[x] - self.asset[x - 1]) / self.asset[x - 1] * 100 for x in range(1, len(self.asset))]
+        return [1] + [x.asset_gain_pcnt for x in self.snapshots]
     asset_daily_return = property(_asset_daily_return)
 
-    def _asset_cumulative_return(self):
+    def _asset_cumulative_gain_pcnt(self):
         """Measures daily asset's return over T0's.
 
         This index shows how assets swings comparing to simulation's T0.
         This can be viewed as an overall performance indicator over time.
         """
-        cumulative = []
-        t0 = self.asset[0]
-        return [self.asset[x] / t0 for x in range(1, len(self.asset))]
-    asset_cumulative_return = property(_asset_cumulative_return)
+        return [x.asset_cumulative_gain_pcnt for x in self.snapshots]
+    asset_cumulative_gain_pcnt = property(_asset_cumulative_gain_pcnt)
 
     def _asset_end_return(self):
         """Last's day's cumulative return.
         """
-        return self.asset_cumulative_return[-1]
+        if self.asset_cumulative_gain_pcnt:
+            return self.asset_cumulative_gain_pcnt[-1]
+        return None
     asset_end_return = property(_asset_end_return)
 
     def _asset_max_return(self):
@@ -1086,7 +1083,7 @@ class MySimulationResult(models.Model):
         This indicator shows the maximum potential gain from
         applied strategy.
         """
-        return max(self.asset_cumulative_return)
+        return max(self.asset_cumulative_gain_pcnt)
     asset_max_return = property(_asset_max_return)
 
     def _asset_min_return(self):
@@ -1094,7 +1091,7 @@ class MySimulationResult(models.Model):
 
         This shows the worst moment this strategy can yield.
         """
-        return min(self.asset_cumulative_return)
+        return min(self.asset_cumulative_gain_pcnt)
     asset_min_return = property(_asset_min_return)
 
     def _asset_cumulative_return_mean(self):
@@ -1103,7 +1100,7 @@ class MySimulationResult(models.Model):
         Numeric mean of gains. This indicates the likely gain one can achieve 
         by applying this strategy.  
         """
-        return np.mean(self.asset_cumulative_return)
+        return np.mean(self.asset_cumulative_gain_pcnt)
     asset_cumulative_return_mean = property(_asset_cumulative_return_mean)
 
     def _asset_cumulative_return_std(self):
@@ -1111,145 +1108,165 @@ class MySimulationResult(models.Model):
 
         This measures the risk of applied strategy using cumulative gain data.
         """
-        return np.std(self.asset_cumulative_return)
+        return np.std(self.asset_cumulative_gain_pcnt)
     asset_cumulative_return_std = property(_asset_cumulative_return_std)
 
-    def _equity_portfolio_gain_pcnt(self):
+    def _gain_from_holding(self):
         """Equity gains from holding.
 
-        This tracks equity gains from holding a perticular stock,
+        This tracks equity gains from holding a particular stock,
         not from trading it. It indicates
         how well equities were performing. This is completely determined by
         how well we picked stock, thus is a good indicator of applied strategy.
         """
-        # We index [1:] so the pcnt is calculated using today's gain over
-        # yesterday's equity value.
-        # self.snapshot is in form of :
-        # [['date',{'equity':.....}]], so each snapshot needs an index of 1, eg s[1]['equity']
-        valid_equity = [float(s[1]['equity'])
-                        for s in self.snapshot[:-1] if float(s[1]['equity'])]
-        gain_from_hold = [] + [float(s[1]['gain']['hold'])
-                               for s in self.snapshot[1:1 + len(valid_equity)]]
-        return map(lambda x, y: x / y * 100, gain_from_hold, valid_equity)
-    equity_portfolio_gain_pcnt = property(_equity_portfolio_gain_pcnt)
+        return [x.gain_from_holding for x in self.snapshots_sort_by_date]
+    gain_from_holding = property(_gain_from_holding)
 
-    def _equity_trade_gain_pcnt(self):
-        """Equity gains from trading.
+    def _gain_from_exit(self):
+        return [x.gain_from_exit for x in self.snapshots_sort_by_date]
+    gain_from_exit = property(_gain_from_exit)
 
-        This tracks gains from closing stocks based on applied strategy.
-        This is influenced by both stock picking strategy and 
-        trading strategy. So it measures the effect of both.
-        """
-        # We index [1:] so the pcnt is calculated using today's gain over
-        # yesterday's equity value
-        valid_equity = [float(s[1]['equity'])
-                        for s in self.snapshot[:-1] if float(s[1]['equity'])]
-        gain_from_sell = [] + [float(s[1]['gain']['sell'])
-                               for s in self.snapshot[1:1 + len(valid_equity)]]
-        return map(lambda x, y: x / y * 100, gain_from_sell, valid_equity)
-    equity_trade_gain_pcnt = property(_equity_trade_gain_pcnt)
-
-    def _equity_portfolio_life_in_days(self):
+    def _equity_life_in_days(self):
         """Equity life in days.
 
         We want to measure how long we usually hold a position. By monitoing
         this value, we could apply a strategy that dictate 
         by how long we can hold a position.
         """
-        sells = [s[1]['transaction']['sell']
-                        for s in self.snapshot if len(s[1]['transaction']['sell'])]
-        sells = itertools.chain.from_iterable(sells)
-        life_in_days = [(s['symbol'],s['life_in_days']) for s in sells]
-        life_in_days.sort(key=lambda tup: tup[1])
+        sells = MyPosition.objects.filter(simulation=self, is_open = False).order_by('life_in_days')
+        life_in_days = [s.life_in_days for s in sells]
 
         # index [0] is the min(), [-1] is the max()floatformat
         # min is skipped since it is always 0 because 
         # we may be buying and unloading a stock on the same day
-        return (life_in_days[-1], ('Avg',np.mean([tup[1] for tup in life_in_days])))
-
-    equity_portfolio_life_in_days = property(_equity_portfolio_life_in_days)
+        return (('max',life_in_days[-1]), ('Avg',np.mean(life_in_days)))
+    equity_life_in_days = property(_equity_life_in_days)
 
     def _stock_sell_stat(self):
         """Stats of individual stock selling history.
         """
-        sells = []
-        for snapshot in self.snapshot:
-            for sell in snapshot[1]['transaction']['sell']:
-                sells.append((sell['symbol'], sell['gain'], sell['life_in_days']))
-
-        # gain stat
-        # we are to compute how well each stock generates gains from 
-        # picked trading strategy.
-        gain_stat = {}
-        for s in sells:
-            symbol = s[0]
-            gain = float(s[1])
-            if symbol in gain_stat:
-                gain_stat[symbol] += gain
-            else:
-                gain_stat[symbol] = gain
-
-        # stats on life days
-        # This is to measure how long we hold a stock so we gauge
-        # the frequency of trading. My suspicion is that some stocks
-        # are more volatile than others, thus appearing to be traded
-        # more often. They do not, however, generate more gains if we
-        # later account for trading cost.
-        life_dict = {}
-        for s in sells:
-            symbol = s[0]
-            life = s[-1]
-            if symbol in life_dict:
-                life_dict[symbol].append(life)
-            else:
-                life_dict[symbol] = [life]
-
-        # stats
-        life_stat = {}
-        for symbol, life_list in life_dict.iteritems():
-            life_stat[symbol] = {
-                'max': max(life_list),
-                'min': min(life_list),
-                'avg': np.mean(life_list),
-                'count': len(life_list),
-                'gain': gain_stat[symbol],
-
-                # efficiency measures average gain in $ term per trade
-                'efficiency': gain_stat[symbol]/len(life_list)
-            }
-        return life_stat
+        sells = MyPosition.objects.annotate(
+            max_life=Max('life_in_days'),
+            min_life=Min('life_in_days'),
+            avg_life=Avg('life_in_days'),
+            num_of_trades = Count('symbol')
+        ).filter(simulation = self, is_open=False)
+        return sells
     stock_sell_stat = property(_stock_sell_stat)
 
-class MyChenmin(models.Model):
-    """Transient model.
+# class MySimulationSnapshotCustomManager(models.Manager):
 
-    Used to import initial data.
+#     def filter_by_user_pe_threshold(self, user):
+#         """Filter by PE threshold defined in user profile.
+
+#         Args:
+#                 :user: User model object. Each user has a 1-1 relashionship to a UserProfile.
+#         """
+#         data = self.get_queryset()
+
+#         # get user profile
+#         user_profile, created = MyUserProfile.objects.get_or_create(owner=user)
+#         pe_low = int(user_profile.pe_threshold.split('-')[0])
+#         pe_high = int(user_profile.pe_threshold.split('-')[1])
+#         return data.filter(pe__gte=pe_low, pe__lte=pe_high)
+
+class MySimulationSnapshot(models.Model):
+    """Simulation snapshot.
     """
-    executed_on = models.DateField(
-        verbose_name=u'发生日期'
+    # custom managers
+    # Note: the 1st one defined will be taken as the default!
+    # objects = MyStockCustomManager()    
+
+    simulation = models.ForeignKey('MySimulationCondition')
+    on_date = models.DateField(
+        default="2014-01-01",
+        verbose_name=u'Snapshot date'
     )
-    symbol = models.CharField(
-        max_length=32,
-        verbose_name=u'证券代码'
+    cash = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        verbose_name=u'Cash',
+        default = 0
     )
-    name = models.CharField(
-        max_length=32,
-        verbose_name=u'证券名称'
+    equity = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        verbose_name=u'Equity',
+        default = 0
     )
-    transaction_type = models.CharField(
-        max_length=64,
-        verbose_name=u'摘要'
+    asset = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        verbose_name=u'Asset',
+        default = 0
     )
-    price = models.FloatField(
-        verbose_name=u'成交价格'
+    gain_from_holding = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        verbose_name=u'Gain from holding',
+        default = 0
     )
-    vol = models.IntegerField(
-        verbose_name=u'成交股数'
+    asset_gain_pcnt = models.FloatField(
+        verbose_name = u'Asset gain from previous day',
+        default = 0,
+        help_text = u"This measures asset return in pcnt comparing to previous day"
     )
-    total = models.IntegerField(
-        verbose_name=u'成交金额'
+    asset_cumulative_gain_pcnt = models.FloatField(
+        verbose_name = u'Asset cumulative return',
+        default = 0,
+        help_text = u"This measures asset return in pcnt comparing to T0's"
     )
 
+    def _buy_transactions(self):
+        """Buy transactions.
+
+        A buy transaction will create a MyPosition, which
+        has a MyCondition and on_date. Using these values
+        are sufficient to determine that this position was created
+        by our simulation run and belongs to this snapshot (by on_date).
+        """
+        buys = MyPosition.objects.filter(
+            simulation = self.simulation,
+            open_date = self.on_date # this is when position was created as a buy
+        )
+        return buys 
+    buy_transactions = property(_buy_transactions)
+
+    def _sell_transactions(self):
+        """Sell transactions.
+
+        The difference from a buy transaction is to filter MyPosition by close_date
+        instead of open_date.
+        """
+        sells = MyPosition.objects.filter(
+            simulation = self.simulation,
+            close_date = self.on_date # this is when position was closed as a sell
+        )
+        return sells
+    sell_transactions = property(_sell_transactions)
+
+    def _equities(self):
+        """Stocks on my portfolio.
+
+        MyPosition is on portfilio if:
+        1. its open date is less than on_date;
+        2. its close date is either missing (still opened) or later than on_date
+        """
+        return MyPosition.objects.filter(
+            Q(simulation = self.simulation) & Q(open_date__lte = self.on_date),
+            Q(close_date__isnull = True) | Q(close_date__gte = self.on_date)
+        )
+    equities = property(_equities)
+
+    def _gain_from_exit(self):
+        """Gain/loss from trading a stock.
+        """
+        sells = MyPosition.objects.filter(
+                simulation = self.simulation,
+                close_date = self.on_date
+            )
+        return sum([s.gain for s in sells])
+    gain_from_exit = property(_gain_from_exit)
 
 ######################################################
 #

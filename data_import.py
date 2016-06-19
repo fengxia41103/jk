@@ -525,7 +525,8 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
             elif strategy == 2:
                 buy_cutoff = range(1,6,1)
                 sell_cutoff = range(1,6,1)
-                cutoffs = itertools.product(buy_cutoff, sell_cutoff)
+                # cutoffs = itertools.product(buy_cutoff, sell_cutoff)
+                cutoffs = [(1,1)]
 
             # Set up simulation condition objects based on
             # combination of specified parameters. Note that
@@ -620,9 +621,9 @@ def main():
     '''
     batch_simulation_daily_return(
         date_range = [
-            ('2014-01-01', '2015-01-01'),
-            ('2016-01-01', '2017-01-01'),
-            ('2015-01-01', '2016-01-01')
+            ('2014-01-01', '2014-01-10'),
+            # ('2016-01-01', '2017-01-01'),
+            # ('2015-01-01', '2016-01-01')
         ],
         strategies = [2],
         capital = 10000,

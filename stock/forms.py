@@ -26,14 +26,5 @@ class HistoricalListForm(forms.Form):
 
 
 class StrategyControlForm(ModelForm):
-
     class Meta:
         model = MySimulationCondition
-
-
-class SimulationListForm(forms.Form):
-    conditions = forms.ModelMultipleChoiceField(
-        queryset=MySimulationCondition.objects.filter(
-            mysimulationresult__isnull=False),
-        widget=forms.CheckboxSelectMultiple()
-    )

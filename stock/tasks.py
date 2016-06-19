@@ -792,8 +792,8 @@ class MyStockBacktestingSimulation():
         user = User.objects.all()[0]
 
         # simulate
-        existing_results = MySimulationResult.objects.filter(
-            condition=self.condition)
+        existing_results = MySimulationSnapshot.objects.filter(
+            simulation=self.condition)
         if is_update:
             existing_results.delete()
         elif len(existing_results):
@@ -810,28 +810,10 @@ class MyStockBacktestingSimulation():
         trading_method = getattr(sys.modules[__name__], simulation_methods[
                                  self.condition.strategy])
         simulator = trading_method(user, simulation=self.condition)
-        simulations = simulator.run()
-        if not simulations:
-            # if None, we had no data to run this simulation
-            return
+        simulator.run()
 
         logger.debug(' %s simulation end %f' %
                           (self.condition, time.time() - exec_start))
-
-        # Save simulation result
-        result = MySimulationResult(
-            description='',
-            condition=self.condition,
-            on_dates=list(simulations['on_dates']),
-            asset=list(simulations['assets']),
-            cash=list(simulations['cashes']),
-            equity=list(simulations['equities']),
-            portfolio=list(simulations['portfolios']),
-            transaction=list(simulations['transactions']),
-            # to serialize OrderedDict
-            snapshot=simulations['snapshots'].items(),
-        )
-        result.save()
 
 
 @shared_task
