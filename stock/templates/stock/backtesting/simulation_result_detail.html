@@ -108,12 +108,57 @@ Result details
 		</td><td>
 			{{ object.mysimulationresult.num_of_sells|intcomma }}
 		</td><td>
-			{{ object.mysimulationresult.equity_portfolio_life_in_days }}
+			<dl>
+			{% for symbol,life in object.mysimulationresult.equity_portfolio_life_in_days %}
+				<dt>{{ symbol }}</dt>
+				<dd>{{ life|floatformat:"2" }}</dd>
+			{% endfor %}
+			</dl>
 		</td><td>
 			{{ object.sector }}
 		</td</tr>
     </tbody>
 </table>
+
+{# Trading Stats #}
+<ul class="nav nav-tabs">
+    <li class="active"><a data-toggle="tab" href="#sell-stats">Sell</a></li>
+</ul>
+
+<div class="tab-content">
+	<div id="#sell-stats" class="tab-pane fade in active">
+		<table class="table table-striped">
+	    <thead>	   
+	    	<th>Symbol</th>
+	    	<th>Max life(days)</th>
+	    	<th>Min life(days)</th>
+	    	<th>Mean life(days)</th>
+	    	<th>Num of trades</th>
+	    	<th>Gain</th>
+	    	<th>Gain per trade</th>
+	    </thead>
+	    <tbody>
+			{% for symbol, stats in object.mysimulationresult.stock_sell_stat.iteritems %}
+			<tr><td>
+				{{ symbol }}
+			</td><td>
+				{{ stats.max|floatformat:"2" }}
+			</td><td>
+				{{ stats.min|floatformat:"2" }}
+			</td><td>
+				{{ stats.avg|floatformat:"2" }}
+			</td><td>
+				{{ stats.count|intcomma }}
+			</td><td>
+				{{ stats.gain|floatformat:"2" }}
+			</td><td>
+				{{ stats.efficiency|floatformat:"2" }}
+			</td></tr>
+			{% endfor %}
+		</tbody>
+		</table>
+	</div>	
+</div>
 
 <h2 class="page-header">Traces</h1>
 {% for on_date, sp in snapshots %}

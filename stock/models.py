@@ -1161,8 +1161,64 @@ class MySimulationResult(models.Model):
         sells = itertools.chain.from_iterable(sells)
         life_in_days = [(s['symbol'],s['life_in_days']) for s in sells]
         life_in_days.sort(key=lambda tup: tup[1])
-        return (life_in_days[0], life_in_days[-1])
+
+        # index [0] is the min(), [-1] is the max()floatformat
+        # min is skipped since it is always 0 because 
+        # we may be buying and unloading a stock on the same day
+        return (life_in_days[-1], ('Avg',np.mean([tup[1] for tup in life_in_days])))
+
     equity_portfolio_life_in_days = property(_equity_portfolio_life_in_days)
+
+    def _stock_sell_stat(self):
+        """Stats of individual stock selling history.
+        """
+        sells = []
+        for snapshot in self.snapshot:
+            for sell in snapshot[1]['transaction']['sell']:
+                sells.append((sell['symbol'], sell['gain'], sell['life_in_days']))
+
+        # gain stat
+        # we are to compute how well each stock generates gains from 
+        # picked trading strategy.
+        gain_stat = {}
+        for s in sells:
+            symbol = s[0]
+            gain = float(s[1])
+            if symbol in gain_stat:
+                gain_stat[symbol] += gain
+            else:
+                gain_stat[symbol] = gain
+
+        # stats on life days
+        # This is to measure how long we hold a stock so we gauge
+        # the frequency of trading. My suspicion is that some stocks
+        # are more volatile than others, thus appearing to be traded
+        # more often. They do not, however, generate more gains if we
+        # later account for trading cost.
+        life_dict = {}
+        for s in sells:
+            symbol = s[0]
+            life = s[-1]
+            if symbol in life_dict:
+                life_dict[symbol].append(life)
+            else:
+                life_dict[symbol] = [life]
+
+        # stats
+        life_stat = {}
+        for symbol, life_list in life_dict.iteritems():
+            life_stat[symbol] = {
+                'max': max(life_list),
+                'min': min(life_list),
+                'avg': np.mean(life_list),
+                'count': len(life_list),
+                'gain': gain_stat[symbol],
+
+                # efficiency measures average gain in $ term per trade
+                'efficiency': gain_stat[symbol]/len(life_list)
+            }
+        return life_stat
+    stock_sell_stat = property(_stock_sell_stat)
 
 class MyChenmin(models.Model):
     """Transient model.

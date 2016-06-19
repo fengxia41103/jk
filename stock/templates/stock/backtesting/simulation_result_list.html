@@ -58,8 +58,6 @@
 	    			{{ cond.mysimulationresult.num_of_sells|intcomma }}
 	    		</td><td>
 	    			{{ cond.mysimulationresult.asset_end_return|floatformat:"2" }}
-	    			<br/>
-	    			there: {{ cond.mysimulationresult.equity_portfolio_life_in_days }}
 	    		</td><td>
 	    			<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
 	    			|

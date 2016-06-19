@@ -24,7 +24,8 @@ class MySimulation(object):
     """
 
     def __init__(self, user, simulation):
-        self.trading_cost = 0.003  # 0.3% of buying amount
+        self.variable_trading_cost = 0.003 # this models things like capital tax
+        self.fixed_trading_cost = 5 # this represents a flat rate trading cost
         self.user = user
         self.simulation = simulation
         self.data = []
@@ -188,7 +189,6 @@ class MySimulation(object):
                     # Either we have not got all historicals yet, or the data
                     # source is not good enough.
                     logger.error('MySimulation.run: %s not in historical!'%p['stock__symbol'])
-                    logger.debug(self.historicals[on_date])
                     continue
 
                 # record the spot equity value
@@ -374,7 +374,11 @@ class MySimulationJK(MySimulation):
                 continue
 
             his = self.historicals[on_date][p.stock.symbol]
-            simulated_spot = his['open_price']  # assume we are selling at open
+
+            # NOTE: Assume we are selling at open.
+            # This is an important decision since this will dictate
+            # how to execute this strategy.
+            simulated_spot = his['open_price']  
 
             # for example, if sell_cutoff = 0.1,
             # we sell if daily spot is greater than 110% of our cost
@@ -386,7 +390,7 @@ class MySimulationJK(MySimulation):
                     'symbol': p.stock.symbol,
                     'position': p.position,
                     'close_position': p.close_position,
-                    'gain': p.gain,
+                    'gain': p.gain, # gain from exiting this position
                     'life_in_days': p.life_in_days,
                     'vol': p.vol
                 })
@@ -409,9 +413,12 @@ class MySimulationJK(MySimulation):
                 # logger.debug('%s: Not enough capital to execute buy.'%symbol)
                 continue
 
+            # NOTE: we are using overnight return as benchmark
+            # to trigger a buy if price has dropped more than our threshold.
+            #
             # if buy_cutoff = 0.04,
             #   - if overnight_return > -0.04, we skip
-            #   - if one day drop greater than 4%, we buy
+            #   - if overnight drop greater than 4%, we buy
             his = self.historicals[on_date][symbol]
             overnight_return = his['overnight_return']
             if overnight_return > -1 * self.buy_cutoff:
