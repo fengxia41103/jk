@@ -121,6 +121,9 @@ Result details
 </table>
 
 <h2 class="page-header">Traces</h1>
+{% load el_pagination_tags %}
+
+{% paginate snapshots %}
 {% for sp in snapshots %}
 <div>
 <h3 class="my-section-header">{{ sp.on_date }}</h3>
@@ -150,21 +153,21 @@ Result details
 
 <ul class="nav nav-tabs">
 	{% if sp.buy_transactions %}
-    <li class="active"><a data-toggle="tab" href="#{{on_date}}-buy">Buy</a></li>
+    <li class="active"><a data-toggle="tab" href="#{{sp.id}}-buy">Buy</a></li>
     {% endif %}
 
     {% if sp.sell_transactions %}
-    <li><a data-toggle="tab" href="#{{on_date}}-sell">Sell</a></li>
+    <li><a data-toggle="tab" href="#{{sp.id}}-sell">Sell</a></li>
     {% endif %}
 
     {% if sp.equities %}
-    <li><a data-toggle="tab" href="#{{on_date}}-portfolio">Portfolio</a></li>
+    <li><a data-toggle="tab" href="#{{sp.id}}-portfolio">Portfolio</a></li>
     {% endif %}    
 </ul>
 
 <div class="tab-content">
 	{% if sp.buy_transactions %}
-	<div id="{{on_date}}-buy" class="tab-pane fade in active">
+	<div id="{{sp.id}}-buy" class="tab-pane fade in active">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
 				<th></th>
@@ -190,7 +193,7 @@ Result details
 	{% endif %}
 
 	{% if sp.sell_transactions %}
-	<div id="{{on_date}}-sell" class="tab-pane fade in">
+	<div id="{{sp.id}}-sell" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
 				<th></th>
@@ -207,11 +210,11 @@ Result details
 				</td><td>
 					{{ p.stock }}
 				</td><td>
-					{{ p.position|floatformat:2 }}
+					{{ p.position|floatformat:"2" }}
 				</td><td>
-					{{ p.close_position|floatformat:2 }}
+					{{ p.close_position|floatformat:"2" }}
 				</td><td>
-					{{ p.gain|floatformat:2 }}
+					{{ p.gain|floatformat:"2" }}
 				</td><td>
 					{{ p.life_in_days }}
 				</td></tr>
@@ -222,7 +225,7 @@ Result details
 	{% endif %}
 
 	{% if sp.equities %}
-	<div id="{{on_date}}-portfolio" class="tab-pane fade in">
+	<div id="{{sp.id}}-portfolio" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
 				<th></th>
@@ -237,9 +240,9 @@ Result details
 				</td><td>
 					{{ p.stock }}
 				</td><td>
-					{{ p.position|floatformat:2 }}
+					{{ p.position|floatformat:"2" }}
 				</td><td>
-					{{ p.vol|floatformat:2 }}
+					{{ p.vol|floatformat:"2" }}
 				</td></tr>
 				{% endfor %}{# end of buys #}
 			</tbody>
@@ -249,6 +252,8 @@ Result details
 </div>{# end of row #}
 </div>
 {% endfor %}
+{% show_pages %}
+
 {% endblock %}
 
 {% block custom_js %}

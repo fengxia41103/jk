@@ -61,6 +61,7 @@ INSTALLED_APPS = (
     'localflavor',  # django-localflavor
     'rest_framework',  # djangorestframework
     'djangular',  # django-angular
+    'el_pagination', # django-el-pagination
     'stock',  # stock
 )
 

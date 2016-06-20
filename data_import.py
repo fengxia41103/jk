@@ -525,8 +525,8 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
             elif strategy == 2:
                 buy_cutoff = range(1,6,1)
                 sell_cutoff = range(1,6,1)
-                # cutoffs = itertools.product(buy_cutoff, sell_cutoff)
-                cutoffs = [(1,1)]
+                cutoffs = itertools.product(buy_cutoff, sell_cutoff)
+                # cutoffs = [(1,1)]
 
             # Set up simulation condition objects based on
             # combination of specified parameters. Note that
@@ -572,7 +572,7 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
 
 def rerun_existing_simulations():
     total_count = len(MySimulationCondition.objects.all())
-    for counter, condition in enumerate(MySimulationCondition.objects.all()):
+    for counter, condition in enumerate(MySimulationCondition.objects.filter(strategy=2)):
         logger.debug('%s: %d/%d'%(inspect.stack()[1][3], counter, total_count))
 
         # simulation run
@@ -607,12 +607,12 @@ def main():
     '''
     Pull spot data
     '''
-    # crawl_update_sp500_spot_yahoo()
+    crawl_update_sp500_spot_yahoo()
 
     '''
     Compute strategy index values
     '''
-    # consumer_daily_return()
+    consumer_daily_return()
     # consumer_relative_hl()
     # consumer_relative_ma()
 
@@ -621,9 +621,9 @@ def main():
     '''
     batch_simulation_daily_return(
         date_range = [
-            ('2014-01-01', '2014-01-10'),
-            # ('2016-01-01', '2017-01-01'),
-            # ('2015-01-01', '2016-01-01')
+            ('2014-01-01', '2015-01-01'),
+            ('2016-01-01', '2017-01-01'),
+            ('2015-01-01', '2016-01-01')
         ],
         strategies = [2],
         capital = 10000,
