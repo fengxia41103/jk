@@ -2,6 +2,8 @@ import time
 from numpy import mean, std
 from collections import OrderedDict
 import simplejson as json
+from django.db.models import Avg, Max, Min, Count, Sum
+from decimal import Decimal
 
 import logging
 logger = logging.getLogger('jk')
@@ -85,7 +87,7 @@ class MySimulation(object):
                     else:
                         stocks.append(stock.id)
         histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks, date_stamp__range=[start, end]).values(
-            'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'val_by_strategy', 'relative_ma', 'overnight_return')
+            'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'overnight_return')
         if not len(histories):
             logger.error('MySimulation: no historicals found! Aborting setup.')
             return False
@@ -218,9 +220,18 @@ class MySimulation(object):
                 snapshot.asset_gain_pcnt = 0
 
             if t0:
-                snapshot.asset_cumulative_gain_pcnt = (snapshot.asset - t0.asset)/t0.asset*100
+                snapshot.asset_gain_pcnt_t0 = snapshot.asset/t0.asset
             else:
-                snapshot.asset_cumulative_gain_pcnt = 0
+                snapshot.asset_gain_pcnt_t0 = 0
+
+            tmp = MyPosition.objects.filter(
+                simulation = self.simulation,
+                close_date = on_date
+            ).aggregate(gain_from_exit = Sum('gain'))
+            if tmp['gain_from_exit']:
+                snapshot.gain_from_exit = tmp['gain_from_exit']
+            else:
+                snapshot.gain_from_exit = 0
 
             snapshot_records.append(snapshot)
         MySimulationSnapshot.objects.bulk_create(snapshot_records)
@@ -283,18 +294,7 @@ class MySimulationAlpha(MySimulation):
             pos = MyPosition.objects.get(
                 stock__symbol=symbol, simulation=self.simulation, is_open=True)
             pos.close(self.user, simulated_spot, on_date=on_date)
-
             self.capital += pos.vol * simulated_spot
-            self.snapshot[on_date]['transaction']['sell'].append({
-                'symbol': pos.stock.symbol,
-                'position': pos.position,
-                'close_position': pos.close_position,
-                'gain': pos.gain,
-                'life_in_days': pos.life_in_days,
-                'vol': pos.vol
-            })
-            self.snapshot[on_date]['gain']['sell'] += pos.gain
-            # print 'close: ',symbol,self.capital
 
     def buy(self, on_date, symbols):
         total_symbols = len(symbols)
@@ -305,10 +305,10 @@ class MySimulationAlpha(MySimulation):
         # In this strategy, buy_cutoff defines the starting index,
         # sell_cutoff defines the ending index. Everything within this band is
         # a buy.
+        buy_records = []
         start_cutoff = max(int(total_symbols * self.buy_cutoff) - 1, 0)
         end_cutoff = int(total_symbols * self.sell_cutoff)
         buys = symbols[start_cutoff:end_cutoff]
-        sells = filter(lambda x: x not in buys, symbols)
         for symbol in buys:
             if symbol in positions:
                 continue  # already in portfolio, hold
@@ -318,12 +318,12 @@ class MySimulationAlpha(MySimulation):
                 continue  # stock stopped trading?
 
             # we buy, assuming knowing the ranking based on OPEN price
-            # so we buy at CLOSE on that date
+            # so we buy at instraday avg
             his = self.historicals[on_date][symbol]
             if 'adj_close' in his and his['adj_close'] > 0:
-                simulated_spot = his['adj_close']
+                simulated_spot = np.mean([his['open_price'], his['adj_close']])
             elif 'close_price' in his:
-                simulated_spot = his['close_price']
+                simulated_spot = np.mean([his['open_price'], his['close_price']])
 
             pos = MyPosition(
                 stock=MyStock.objects.get(id=int(his['stock'])),
@@ -333,16 +333,10 @@ class MySimulationAlpha(MySimulation):
                 open_date=on_date,
                 simulation=self.simulation,
                 is_open=True)
-            pos.save()
+            buy_records.append(pos)
 
             self.capital -= pos.vol * pos.position
-            self.snapshot[on_date]['transaction']['buy'].append({
-                'symbol': symbol,
-                'position': simulated_spot,
-                'vol': pos.vol
-            })
-            # print 'create: ',symbol, self.capital
-
+        MyPosition.objects.bulk_create(buy_records)
 
 class MySimulationJK(MySimulation):
     """

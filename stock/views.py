@@ -611,7 +611,7 @@ class MySimulationResultList(ListView):
     def get_queryset(self):
         return MySimulationCondition.objects.filter(
             strategy = 2,
-        )[:10]
+        )
 
 @class_view_decorator(login_required)
 class MySimulationResultComp(TemplateView):
@@ -664,13 +664,13 @@ class MySimulationConditionDetail(DetailView):
         context['start'] = cond.start
         context['end'] = cond.end
         context['on_dates'] = [s.on_date.strftime('%Y-%m-%d') for s in snapshots]
-        context['assets'] = [float(s.asset) for s in snapshots]
-        context['cashes'] = [float(s.cash) for s in snapshots]
-        context['equities'] = [float(s.equity) for s in snapshots]
+        context['assets'] = [float(a) for a in MySimulationSnapshot.objects.filter(simulation=cond).values_list('asset', flat=True).order_by('on_date')]
+        context['cashes'] = [float(a) for a in MySimulationSnapshot.objects.filter(simulation=cond).values_list('cash', flat=True).order_by('on_date')]
+        context['equities'] = [float(a) for a in MySimulationSnapshot.objects.filter(simulation=cond).values_list('equity', flat=True).order_by('on_date')]
         context['snapshots'] = snapshots
         context['gain_from_holding'] = [float(x) for x in cond.gain_from_holding]
         context['gain_from_exit'] = [float(x) for x in cond.gain_from_exit]
-        context['asset_cumulative'] = cond.asset_cumulative_gain_pcnt
+        context['asset_gain_pcnt_t0'] = cond.asset_gain_pcnt_t0[1:]
 
         # Pull index data for comparison
         if self.object.data_source in [2, 3, 4, 5]:
@@ -680,18 +680,17 @@ class MySimulationConditionDetail(DetailView):
             # if viewing SP500 data, we pull SP500 index GSPC
             index_symbol = 'GSPC'
 
-        # compute china index cumulative return for selected time period
-        index = MyStock.objects.get(symbol=index_symbol)
+        # compute ndex cumulative return for selected time period
         index_historicals = MyStockHistorical.objects.filter(
-            stock=index, date_stamp__in=context['on_dates']).values('adj_close').order_by('date_stamp')
+            stock__symbol=index_symbol, date_stamp__in=context['on_dates']).values('adj_close').order_by('date_stamp')
         index_t0 = index_historicals[0]['adj_close']
 
         # index historicals normalized to its T0 value
-        context['index_cumulative'] = [float(index_historicals[x]['adj_close'] / index_t0) 
+        context['index_gain_pcnt'] = [float(index_historicals[x]['adj_close'] / index_t0) 
             for x in range(1, len(index_historicals))]
  
         # alpha return is the diff between measured asset returns and index returns
         # < 0: when portfolio is underforming index; >0: overperforming
-        context['alpha_return'] = map(lambda x: x[0] - x[1], zip(context['asset_cumulative'], context['index_cumulative']))
+        context['alpha_return'] = map(lambda x: x[0] - x[1], zip(context['asset_gain_pcnt_t0'], context['index_gain_pcnt']))
 
         return context

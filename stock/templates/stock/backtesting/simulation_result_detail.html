@@ -2,6 +2,7 @@
 {% load humanize %} 
 {% load staticfiles %}
 {% load crispy_forms_tags %}
+{% load el_pagination_tags %}
 
 {% block page-header %}
 Result details
@@ -121,8 +122,6 @@ Result details
 </table>
 
 <h2 class="page-header">Traces</h1>
-{% load el_pagination_tags %}
-
 {% paginate snapshots %}
 {% for sp in snapshots %}
 <div>
@@ -152,22 +151,48 @@ Result details
 </ul>
 
 <ul class="nav nav-tabs">
+    {% if sp.equities %}
+    <li class="active"><a data-toggle="tab" href="#{{sp.id}}-portfolio">Portfolio</a></li>
+    {% endif %}    
+
 	{% if sp.buy_transactions %}
-    <li class="active"><a data-toggle="tab" href="#{{sp.id}}-buy">Buy</a></li>
+    <li><a data-toggle="tab" href="#{{sp.id}}-buy">Buy</a></li>
     {% endif %}
 
     {% if sp.sell_transactions %}
     <li><a data-toggle="tab" href="#{{sp.id}}-sell">Sell</a></li>
     {% endif %}
-
-    {% if sp.equities %}
-    <li><a data-toggle="tab" href="#{{sp.id}}-portfolio">Portfolio</a></li>
-    {% endif %}    
 </ul>
 
 <div class="tab-content">
+	{% if sp.equities %}
+	<div id="{{sp.id}}-portfolio" class="tab-pane fade in active">
+		<table class="table table-condensed table-hover table-responsive">
+			<thead>
+				<th></th>
+				<th>Symbol</th>
+				<th>Cost</th>
+				<th>Vol</th>
+			</thead>
+			<tbody>
+				{% for p in sp.equities %}
+				<tr><td>
+					{{ forloop.counter }}
+				</td><td>
+					{{ p.stock.symbol }}
+				</td><td>
+					{{ p.position|floatformat:"2" }}
+				</td><td>
+					{{ p.vol|floatformat:"2" }}
+				</td></tr>
+				{% endfor %}{# end of buys #}
+			</tbody>
+		</table>
+	</div>
+	{% endif %}
+
 	{% if sp.buy_transactions %}
-	<div id="{{sp.id}}-buy" class="tab-pane fade in active">
+	<div id="{{sp.id}}-buy" class="tab-pane fade in">
 		<table class="table table-condensed table-hover table-responsive">
 			<thead>
 				<th></th>
@@ -180,7 +205,7 @@ Result details
 				<tr><td>
 					{{ forloop.counter }}
 				</td><td>
-					{{ p.stock }}
+					{{ p.stock.symbol }}
 				</td><td>
 					{{ p.position|floatformat:2 }}
 				</td><td>
@@ -208,7 +233,7 @@ Result details
 				<tr><td>
 					{{ forloop.counter }}
 				</td><td>
-					{{ p.stock }}
+					{{ p.stock.symbol }}
 				</td><td>
 					{{ p.position|floatformat:"2" }}
 				</td><td>
@@ -223,32 +248,6 @@ Result details
 		</table>
 	</div>
 	{% endif %}
-
-	{% if sp.equities %}
-	<div id="{{sp.id}}-portfolio" class="tab-pane fade in">
-		<table class="table table-condensed table-hover table-responsive">
-			<thead>
-				<th></th>
-				<th>Symbol</th>
-				<th>Cost</th>
-				<th>Vol</th>
-			</thead>
-			<tbody>
-				{% for p in sp.equities %}
-				<tr><td>
-					{{ forloop.counter }}
-				</td><td>
-					{{ p.stock }}
-				</td><td>
-					{{ p.position|floatformat:"2" }}
-				</td><td>
-					{{ p.vol|floatformat:"2" }}
-				</td></tr>
-				{% endfor %}{# end of buys #}
-			</tbody>
-		</table>
-	</div>
-	{% endif %}	
 </div>{# end of row #}
 </div>
 {% endfor %}
@@ -518,10 +517,10 @@ j$(document).ready(function(){
 	    }, // end of option
         series: [{
         	name: 'Simulation asset cumulative',
-        	data: {{ asset_cumulative }},	    	
+        	data: {{ asset_gain_pcnt_t0 }},	    	
         },{ 
     		name: 'Index cumulative',
-    		data: {{ index_cumulative }},
+    		data: {{ index_gain_pcnt }},
     	}]
 	});// end of highcharts
     j$('#alpha-return').highcharts({

@@ -853,7 +853,6 @@ class MyStockStrategyValue(object):
             logger.error('%s: not enough data' % symbol)
             return
 
-        t0 = ''
         for i in range(window_length, len(records)):
             logger.debug('%s: %d/%d' % (symbol, i, len(records)))
 
@@ -873,6 +872,8 @@ class MyStockStrategyValue(object):
                           (symbol, time.time() - exec_start))
 
     def compute_value(self, t0, window):
+        """Overriden by child class to execute computation.
+        """
         pass
 
 
@@ -897,7 +898,7 @@ class MyStockDailyReturn(MyStockStrategyValue):
                 t0.close_price - t0.open_price) / t0.open_price * 100
 
         # compute nightly return
-        if t0.open_price and prev_adj_close:
+        if t0.open_price and prev.adj_close:
             t0.overnight_return = (t0.open_price - prev.adj_close)/prev.adj_close*100
         else:
             t0.overnight_return = 0

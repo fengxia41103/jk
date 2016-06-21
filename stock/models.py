@@ -17,7 +17,7 @@ from django.dispatch import receiver
 from django.core.mail import send_mail
 from decimal import Decimal
 from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db.models import Avg, Max, Min, Count
+from django.db.models import Avg, Max, Min, Count, Sum
 
 from math import fabs
 import numpy as np
@@ -768,6 +768,18 @@ class MyPosition(models.Model):
         default = 0,
         verbose_name = u'Life in days'
     )
+    gain = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Gain'
+    )    
+    cost = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Cost'
+    )  
 
     def add(self, user, price, vol, source='simulation', on_date=None):
         """
@@ -799,6 +811,12 @@ class MyPosition(models.Model):
             self.open_date = on_date
         else:
             self.open_date = dt.now().date()
+
+        """Cost to establish this position.
+
+        cost = position price * holding volume
+        """
+        self.cost = self.position * self.vol
         self.save()
 
     def close(self, user, price, on_date=None):
@@ -815,24 +833,14 @@ class MyPosition(models.Model):
             self.close_date = on_date
         else:
             self.close_date = dt.now().date()
-        self.life_in_days = (self.close_date - self.open_date).days            
-        self.save()
+        self.life_in_days = (self.close_date - self.open_date).days  
 
-    def _cost(self):
-        """Cost to establish this position.
-
-        cost = position price * holding volume
-        """
-        return self.position * self.vol
-    cost = property(_cost)
-
-    def _gain(self):
         """Realized gain/loss.
 
         Profit/loss realized by holding this stock till closing.
-        """
-        return (self.close_position - self.position) * self.vol
-    gain = property(_gain)
+        """         
+        self.gain = (self.close_position - self.position) * self.vol         
+        self.save()
 
     def _potential_gain(self):
         """Unrealized gain/loss.
@@ -1024,15 +1032,15 @@ class MySimulationCondition(models.Model):
     snapshots_sort_by_date = property(_snapshots_sort_by_date)
 
     def _assets(self):
-        return [x.asset for x in self.snapshots_sort_by_date]
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset', flat=True).order_by('on_date')
     assets = property(_assets)
 
     def _equities(self):
-        return [x.equity for x in self.snapshots_sort_by_date]
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('equity', flat=True).order_by('on_date')
     equities = property(_equities)
 
     def _cashes(self):
-        return [x.cash for x in self.snapshots_sort_by_date]
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('cash', flat=True).order_by('on_date')
     cashes = property(_cashes)
 
     def _num_of_buys(self):
@@ -1040,7 +1048,7 @@ class MySimulationCondition(models.Model):
 
         This is computed from individual buys.
         """
-        return sum(len(x.buy_transactions) for x in self.snapshots)
+        return MyPosition.objects.filter(simulation=self).count()
     num_of_buys = property(_num_of_buys)
 
     def _num_of_sells(self):
@@ -1048,7 +1056,7 @@ class MySimulationCondition(models.Model):
 
         This is computed from individual sells.
         """
-        return sum(len(x.sell_transactions) for x in self.snapshots)
+        return MyPosition.objects.filter(simulation=self,is_open=False).count()
     num_of_sells = property(_num_of_sells)
 
     def _asset_daily_return(self):
@@ -1057,23 +1065,24 @@ class MySimulationCondition(models.Model):
         This index shows how a user's asset fluctuates from day to day
         during simulation period.
         """
-        return [1] + [x.asset_gain_pcnt for x in self.snapshots]
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt', flat=True).order_by('on_date')    
     asset_daily_return = property(_asset_daily_return)
 
-    def _asset_cumulative_gain_pcnt(self):
+    def _asset_gain_pcnt_t0(self):
         """Measures daily asset's return over T0's.
 
         This index shows how assets swings comparing to simulation's T0.
         This can be viewed as an overall performance indicator over time.
         """
-        return [x.asset_cumulative_gain_pcnt for x in self.snapshots]
-    asset_cumulative_gain_pcnt = property(_asset_cumulative_gain_pcnt)
+        # return [x.asset_gain_pcnt_t0 for x in self.snapshots]
+        return list(MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt_t0',flat=True).order_by('on_date'))
+    asset_gain_pcnt_t0 = property(_asset_gain_pcnt_t0)
 
     def _asset_end_return(self):
         """Last's day's cumulative return.
         """
-        if self.asset_cumulative_gain_pcnt:
-            return self.asset_cumulative_gain_pcnt[-1]
+        if self.asset_gain_pcnt_t0:
+            return self.asset_gain_pcnt_t0[-1]
         return None
     asset_end_return = property(_asset_end_return)
 
@@ -1083,7 +1092,7 @@ class MySimulationCondition(models.Model):
         This indicator shows the maximum potential gain from
         applied strategy.
         """
-        return max(self.asset_cumulative_gain_pcnt)
+        return max(self.asset_gain_pcnt_t0)
     asset_max_return = property(_asset_max_return)
 
     def _asset_min_return(self):
@@ -1091,7 +1100,7 @@ class MySimulationCondition(models.Model):
 
         This shows the worst moment this strategy can yield.
         """
-        return min(self.asset_cumulative_gain_pcnt)
+        return min(self.asset_gain_pcnt_t0)
     asset_min_return = property(_asset_min_return)
 
     def _asset_cumulative_return_mean(self):
@@ -1100,7 +1109,7 @@ class MySimulationCondition(models.Model):
         Numeric mean of gains. This indicates the likely gain one can achieve 
         by applying this strategy.  
         """
-        return np.mean(self.asset_cumulative_gain_pcnt)
+        return np.mean(self.asset_gain_pcnt_t0)
     asset_cumulative_return_mean = property(_asset_cumulative_return_mean)
 
     def _asset_cumulative_return_std(self):
@@ -1108,7 +1117,7 @@ class MySimulationCondition(models.Model):
 
         This measures the risk of applied strategy using cumulative gain data.
         """
-        return np.std(self.asset_cumulative_gain_pcnt)
+        return np.std(self.asset_gain_pcnt_t0)
     asset_cumulative_return_std = property(_asset_cumulative_return_std)
 
     def _gain_from_holding(self):
@@ -1119,11 +1128,11 @@ class MySimulationCondition(models.Model):
         how well equities were performing. This is completely determined by
         how well we picked stock, thus is a good indicator of applied strategy.
         """
-        return [x.gain_from_holding for x in self.snapshots_sort_by_date]
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('gain_from_holding', flat=True).order_by('on_date')
     gain_from_holding = property(_gain_from_holding)
 
     def _gain_from_exit(self):
-        return [x.gain_from_exit for x in self.snapshots_sort_by_date]
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('gain_from_exit', flat=True).order_by('on_date')
     gain_from_exit = property(_gain_from_exit)
 
     def _equity_life_in_days(self):
@@ -1133,13 +1142,17 @@ class MySimulationCondition(models.Model):
         this value, we could apply a strategy that dictate 
         by how long we can hold a position.
         """
-        sells = MyPosition.objects.filter(simulation=self, is_open = False).order_by('life_in_days')
-        life_in_days = [s.life_in_days for s in sells]
+        life_in_days = MyPosition.objects.filter(simulation=self, is_open = False).annotate(
+            max_life = Max('life_in_days'),
+            avg_life = Avg('life_in_days')
+        )
+
+        # life_in_days = [s.life_in_days for s in sells]
 
         # index [0] is the min(), [-1] is the max()floatformat
         # min is skipped since it is always 0 because 
         # we may be buying and unloading a stock on the same day
-        return (('max',life_in_days[-1]), ('Avg',np.mean(life_in_days)))
+        return (('max',life_in_days['max_life']), ('Avg',life_in_days['avg_life']))
     equity_life_in_days = property(_equity_life_in_days)
 
     def _stock_sell_stat(self):
@@ -1206,13 +1219,19 @@ class MySimulationSnapshot(models.Model):
         verbose_name=u'Gain from holding',
         default = 0
     )
+    gain_from_exit = models.DecimalField(
+        max_digits=20,
+        decimal_places=4,
+        verbose_name=u'Gain from exit',
+        default = 0
+    )    
     asset_gain_pcnt = models.FloatField(
         verbose_name = u'Asset gain from previous day',
         default = 0,
         help_text = u"This measures asset return in pcnt comparing to previous day"
     )
-    asset_cumulative_gain_pcnt = models.FloatField(
-        verbose_name = u'Asset cumulative return',
+    asset_gain_pcnt_t0 = models.FloatField(
+        verbose_name = u'Asset gain from T0',
         default = 0,
         help_text = u"This measures asset return in pcnt comparing to T0's"
     )
@@ -1228,7 +1247,7 @@ class MySimulationSnapshot(models.Model):
         buys = MyPosition.objects.filter(
             simulation = self.simulation,
             open_date = self.on_date # this is when position was created as a buy
-        )
+        ).order_by('stock__symbol')
         return buys 
     buy_transactions = property(_buy_transactions)
 
@@ -1241,7 +1260,7 @@ class MySimulationSnapshot(models.Model):
         sells = MyPosition.objects.filter(
             simulation = self.simulation,
             close_date = self.on_date # this is when position was closed as a sell
-        )
+        ).order_by('stock__symbol')
         return sells
     sell_transactions = property(_sell_transactions)
 
@@ -1255,18 +1274,9 @@ class MySimulationSnapshot(models.Model):
         return MyPosition.objects.filter(
             Q(simulation = self.simulation) & Q(open_date__lte = self.on_date),
             Q(close_date__isnull = True) | Q(close_date__gte = self.on_date)
-        )
-    equities = property(_equities)
+        ).order_by('stock__symbol')
 
-    def _gain_from_exit(self):
-        """Gain/loss from trading a stock.
-        """
-        sells = MyPosition.objects.filter(
-                simulation = self.simulation,
-                close_date = self.on_date
-            )
-        return sum([s.gain for s in sells])
-    gain_from_exit = property(_gain_from_exit)
+    equities = property(_equities)
 
 ######################################################
 #
