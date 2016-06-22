@@ -34,7 +34,9 @@
 	<tbody>
 	{% for h in historicals %}
 		<tr><td>
+			<a href="{% url 'stock_detail' h.stock.id %}">
 			{{ h.stock.symbol }}
+			</a>
 		</td><td>
 			{{ h.open_price|floatformat:2 }}
 		</td><td>

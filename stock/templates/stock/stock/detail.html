@@ -4,7 +4,7 @@
 {% load crispy_forms_tags %}
 {% load el_pagination_tags %}
 
-{% block detail-header %}
+{% block page-header %}
 	{{ object }}
 {% endblock %}
 
@@ -61,7 +61,7 @@ j$(document).ready(function(){
                     enabled: false
                 },
                 enableMouseTracking: false,
-                lineWidth: 4,
+                lineWidth: 1,
                 marker: {
                 	enabled: false
                 }
@@ -73,10 +73,10 @@ j$(document).ready(function(){
 			        lineWidth: 1,
 			        enabled: false
 			    },
-				lineWidth: 4,
+				lineWidth: 2,
 				states: {
 				    hover: {
-				        lineWidth: 5
+				        lineWidth: 2
 				    }
 				}				    
 			},		            
@@ -145,10 +145,10 @@ j$(document).ready(function(){
 			        lineWidth: 1,
 			        enabled: false
 			    },
-				lineWidth: 3,
+				lineWidth: 2,
 				states: {
 				    hover: {
-				        lineWidth: 4
+				        lineWidth: 2
 				    }
 				}				    
 			}
@@ -157,7 +157,7 @@ j$(document).ready(function(){
         	name: '{{ object }}',
         	data: {{ adj_close_prices }},	    	
         },{ 
-    		name: 'Index cumulative',
+    		name: 'Index',
     		data: {{ index_close_prices }},
     	}]
 	});// end of highcharts
