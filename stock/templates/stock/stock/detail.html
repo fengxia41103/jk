@@ -1,0 +1,166 @@
+{% extends "stock/common/detail.html" %}
+{% load humanize %} 
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+{% load el_pagination_tags %}
+
+{% block detail-header %}
+	{{ object }}
+{% endblock %}
+
+{% block detail-content %}
+
+<h2 class="page-header">Historicals</h2>
+<div id="historical" style="width:100%; height:580px;"></div>
+<div id="comp-index" style="width:100%; height:580px;"></div>
+
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript"
+	src="{% static 'highcharts/highcharts-custom.js' %}">
+</script>
+<script type="text/javascript"
+	src="{% static 'highcharts/js/modules/boost.js' %}">
+</script>   
+
+<script type="text/javascript">
+var j$ = jQuery.noConflict();
+
+j$(document).ready(function(){
+    j$('#historical').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'spline'
+    	},
+        title: {
+            text: '{{ object }} Historicals'
+        },
+        subtitle: {
+            text: '{{ object.company_name }}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: 'Values'
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+            line: {
+                dataLabels: {
+                    enabled: false
+                },
+                enableMouseTracking: false,
+                lineWidth: 4,
+                marker: {
+                	enabled: false
+                }
+            },
+			spline: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
+			    },
+				lineWidth: 4,
+				states: {
+				    hover: {
+				        lineWidth: 5
+				    }
+				}				    
+			},		            
+			area: {
+				stacking: 'normal',
+				lineColor: '#666666',
+				lineWidth: 1,
+				marker: {
+					lineWidth: 1,
+					lineColor: '#666666'
+				}
+			},
+	    }, // end of plot option
+        series: [{
+        	name: 'Open price',
+        	data: {{ open_prices }},	    	
+        },{ 
+    		name: 'Adj close price',
+    		data: {{ adj_close_prices }},
+    		visible: false
+    	}]
+	}); // end of highchart
+
+    j$('#comp-index').highcharts({
+        chart: {
+        	zoomType: 'x',
+        	type: 'spline'
+    	},
+        title: {
+            text: '{{ object }} vs. Index'
+        },
+        subtitle: {
+            text: '{{start}} - {{end}}'
+        },
+        xAxis: {
+            categories: {{ on_dates|safe }}
+        },
+        yAxis: {
+            title: {
+                text: 'Values'
+            }
+        },
+		tooltip: {
+		    crosshairs: {
+		        color: 'green',
+		        dashStyle: 'solid'
+		    },
+		    shared: true,
+		    valueDecimals: 2			    
+		},	        
+        plotOptions: {	        	
+            line: {
+                dataLabels: {
+                    enabled: false
+                },
+                enableMouseTracking: false,
+                lineWidth: 4,
+                marker: {
+                	enabled: false
+                }
+            },
+			spline: {
+			    marker: {
+			        radius: 1,
+			        lineColor: '#666666',
+			        lineWidth: 1,
+			        enabled: false
+			    },
+				lineWidth: 3,
+				states: {
+				    hover: {
+				        lineWidth: 4
+				    }
+				}				    
+			}
+	    }, // end of option
+        series: [{
+        	name: '{{ object }}',
+        	data: {{ adj_close_prices }},	    	
+        },{ 
+    		name: 'Index cumulative',
+    		data: {{ index_close_prices }},
+    	}]
+	});// end of highcharts
+});// end of document.ready
+	</script>    
+{% endblock %}

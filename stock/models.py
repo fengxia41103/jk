@@ -1273,7 +1273,7 @@ class MySimulationSnapshot(models.Model):
         """
         return MyPosition.objects.filter(
             Q(simulation = self.simulation) & Q(open_date__lte = self.on_date),
-            Q(close_date__isnull = True) | Q(close_date__gte = self.on_date)
+            Q(close_date__isnull = True) | Q(close_date__gt = self.on_date)
         ).order_by('stock__symbol')
 
     equities = property(_equities)

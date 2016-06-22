@@ -31,6 +31,7 @@ from django.utils import timezone
 # import models
 from stock.models import *
 from stock.simulations import *
+from stock.tasks import *
 from stock.utility import JSONEncoder
 
 # logging
@@ -619,21 +620,22 @@ def main():
     '''
     simulation
     '''
-    # batch_simulation_daily_return(
-    #     date_range = [
-    #         ('2014-01-01', '2015-01-01'),
-    #         ('2016-01-01', '2017-01-01'),
-    #         ('2015-01-01', '2016-01-01')
-    #     ],
-    #     strategies = [2],
-    #     capital = 10000,
-    #     per_trade = 500
-    # )
+    batch_simulation_daily_return(
+        date_range = [
+            # ('2014-01-01', '2014-01-10'),
+            ('2016-01-01', '2017-01-01'),
+            ('2015-01-01', '2016-01-01')
+        ],
+        strategies = [2],
+        capital = 10000,
+        per_trade = 500
+    )
 
     '''
     rerun simulations
     '''
-    rerun_existing_simulations()
+    # rerun_existing_simulations()
+
 
 if __name__ == '__main__':
     main()

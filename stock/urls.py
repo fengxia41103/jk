@@ -25,6 +25,7 @@ urlpatterns = patterns(
         name='user_position_list'),
 
     url(r'^stock/$', views.MyStockList.as_view(), name='stock_list'),
+    url(r'^stock/(?P<pk>\d+)/$', views.MyStockDetail.as_view(), name='stock_detail'),
     url(r'^stock/update/$', views.MyStockUpdate.as_view(),
         name='stock_update'),
     url(r'^historicals/$', views.MyStockHistoricalList.as_view(),

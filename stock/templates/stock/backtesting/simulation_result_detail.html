@@ -136,7 +136,7 @@ Result details
 	<li> | </li>
 	<li><span class="label label-default">Gain from equity exit</span>
 		{% if sp.gain_from_exit < 0 %}
-			<font color="red">{{ sp.gain.sell|floatformat:"2" }}</font>
+			<font color="red">{{ sp.gain_from_exit|floatformat:"2" }}</font>
 		{% else %}
 			{{ sp.gain_from_exit|floatformat:"2" }}
 		{% endif %}
@@ -179,7 +179,9 @@ Result details
 				<tr><td>
 					{{ forloop.counter }}
 				</td><td>
-					{{ p.stock.symbol }}
+					<a href="{% url 'stock_detail' p.stock.id %}">
+						{{ p.stock.symbol }}
+					</a>
 				</td><td>
 					{{ p.position|floatformat:"2" }}
 				</td><td>
@@ -351,7 +353,7 @@ j$(document).ready(function(){
         	type: 'column'
     	},
         title: {
-            text: 'Equity Gain % From Portfolio'
+            text: 'Equity Gain From Holding'
         },
         subtitle: {
             text: '{{start}} - {{end}}'
@@ -361,7 +363,7 @@ j$(document).ready(function(){
         },
         yAxis: {
             title: {
-                text: 'Gain as % of equity@T-1'
+                text: 'Gain'
             }
         },
 		tooltip: {
@@ -409,7 +411,7 @@ j$(document).ready(function(){
         	type: 'column'
     	},
         title: {
-            text: 'Equity Gain % From Trading'
+            text: 'Equity Gain From Trading'
         },
         subtitle: {
             text: '{{start}} - {{end}}'
@@ -419,7 +421,7 @@ j$(document).ready(function(){
         },
         yAxis: {
             title: {
-                text: "Gain as % of equity@T-1"
+                text: "Gain"
             }
         },
 		tooltip: {

@@ -68,6 +68,7 @@ from utility import MyUtility, JSONEncoder
 from stock.forms import *
 from stock.models import *
 from stock.simulations import MySimulationAlpha, MySimulationJK
+from stock.tasks import MyStockBacktestingSimulation
 
 ###################################################
 #
@@ -226,6 +227,30 @@ class MyStockList (FilterView):
 
     def get_filterset_class(self):
         return MyStockListFilter
+
+class MyStockDetail(DetailView):
+    model = MyStock
+    template_name = 'stock/stock/detail.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super(MyStockDetail, self).get_context_data(**kwargs)
+        on_dates = list(MyStockHistorical.objects.filter(stock=self.object).values_list('date_stamp', flat=True).order_by('date_stamp'))
+        context['on_dates'] = [d.strftime('%Y-%m-%d') for d in on_dates]
+        context['start'] = start = on_dates[0]
+        context['end'] = end = on_dates[-1]
+        context['open_prices'] = [float(x) for x in MyStockHistorical.objects.filter(stock=self.object).values_list('open_price', flat=True).order_by('date_stamp')]
+        context['adj_close_prices'] = [float(x) for x in MyStockHistorical.objects.filter(stock=self.object).values_list('adj_close', flat=True).order_by('date_stamp')]
+
+
+        # Pull index data for comparison
+        if self.object.is_china_stock:
+            # if viewing a China data, we pull China SP500 index
+            index_symbol = '000001'
+        elif self.object.is_sp500:
+            # if viewing SP500 data, we pull SP500 index GSPC
+            index_symbol = 'GSPC'
+        context['index_close_prices'] = [float(x) for x in MyStockHistorical.objects.filter(stock__symbol=index_symbol,date_stamp__range=[start,end]).values_list('adj_close', flat=True).order_by('date_stamp')]
+        return context
 
 from tasks import stock_monitor_yahoo_consumer, stock_monitor_yahoo_consumer2
 

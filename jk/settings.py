@@ -66,6 +66,7 @@ INSTALLED_APPS = (
 )
 
 MIDDLEWARE_CLASSES = (
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
     # 'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -77,7 +78,6 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     # django-pagination-bootstrap
     'pagination_bootstrap.middleware.PaginationMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 )
 
 ROOT_URLCONF = 'jk.urls'
@@ -172,6 +172,9 @@ COMPRESS_PRECOMPILERS = (
 
 # django-debug-toolbar
 #DEBUG_TOOLBAR_PATCH_SETTINGS = False
+CONFIG_DEFAULTS = {
+    'JQUERY_URL': False
+}
 
 # django-devserver
 if DEPLOY_TYPE == 'dev':

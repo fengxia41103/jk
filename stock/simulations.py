@@ -88,13 +88,14 @@ class MySimulation(object):
                         stocks.append(stock.id)
         histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks, date_stamp__range=[start, end]).values(
             'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'overnight_return')
-        if not len(histories):
-            logger.error('MySimulation: no historicals found! Aborting setup.')
-            return False
+        # if not len(histories):
+        #     logger.error('MySimulation: no historicals found! Aborting setup.')
+        #     return False
 
         # dates
-        dates = list(set([h['date_stamp'] for h in histories]))
-        dates.sort()
+        # dates = list(set([h['date_stamp'] for h in histories]))
+        dates = list(MyStockHistorical.objects.filter(stock__in=stocks, date_stamp__range=[start, end]).values_list('date_stamp', flat=True).order_by('date_stamp').distinct())
+        # dates.sort()
         start = dates[0]
         end = dates[-1]
 
@@ -125,7 +126,7 @@ class MySimulation(object):
 
                 Buy low sell high. We don't need to sort.
                 """
-                symbols = [symbol for symbol, h in his_by_symbol.iteritems()]
+                symbols = his_by_symbol.keys()
                 self.data.append((on_date, symbols))
         return True
 
@@ -146,8 +147,8 @@ class MySimulation(object):
 
             # Since we are computing daily return using
             # the daily CLOSE price, but exiting at next day's OPEN price.
-            self.buy(on_date, symbols_by_rank)
             self.sell(on_date, symbols_by_rank)
+            self.buy(on_date, symbols_by_rank)
 
             # snapshot
             snapshot = MySimulationSnapshot(
@@ -158,7 +159,7 @@ class MySimulation(object):
 
             # compute equity, cash, asset
             daily_equity = []
-            gain_from_holding = 0
+            gain_from_holding = []
             positions = MyPosition.objects.filter(
                 simulation=self.simulation, is_open=True).values('stock__symbol', 'position', 'vol')
             for p in positions:
@@ -193,7 +194,7 @@ class MySimulation(object):
                 # compute gain/loss of the holding portfolio
                 # self.snapshot[on_date]['gain'][
                 #     'hold'] 
-                gain_from_holding += p['vol'] * (simulated_spot - p['position'])
+                gain_from_holding.append(p['vol'] * (simulated_spot - p['position']))
 
             # computed values
             if snapshot_records:
@@ -204,26 +205,30 @@ class MySimulation(object):
                 prev = None
                 t0 = None
 
+            snapshot.gain_from_holding = sum(gain_from_holding)
             snapshot.equity = sum(daily_equity)
 
             # gain from holding as pcnt of prev day's equity
-            if prev:
-                snapshot.gain_from_holding = gain_from_holding/prev.equity*100
-            else:
-                snapshot.gain_from_holding = 0
+            # if prev:
+            #     snapshot.gain_from_holding = gain_from_holding/prev.equity*100
+            # else:
+            #     snapshot.gain_from_holding = 0
 
             snapshot.asset = snapshot.equity+snapshot.cash
 
+            # asset gain over previous day's
             if prev:
                 snapshot.asset_gain_pcnt = (snapshot.asset - prev.asset)/prev.asset*100
             else:
                 snapshot.asset_gain_pcnt = 0
 
+            # asset gain over T0
             if t0:
                 snapshot.asset_gain_pcnt_t0 = snapshot.asset/t0.asset
             else:
                 snapshot.asset_gain_pcnt_t0 = 0
 
+            # gain from closing positions on_date
             tmp = MyPosition.objects.filter(
                 simulation = self.simulation,
                 close_date = on_date
