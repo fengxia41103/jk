@@ -608,28 +608,28 @@ def main():
     '''
     Pull spot data
     '''
-    # crawl_update_sp500_spot_yahoo()
+    crawl_update_sp500_spot_yahoo()
 
     '''
     Compute strategy index values
     '''
-    # consumer_daily_return()
+    consumer_daily_return()
     # consumer_relative_hl()
     # consumer_relative_ma()
 
     '''
     simulation
     '''
-    batch_simulation_daily_return(
-        date_range = [
-            # ('2014-01-01', '2014-01-10'),
-            ('2016-01-01', '2017-01-01'),
-            ('2015-01-01', '2016-01-01')
-        ],
-        strategies = [2],
-        capital = 10000,
-        per_trade = 500
-    )
+    # batch_simulation_daily_return(
+    #     date_range = [
+    #         # ('2014-01-01', '2014-01-10'),
+    #         ('2016-01-01', '2017-01-01'),
+    #         ('2015-01-01', '2016-01-01')
+    #     ],
+    #     strategies = [2],
+    #     capital = 10000,
+    #     per_trade = 500
+    # )
 
     '''
     rerun simulations

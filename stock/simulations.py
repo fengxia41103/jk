@@ -369,10 +369,15 @@ class MySimulationJK(MySimulation):
 
             his = self.historicals[on_date][p.stock.symbol]
 
-            # NOTE: Assume we are selling at open.
-            # This is an important decision since this will dictate
-            # how to execute this strategy.
-            simulated_spot = his['open_price']  
+            # NOTE: Assume we are selling at adj close.
+            # This is critical to counter for the stock split.
+            # For example, AAPL, had a 7:1 stock split oon 6/6, thus its open price
+            # on 6/6 was 649.90, but it changed to 92.70 on 6/7.
+            # Using open price will dramatically skew the position price, which
+            # will lead ot wrong gain value and so on.
+            # The adj close price, on the other hand, has been adjusted for stock
+            # splits, therefore is "stable" and consistent.
+            simulated_spot = his['adj_close']  
 
             # for example, if sell_cutoff = 0.1,
             # we sell if daily spot is greater than 110% of our cost
@@ -398,20 +403,19 @@ class MySimulationJK(MySimulation):
                 # logger.debug('%s: Not enough capital to execute buy.'%symbol)
                 continue
 
-            # NOTE: we are using overnight return as benchmark
+            # NOTE: we are using daily return as benchmark
             # to trigger a buy if price has dropped more than our threshold.
             #
             # if buy_cutoff = 0.04,
-            #   - if overnight_return > -0.04, we skip
-            #   - if overnight drop greater than 4%, we buy
+            #   - if daily return > -0.04, we skip
+            #   - if daily drop greater than 4%, we buy
             his = self.historicals[on_date][symbol]
-            overnight_return = his['overnight_return']
-            if overnight_return > -1 * self.buy_cutoff:
+            daily_return = his['daily_return']
+            if daily_return > -1 * self.buy_cutoff:
                 continue
 
-            # if it passed threshold test, buy at today's open
-            # This can be tweaked to buy at avg(open,close)
-            # so to imitate buying at intraday average
+            # if it passed threshold test, buy at today's 
+            # adj close. Again, account for stock split.
             simulated_spot = his['open_price']
 
             # Set up position.

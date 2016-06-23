@@ -97,7 +97,11 @@ j$(document).ready(function(){
     		name: 'Adj close price',
     		data: {{ adj_close_prices }},
     		visible: false
-    	}]
+    	},{ 
+            name: 'Overnight return',
+            data: {{ overnight_returns }},
+            visible: false
+        }]
 	}); // end of highchart
 
     j$('#comp-index').highcharts({
@@ -154,7 +158,7 @@ j$(document).ready(function(){
 			}
 	    }, // end of option
         series: [{
-        	name: '{{ object }}',
+        	name: '{{ object }} Adj close',
         	data: {{ adj_close_prices }},	    	
         },{ 
     		name: 'Index',

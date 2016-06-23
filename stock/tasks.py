@@ -898,8 +898,8 @@ class MyStockDailyReturn(MyStockStrategyValue):
                 t0.close_price - t0.open_price) / t0.open_price * 100
 
         # compute nightly return
-        if t0.open_price and prev.adj_close:
-            t0.overnight_return = (t0.open_price - prev.adj_close)/prev.adj_close*100
+        if t0.adj_close and prev.adj_close:
+            t0.overnight_return = (t0.adj_close - prev.adj_close)/prev.adj_close*100
         else:
             t0.overnight_return = 0
 

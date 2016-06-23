@@ -592,13 +592,16 @@ class MyStockHistorical(models.Model):
         null=True,
         blank=True,
         default=None,
-        verbose_name=u"(Today's Close - Today's Open)/Today's Open*100"
+        verbose_name=u"(Today's close - Today's Open)/Today's Open*100"
     )
+
+    # due to stock split, we have to use adj close
+    # instead of open price, unless we could acquire adjusted open also
     overnight_return = models.FloatField(
         null=True,
         blank=True,
         default=None,
-        verbose_name=u"(Today's Open - Yesterday's adj close)/Yesterday's adj close*100"
+        verbose_name=u"(Today's adj close - Yesterday's adj close)/Yesterday's adj close*100"
     )
     relative_hl = models.FloatField(
         null=True,
