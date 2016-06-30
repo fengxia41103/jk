@@ -572,7 +572,7 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
                 cPickle.dumps(condition), is_update=False)
 
 def rerun_existing_simulations():
-    total_count = len(MySimulationCondition.objects.all())
+    total_count = MySimulationCondition.objects.all().count()
     for counter, condition in enumerate(MySimulationCondition.objects.filter(strategy=2)):
         logger.debug('%s: %d/%d'%(inspect.stack()[1][3], counter, total_count))
 
@@ -608,12 +608,12 @@ def main():
     '''
     Pull spot data
     '''
-    crawl_update_sp500_spot_yahoo()
+    # crawl_update_sp500_spot_yahoo()
 
     '''
     Compute strategy index values
     '''
-    consumer_daily_return()
+    # consumer_daily_return()
     # consumer_relative_hl()
     # consumer_relative_ma()
 
@@ -634,7 +634,7 @@ def main():
     '''
     rerun simulations
     '''
-    # rerun_existing_simulations()
+    rerun_existing_simulations()
 
 
 if __name__ == '__main__':
