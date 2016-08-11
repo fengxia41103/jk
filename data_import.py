@@ -93,9 +93,9 @@ def crawl_update_sp500_historical_yahoo():
     symbols = MyStock.objects.filter(
         is_sp500=True).values_list('symbol', flat=True)
     for s in symbols:
-        # stock_prev_week_yahoo_consumer.delay(s)
-        # stock_prev_month_yahoo_consumer.delay(s)
-        # stock_prev_fib_yahoo_consumer.delay(s)
+        stock_prev_week_yahoo_consumer.delay(s)
+        stock_prev_month_yahoo_consumer.delay(s)
+        stock_prev_fib_yahoo_consumer.delay(s)
         stock_historical_yahoo_consumer.delay(s)
 
 
@@ -122,7 +122,7 @@ from stock.tasks import backtesting_s1_consumer
 
 def backtest_s1():
     for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol', flat=True))):
-        backtesting_s1_onsumer.delay(symbol)
+        backtesting_s1_consumer.delay(symbol)
 
 from stock.tasks import backtesting_daily_return_consumer
 
@@ -590,7 +590,7 @@ def main():
     # crawler_chenmin()
     # dump_chenmin()
     # crawler_influx()
-    # backtest_1()
+
     # import_chenmin_csv2()
     # crawler_flag_sp500()
     # consumer_oneday_change()
@@ -603,12 +603,12 @@ def main():
     '''
     Pull historical data
     '''
-    # crawl_update_sp500_historical_yahoo()
+    crawl_update_sp500_historical_yahoo()
 
     '''
     Pull spot data
     '''
-    # crawl_update_sp500_spot_yahoo()
+    crawl_update_sp500_spot_yahoo()
 
     '''
     Compute strategy index values
@@ -632,9 +632,14 @@ def main():
     # )
 
     '''
+    back test type 1
+    '''
+    # backtest_s1()
+
+    '''
     rerun simulations
     '''
-    rerun_existing_simulations()
+    # rerun_existing_simulations()
 
 
 if __name__ == '__main__':

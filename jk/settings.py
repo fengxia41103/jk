@@ -49,7 +49,7 @@ INSTALLED_APPS = (
     'django.contrib.sites',
 
     # custom packages
-    #'devserver', # django-devserver
+    # 'devserver', # django-devserver
     'debug_toolbar',
     'storages',  # django-storage
     's3_folder_storage',  # django-s3-folder-storage
@@ -61,7 +61,7 @@ INSTALLED_APPS = (
     'localflavor',  # django-localflavor
     'rest_framework',  # djangorestframework
     'djangular',  # django-angular
-    'el_pagination', # django-el-pagination
+    'el_pagination',  # django-el-pagination
     'stock',  # stock
 )
 
@@ -113,7 +113,8 @@ elif DEPLOY_TYPE == 'production':
             'NAME': 'jk',
                     'USER': PRODUCTION_DB_USER,
                     'PASSWORD': PRODUCTION_DB_PWD,
-                    'HOST': AWS_MYSQL_ENDPOINT,   # Or an IP Address that your DB is hosted on
+                    # Or an IP Address that your DB is hosted on
+                    'HOST': AWS_MYSQL_ENDPOINT,
                     'PORT': PRODUCTION_DB_PORT,
         }
     }
@@ -231,7 +232,7 @@ INTERNAL_IPS = ('127.0.0.1',)
 #         'LOCATION': 'localhost:11211',
 #         'TIMEOUT': 500,
 #         'BINARY': True,
-#         'OPTIONS': {  # Maps to pylibmc "behaviors"
+# 'OPTIONS': {  # Maps to pylibmc "behaviors"
 #             'tcp_nodelay': True,
 #             'ketama': True
 #         }

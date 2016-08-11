@@ -100,6 +100,7 @@ def class_view_decorator(function_decorator):
 
 
 class HomeView (TemplateView):
+
     """Home landing page.
     """
     template_name = 'intern/common/home_with_login_modal.html'
@@ -121,6 +122,7 @@ class HomeView (TemplateView):
 
 
 class LoginView(FormView):
+
     """Login page
     """
     template_name = 'registration/login.html'
@@ -140,6 +142,7 @@ class LoginView(FormView):
 
 
 class LogoutView(TemplateView):
+
     """Logout page
     """
     template_name = 'registration/logged_out.html'
@@ -152,6 +155,7 @@ class LogoutView(TemplateView):
 
 
 class UserRegisterView(FormView):
+
     """User registration page
     """
     template_name = 'registration/register_form.html'
@@ -229,10 +233,11 @@ class MyStockList (FilterView):
     def get_filterset_class(self):
         return MyStockListFilter
 
+
 class MyStockDetail(DetailView):
     model = MyStock
     template_name = 'stock/stock/detail.html'
-    
+
     def get_context_data(self, **kwargs):
         context = super(MyStockDetail, self).get_context_data(**kwargs)
         # Pull index data for comparison
@@ -243,17 +248,23 @@ class MyStockDetail(DetailView):
             # if viewing SP500 data, we pull SP500 index GSPC
             index_symbol = 'GSPC'
 
-        stock_on_dates = set(MyStockHistorical.objects.filter(stock=self.object).values_list('date_stamp', flat=True))
-        index_on_dates = set(MyStockHistorical.objects.filter(stock__symbol=index_symbol).values_list('date_stamp', flat=True))
+        stock_on_dates = set(MyStockHistorical.objects.filter(
+            stock=self.object).values_list('date_stamp', flat=True))
+        index_on_dates = set(MyStockHistorical.objects.filter(
+            stock__symbol=index_symbol).values_list('date_stamp', flat=True))
         on_dates = sorted(list(stock_on_dates.intersection(index_on_dates)))
 
         context['on_dates'] = [d.strftime('%Y-%m-%d') for d in on_dates]
         context['start'] = start = on_dates[0]
         context['end'] = end = on_dates[-1]
-        context['open_prices'] = [float(x) for x in MyStockHistorical.objects.filter(stock=self.object,date_stamp__in=on_dates).values_list('open_price', flat=True).order_by('date_stamp')]
-        context['overnight_returns'] = [float(x) for x in MyStockHistorical.objects.filter(stock=self.object,date_stamp__in=on_dates).values_list('overnight_return', flat=True).order_by('date_stamp')]
-        context['adj_close_prices'] = [float(x) for x in MyStockHistorical.objects.filter(stock=self.object,date_stamp__in=on_dates).values_list('adj_close', flat=True).order_by('date_stamp')]
-        context['index_close_prices'] = [float(x) for x in MyStockHistorical.objects.filter(stock__symbol=index_symbol,date_stamp__in=on_dates).values_list('adj_close', flat=True).order_by('date_stamp')]
+        context['open_prices'] = [float(x) for x in MyStockHistorical.objects.filter(
+            stock=self.object, date_stamp__in=on_dates).values_list('open_price', flat=True).order_by('date_stamp')]
+        context['overnight_returns'] = [float(x) for x in MyStockHistorical.objects.filter(
+            stock=self.object, date_stamp__in=on_dates).values_list('overnight_return', flat=True).order_by('date_stamp')]
+        context['adj_close_prices'] = [float(x) for x in MyStockHistorical.objects.filter(
+            stock=self.object, date_stamp__in=on_dates).values_list('adj_close', flat=True).order_by('date_stamp')]
+        context['index_close_prices'] = [float(x) for x in MyStockHistorical.objects.filter(
+            stock__symbol=index_symbol, date_stamp__in=on_dates).values_list('adj_close', flat=True).order_by('date_stamp')]
         return context
 
 from tasks import stock_monitor_yahoo_consumer, stock_monitor_yahoo_consumer2
@@ -261,6 +272,7 @@ from tasks import stock_monitor_yahoo_consumer, stock_monitor_yahoo_consumer2
 
 @class_view_decorator(login_required)
 class MyStockUpdate(TemplateView):
+
     """Update S&P500 using Yahoo source.
 
     Add a background task to queue to process updates from Yahoo sources.
@@ -387,6 +399,7 @@ class MyStockTrendConsistentLoss(TemplateView):
 
 @class_view_decorator(login_required)
 class MyStockPosition(TemplateView):
+
     """View user's current open positions.
     """
     template_name = 'stock/stock/position.html'
@@ -406,6 +419,7 @@ class MyStockPosition(TemplateView):
 
 @class_view_decorator(login_required)
 class MyStockTransaction(TemplateView):
+
     """Ajax view.
 
     This handles transactions of either buying or selling a particular position
@@ -530,9 +544,8 @@ class MyStockStrategy1Detail(TemplateView):
         stock = MyStock.objects.get(symbol__iexact=self.kwargs['symbol'])
         context['stock'] = stock
 
-        histories = MyStockHistorical.objects.filter(
-            stock=stock).order_by('date_stamp')
-        histories = tmp = ''.join([h.flag_by_strategy for h in histories])
+        histories = tmp = ''.join(MyStockHistorical.objects.filter(
+            stock=stock).values_list('flag_by_strategy', flat=True).order_by('date_stamp'))
         tmp = re.sub('[U]+', 'U', tmp)
         tmp = re.sub('[G]+', 'G', tmp)
         tmp = re.sub('[L]+', 'L', tmp)
@@ -588,6 +601,7 @@ class MySimulationExec(FormView):
         else:
             return HttpResponseRedirect(reverse_lazy('condition_detail', kwargs={'pk': condition.id}))
 
+
 @class_view_decorator(login_required)
 class MyStockHistoricalList(FormView):
     template_name = 'stock/stock/list_historicals.html'
@@ -620,7 +634,7 @@ class MyStockHistoricalList(FormView):
         # NOTE: using select_related() dramatically improved query performance!
         # This has decreased time from 29 seconds to < 0.5s, how incredible.
         historicals = MyStockHistorical.objects.select_related().filter(
-            stock__in=stocks, 
+            stock__in=stocks,
             date_stamp=on_date)
 
         # render HTML
@@ -636,6 +650,7 @@ class MySimulationConditionDelete(DeleteView):
     template_name = 'stock/common/delete_form.html'
     success_url = reverse_lazy('simulation_result_list')
 
+
 @class_view_decorator(login_required)
 class MySimulationResultList(ListView):
     model = MySimulationCondition
@@ -643,8 +658,9 @@ class MySimulationResultList(ListView):
 
     def get_queryset(self):
         return MySimulationCondition.objects.filter(
-            strategy = 2,
+            strategy=2,
         )
+
 
 @class_view_decorator(login_required)
 class MySimulationResultComp(TemplateView):
@@ -691,17 +707,23 @@ class MySimulationConditionDetail(DetailView):
     def get_context_data(self, **kwargs):
         context = super(DetailView, self).get_context_data(**kwargs)
         cond = self.object
-        snapshots = MySimulationSnapshot.objects.filter(simulation=cond).order_by('on_date')
+        snapshots = MySimulationSnapshot.objects.filter(
+            simulation=cond).order_by('on_date')
 
         context['strategy'] = cond
         context['start'] = cond.start
         context['end'] = cond.end
-        context['on_dates'] = [s.on_date.strftime('%Y-%m-%d') for s in snapshots]
-        context['assets'] = [float(a) for a in MySimulationSnapshot.objects.filter(simulation=cond).values_list('asset', flat=True).order_by('on_date')]
-        context['cashes'] = [float(a) for a in MySimulationSnapshot.objects.filter(simulation=cond).values_list('cash', flat=True).order_by('on_date')]
-        context['equities'] = [float(a) for a in MySimulationSnapshot.objects.filter(simulation=cond).values_list('equity', flat=True).order_by('on_date')]
+        context['on_dates'] = [
+            s.on_date.strftime('%Y-%m-%d') for s in snapshots]
+        context['assets'] = [float(a) for a in MySimulationSnapshot.objects.filter(
+            simulation=cond).values_list('asset', flat=True).order_by('on_date')]
+        context['cashes'] = [float(a) for a in MySimulationSnapshot.objects.filter(
+            simulation=cond).values_list('cash', flat=True).order_by('on_date')]
+        context['equities'] = [float(a) for a in MySimulationSnapshot.objects.filter(
+            simulation=cond).values_list('equity', flat=True).order_by('on_date')]
         context['snapshots'] = snapshots
-        context['gain_from_holding'] = [float(x) for x in cond.gain_from_holding]
+        context['gain_from_holding'] = [
+            float(x) for x in cond.gain_from_holding]
         context['gain_from_exit'] = [float(x) for x in cond.gain_from_exit]
         context['asset_gain_pcnt_t0'] = cond.asset_gain_pcnt_t0[1:]
 
@@ -719,11 +741,12 @@ class MySimulationConditionDetail(DetailView):
         index_t0 = index_historicals[0]['adj_close']
 
         # index historicals normalized to its T0 value
-        context['index_gain_pcnt'] = [float(index_historicals[x]['adj_close'] / index_t0) 
-            for x in range(1, len(index_historicals))]
- 
+        context['index_gain_pcnt'] = [float(index_historicals[x]['adj_close'] / index_t0)
+                                      for x in range(1, len(index_historicals))]
+
         # alpha return is the diff between measured asset returns and index returns
         # < 0: when portfolio is underforming index; >0: overperforming
-        context['alpha_return'] = map(lambda x: x[0] - x[1], zip(context['asset_gain_pcnt_t0'], context['index_gain_pcnt']))
+        context['alpha_return'] = map(
+            lambda x: x[0] - x[1], zip(context['asset_gain_pcnt_t0'], context['index_gain_pcnt']))
 
         return context
