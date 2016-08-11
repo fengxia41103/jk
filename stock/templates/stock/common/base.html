@@ -9,7 +9,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />    
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="description" content="">
     <meta name="author" content="">
 
@@ -35,24 +35,24 @@
 
 	<!-- Optional theme -->
 	<!--link rel="stylesheet" href="{% static 'bootstrap3/css/bootstrap-theme.min.css' %}"-->
-	
+
 	<!-- http://fortawesome.github.io/Font-Awesome/get-started/ -->
 	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
 
 	<!-- easyui stylesheets -->
 	<!--link rel="stylesheet" type="text/css" href="{% static 'easyui/themes/default/easyui.css' %}"-->
 	<!--link rel="stylesheet" type="text/css" href="{% static 'easyui/themes/icon.css' %}"-->
-	
+
 	<!-- application specific css -->
-	<!--link rel="stylesheet" type="text/x-scss" href="{% static 'sass/my.scss' %}"-->	
-	{# lightbos http://ashleydw.github.io/lightbox/ #} 
+	<!--link rel="stylesheet" type="text/x-scss" href="{% static 'sass/my.scss' %}"-->
+	{# lightbos http://ashleydw.github.io/lightbox/ #}
 	<link rel="stylesheet" type="text/css" href="{% static 'lightbox/ekko-lightbox.css' %}">
 
 	{# loading spinner: http://msurguy.github.io/ladda-bootstrap/ #}
 	<link rel="stylesheet" type="text/css" href="{% static 'loading/ladda-themeless.min.css' %}">
-	
+
 	{# DataTable #}
-	<link rel="stylesheet" type="text/css" href="{% static 'datatable/jquery.dataTables.css' %}">
+	<link rel="stylesheet" type="text/css" href="{% static 'datatable/css/jquery.dataTables.min.css' %}">
 
 	{# jqcloud #}
 	<link rel="stylesheet" type="text/css" href="{% static 'jqcloud/jqcloud.css' %}">
@@ -63,7 +63,7 @@
 	<link rel="stylesheet" type="text/css" href="{% static 'css/chegg.css' %}">
 
 	{# app specific tweaks #}
-	<link rel="stylesheet" type="text/css" href="{% static 'sass/my.css' %}">	
+	<link rel="stylesheet" type="text/css" href="{% static 'sass/my.css' %}">
 
 	{# bootstrap3-datepicker #}
 	<link rel="stylesheet" type="text/css" href="{% static 'bootstrap-datepicker/css/bootstrap-datepicker.min.css' %}">
@@ -112,19 +112,19 @@
 					<i class="fa fa-user"></i>
 					Hello {{ user }}
 					</a>
-				</li>	
+				</li>
 
 				<li>
 					<a href="{% url 'stock_list' %}">
 					<i class="fa fa-globe"></i>
 					S&P500
-					</a>					
-				</li>	
-				
+					</a>
+				</li>
+
 				<li class="dropdown">
 					<a href="" class="" data-toggle="dropdown">
 						<i class="fa fa-bar-chart"></i>
-						Heat									
+						Heat
 						<b class="caret"></b>
 					</a>
 					<ul class="dropdown-menu">
@@ -132,33 +132,33 @@
 							<a href="{% url 'heat_prev_change' %}">
 								<i class="fa fa-pencil"></i>
 								By prev change
-							</a>						
+							</a>
 						</li>
 						<li>
 							<a href="{% url 'heat_spread' %}">
 								<i class="fa fa-pencil"></i>
 								By spread
-							</a>						
+							</a>
 						</li>
 						<li>
 							<a href="{% url 'heat_vol_over_float' %}">
 								<i class="fa fa-pencil"></i>
 								By vol/float
-							</a>						
+							</a>
 						</li>
 						<li>
 							<a href="{% url 'heat_day_change' %}">
 								<i class="fa fa-pencil"></i>
 								By day change
-							</a>						
-						</li>																	
+							</a>
+						</li>
 					</ul>
 				</li>
 
 				<li class="dropdown">
 					<a href="" class="" data-toggle="dropdown">
 						<i class="fa fa-line-chart"></i>
-						Trend									
+						Trend
 						<b class="caret"></b>
 					</a>
 					<ul class="dropdown-menu">
@@ -166,31 +166,31 @@
 							<a href="{% url 'trend_2day_transition' %}">
 							<i class="fa fa-pencil"></i>
 							2-day transition
-							</a>					
+							</a>
 						</li>
 						<li>
 							<a href="{% url 'trend_2day_gain' %}">
 							<i class="fa fa-pencil"></i>
 							2-day gain
-							</a>					
+							</a>
 						</li>
 						<li>
 							<a href="{% url 'trend_2day_loss' %}">
 							<i class="fa fa-pencil"></i>
 							2-day loss
-							</a>					
-						</li>																	
+							</a>
+						</li>
 						<li>
 							<a href="{% url 'trend_consistent_gain' %}">
 							<i class="fa fa-pencil"></i>
 							Consistent gain
-							</a>					
-						</li>					
+							</a>
+						</li>
 						<li>
 							<a href="{% url 'trend_consistent_loss' %}">
 							<i class="fa fa-pencil"></i>
 							Consistent loss
-							</a>					
+							</a>
 						</li>
 					</ul>
 				</li>
@@ -199,19 +199,19 @@
 					<a href="{% url 'user_position_list' %}">
 					<i class="fa fa-balance-scale"></i>
 					Positions
-					</a>					
+					</a>
 				</li>
 				<li>
 					<a href="{% url 'candidate_list' %}">
 					<i class="fa fa-thumbs-o-up"></i>
 					Candidates
-					</a>					
-				</li>	
+					</a>
+				</li>
 
 				<li class="dropdown">
 					<a href="" class="" data-toggle="dropdown">
 						<i class="fa fa-line-chart"></i>
-						Backtesting									
+						Backtesting
 						<b class="caret"></b>
 					</a>
 					<ul class="dropdown-menu">
@@ -219,31 +219,31 @@
 							<a href="{% url 'simulation_exec' %}">
 							<i class="fa fa-pencil"></i>
 							Simulation
-							</a>					
+							</a>
 						</li>
 						<li>
 							<a href="{% url 'simulation_result_list' %}">
 							<i class="fa fa-pencil"></i>
 							Sim results
-							</a>					
-						</li>												
+							</a>
+						</li>
 						<li>
 							<a href="{% url 'stock_historicals_list' %}">
 							<i class="fa fa-pencil"></i>
 							Historicals
-							</a>					
-						</li>					
+							</a>
+						</li>
 						<li>
 							<a href="{% url 'backtesting_1' 'YUM' %}">
 							<i class="fa fa-pencil"></i>
 							Strategy #1
-							</a>					
-						</li>										
+							</a>
+						</li>
 					</ul>
-				</li>													
+				</li>
 			</ul>
 
-			<ul class="nav navbar-nav navbar-right visible-md visible-lg">	
+			<ul class="nav navbar-nav navbar-right visible-md visible-lg">
 				{# user profile #}
 				<li class="dropdown" data-toggle="tooltip" title="更新你的用户信息" id="user-profile">
 				</li>
@@ -261,7 +261,7 @@
 		</div><!-- container-fluid -->
 	</div>
 {% endblock %}<!-- end of block navbar -->
-	
+
 {% block main %}
 	<div class="col-sm-1">
 		<ul class="nav nav-stacked affix">
@@ -276,7 +276,7 @@
 	<div class="container">
 		{% block page-info %}
 		{% endblock %}
-		
+
 		<div class="page-header">
 			<h1>
 				{% block page-header %}
@@ -285,7 +285,7 @@
 		</div><!-- end of block header -->
 		{% block message %}
 		{% endblock %}
-				
+
 		{% block content %}
 		{% endblock %}
 	</div><!-- /.container -->
@@ -294,7 +294,7 @@
 {% endblock %}<!-- end of block main -->
 
 {# sandbox for testing client libs/css/js #}
-{% block test %}	
+{% block test %}
 {% endblock %}
 
 {% block footer %}
@@ -305,47 +305,47 @@
 {% endblock %}<!- end of block footer -->
 
 <!-- Placed at the end of the document so the pages load faster -->
-{% block Javascripts %}	
+{% block Javascripts %}
     <!--script type="text/javascript"
     	src="https://cdnjs.cloudflare.com/ajax/libs/echarts/2.2.0/echarts-all.js">
     </script-->
     <script type="text/javascript"
     	src="{% static 'echarts/echarts-all.js' %}">
-    </script> 
+    </script>
 
 	<!-- Latest compiled and minified JavaScript -->
 	<script src="{% static 'bootstrap3/js/bootstrap.min.js' %}"></script>
-		
 
-	<!-- easyui js -->	
+
+	<!-- easyui js -->
 	<!--script type="text/javascript" src="{% static 'easyui/jquery.easyui.min.js' %}"></script-->
 
     <script type="text/javascript"
     	src="{% static 'js/jquery.cookie.js' %}">
-    </script>    
+    </script>
 
     <!-- http://malsup.com/jquery/block/#demos -->
     <script type="text/javascript"
     	src="{% static 'js/jquery.blockUI.min.js' %}">
-    </script> 
-	
+    </script>
+
     {# loading spinner #}
     <script type="text/javascript"
     	src="{% static 'loading/spin.min.js' %}">
-    </script>    
+    </script>
     <script type="text/javascript"
     	src="{% static 'loading/ladda.min.js' %}">
-    </script>    
+    </script>
 
 	{# DataTable #}
     <script type="text/javascript"
-    	src="{% static 'datatable/jquery.dataTables.min.js' %}">
+    	src="{% static 'datatable/js/jquery.dataTables.min.js' %}">
     </script>
     <script type="text/javascript"
-    	src="{% static 'datatable/dataTables.bootstrap.js' %}">
+    	src="{% static 'datatable/js/dataTables.bootstrap.min.js' %}">
     </script>
 
-	{# lightbos: http://ashleydw.github.io/lightbox/ #} 
+	{# lightbos: http://ashleydw.github.io/lightbox/ #}
     <script type="text/javascript"
     	src="{% static 'lightbox/ekko-lightbox.js' %}">
     </script>
@@ -422,21 +422,21 @@
 		    }
 		});
 
-		// make fadeOut effect shorter 
-		j$.blockUI.defaults.fadeOut = 1000; 
+		// make fadeOut effect shorter
+		j$.blockUI.defaults.fadeOut = 1000;
 		function myBlockUI(){
- 			j$.blockUI({ css: { 
-	            border: 'none', 
-	            padding: '15px', 
-	            backgroundColor: '#000', 
-	            '-webkit-border-radius': '10px', 
-	            '-moz-border-radius': '10px', 
-	            opacity: .5, 
+ 			j$.blockUI({ css: {
+	            border: 'none',
+	            padding: '15px',
+	            backgroundColor: '#000',
+	            '-webkit-border-radius': '10px',
+	            '-moz-border-radius': '10px',
+	            opacity: .5,
 	            color: '#fff'
 	        	},
 	        	//'message':'请等待 ....'
 	        	'ignoreIfBlocked': true
-        	}); 			
+        	});
 		}
 
 		function update_user_profile(){
@@ -445,9 +445,9 @@
 	            	j$('#user-profile').html(resp);
 	            	toastr.success('Your preferences are loaded. Enjoy!');
 	            }
-	        ).always(function(){     
-	        });	
-		}	
+	        ).always(function(){
+	        });
+		}
 
 		j$(document).ready(function(){
 			// common global widget initializations
@@ -458,13 +458,13 @@
 				"pagingType": "simple",
 				select: "multi",
 				"fnInitComplete": function( oSettings ) {
-			        j$('.spark').sparkline('html', {type: 'line',width:'100px'} );	
-			        j$('.spark_bar').sparkline('html', {type: 'bar',barColor:'red'} );	
+			        j$('.spark').sparkline('html', {type: 'line',width:'100px'} );
+			        j$('.spark_bar').sparkline('html', {type: 'bar',barColor:'red'} );
 
 					j$.each(j$('[data-type="position"]'),function(index,value){
 						var obj_id = j$(value).attr('obj_id');
 						setTimeout(get_stock_position(this,obj_id),500+index*500);
-					});						
+					});
 				}
 			});
 
@@ -472,10 +472,10 @@
 			j$('a[data-toggle="tab"]').click(function ( e ) {
 			    e.preventDefault ();
 			    j$(this).tab('show');
-			});  
+			});
 
 			// show first tab after page loading
-			j$('a[data-toggle="tab"]:first').tab('show');	
+			j$('a[data-toggle="tab"]:first').tab('show');
 
 			// initialize all tooltips
 			j$("[data-toggle='tooltip']").tooltip({
@@ -488,7 +488,7 @@
 			});
 
 			// datepicker
-		    j$('.dateinput').datepicker({ 
+		    j$('.dateinput').datepicker({
 		    	format: "yyyy-mm-dd" ,
 		    	todayHighlight: true,
 		    	todayBtn: true
@@ -500,7 +500,7 @@
 
 			// populate user preference
 			update_user_profile();
-			{% endif %}			
+			{% endif %}
 		});
 	</script>
 {% endblock %} <!-- end of block JS -->
@@ -512,7 +512,3 @@
 </body>
 
 </html>
-
-
-
-
