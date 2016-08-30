@@ -126,7 +126,7 @@ class LoginView(FormView):
     """Login page
     """
     template_name = 'registration/login.html'
-    success_url = reverse_lazy('simulation_exec')
+    success_url = reverse_lazy('simulation_result_list')
     form_class = AuthenticationForm
 
     def form_valid(self, form):
