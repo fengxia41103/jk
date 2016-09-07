@@ -51,6 +51,7 @@ INSTALLED_APPS = (
     # custom packages
     # 'devserver', # django-devserver
     'debug_toolbar',
+    'widget_tweaks',  # https://github.com/kmike/django-widget-tweaks/
     'storages',  # django-storage
     's3_folder_storage',  # django-s3-folder-storage
     'compressor',  # django_compressor
@@ -60,6 +61,9 @@ INSTALLED_APPS = (
     'social.apps.django_app.default',  # python-social-auth
     'localflavor',  # django-localflavor
     'rest_framework',  # djangorestframework
+    'tastypie',  # django-tastypie
+    # django-cors-headers, https://github.com/OttoYiu/django-cors-headers
+    'corsheaders',
     'djangular',  # django-angular
     'el_pagination',  # django-el-pagination
     'stock',  # stock

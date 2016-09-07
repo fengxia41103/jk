@@ -1,29 +1,208 @@
-{% extends 'stock/common/home_base.html' %}
+{% extends 'stock/common/base.html' %}
+{% load staticfiles %}
+{% load crispy_forms_tags %}
+{% load widget_tweaks %}
 
-{%load staticfiles %}
-{% load compress %}
+{% block main %}
+<div id="page-wrapper">
 
-{% block extra_nav %}
-<li class="dropdown">
-    <a href="" class="" data-toggle="dropdown">
-    STOCK
-    <b class="caret"></b>
-    </a>
-    <ul class="dropdown-menu" role="menu">
-        <li>
-            <a href="{% url 'social:begin' 'google-oauth2' %}?next={% url 'application_list' %}">用谷歌帐号登录</a>
-        </li>
-        <li>
-            <a href="" class="" data-toggle="modal" data-target="#loginModal">用户登录</a>
-        </li>
-        <li>
-            <a href="" class="" data-toggle="modal" data-target="#registrationModal">新用户注册</a>
-        </li>
-    </ul>
-</li>
+    <!-- Header -->
+    <header id="header" class="alt">
+        <h1>PY Stock Backtesting</h1>
+    </header>
+
+    <!-- Banner -->
+    <section id="banner">
+        <div class="inner">
+            <h2>PY Stock Backtesting</h2>
+            <p>strategy simulation. made. easy</p>
+            {% block login %}
+            <ul class="list-inline">
+              <li>
+                <button type="button" class="btn btn-default" data-toggle="modal" data-target="#registrationModal">
+                  Register
+                </button>
+              </li><li>
+                <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#loginModal">
+                  Login
+                </button>
+            </li></ul>
+            {% endblock %}
+        </div>
+        <a href="#one" class="more scrolly">Learn More</a>
+    </section>
+
+    <!-- One -->
+    <section id="one" class="wrapper style1 special">
+        <div class="inner">
+            <header class="major">
+                <h2>Daily data update<br />
+                  Simulate strategy with step-by-step trace
+                </h2>
+                <p>Put your strategy to test. Let data do the talk.</p>
+            </header>
+            <ul class="icons major">
+                <li><span class="icon fa-bar-chart major"><span class="label">Lorem</span></span>
+                </li>
+                <li><span class="icon fa-line-chart major"><span class="label">Ipsum</span></span>
+                </li>
+                <li><span class="icon fa-code major"><span class="label">Dolor</span></span>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Three -->
+    <section id="three" class="wrapper style3 special">
+        <div class="inner">
+            <header class="major">
+                <h2>Strategy Testing Takes Upgrade</h2>
+                <p class="col-md-offset-2 col-md-8">
+                  Backtesting is an integration task. We acquire daily
+                data from multiple sources, compute index values based
+                on trading strategy and analysis need, and generate a
+                detailed traceback for simulation runs.
+                </p>
+            </header>
+            <ul class="features">
+                <li class="icon fa-paper-plane-o">
+                    <h3>Source</h3>
+                    Yahoo!Finance daily S&P 500 Data<br />
+                    China Wind Index
+                </li>
+                <li class="icon fa-laptop">
+                    <h3>Computing</h3>
+                    <p>Elastic computing power by AWS</p>
+                </li>
+                <li class="icon fa-code">
+                    <h3>Architecture</h3>
+                    <p>Scalable design. Easily extensible.</p>
+                </li>
+                <li class="icon fa-bar-chart">
+                    <h3>Trend</h3>
+                    <p>Flex trend index including daily transition,
+                    consistency analysis, heat.</p>
+                </li>
+                <li class="icon fa-folder-open-o">
+                    <h3>Strategy</h3>
+                    <p>Multiple strategy implementations</p>
+                </li>
+                <li class="icon fa-flag-o">
+                    <h3>Simulation</h3>
+                    <p>Detailed trace back and performance analysis</p>
+                </li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Footer -->
+	<!-- Footer -->
+	<footer id="footer">
+		<ul class="copyright">
+			<li>&copy; PY Consulting Ltd.</li><li>Learn more:<a href="http://fengxia.co">blog</a>.</li>
+		</ul>
+	</footer>
+
+</div>
 {% endblock %}
 
-{% block modals %}
-    {% include 'registration/login_form_modal.html' %}
-    {% include 'registration/register_form_modal.html' %}
+{% block theme_css %}
+<link rel="stylesheet" type="text/css" href="{% static 'theme/spectral/assets/css/main.css' %}">
+{% endblock %}
+
+{% block theme_js %}
+<script type="text/javascript"
+        src="{% static 'theme/spectral/assets/js/skel.min.js' %}">
+</script>
+<script type="text/javascript"
+        src="{% static 'theme/spectral/assets/js/jquery.scrollex.min.js' %}">
+</script>
+<script type="text/javascript"
+        src="{% static 'theme/spectral/assets/js/jquery.scrolly.min.js' %}">
+</script>
+<script type="text/javascript"
+        src="{% static 'theme/spectral/assets/js/main.js' %}">
+</script>
+{% endblock %}
+
+{% block navbar %}
+{% endblock %}
+{% block footer %}
+{% endblock %}
+
+{% block modal %}
+<div class="modal fade" id="loginModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="{% url 'login' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">User login</h4>
+                </div>
+                <div class="modal-body">
+
+
+                    {{ login_form|crispy }}
+                    {% if login_form.errors %}
+                    <div class="alert alert-danger">
+                        <p>Your username and password didn’t match. Please try again.</p>
+                    </div>
+                    {% endif %}
+
+
+                </div><!-- end of modal body-->
+                <div class="modal-footer">
+                    <input class="btn btn-primary btn-default" type="submit" value="Login" />
+                </div><!-- end of modal footer-->
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="registrationModal">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form action="{% url 'user_register' %}" method="POST">
+
+                {% csrf_token %}
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Register new user</h4>
+                </div>
+                <div class="modal-body">
+
+                    {{ registration_form|crispy }}
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <p>Your username/password are not successful. Please try again.</p>
+                    </div>
+                    {% endif %}
+
+
+                </div><!-- end of modal body-->
+                <div class="modal-footer">
+                    <input class="btn btn-primary default" type="submit" value="Register" />
+                </div><!-- end of modal footer-->
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block custom_js %}
+<script type="text/javascript">
+ var j$ = jQuery.noConflict();
+ j$(document).ready(function(){
+     {% if messages %}
+     {% for message in messages %}
+     toastr.error('{{ message }}');
+     {% endfor %}
+     {% endif %}
+});
+</script>
 {% endblock %}

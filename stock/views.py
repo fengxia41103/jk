@@ -99,33 +99,25 @@ def class_view_decorator(function_decorator):
 ###################################################
 
 
-class HomeView (TemplateView):
+class HomeView(TemplateView):
 
     """Home landing page.
     """
-    template_name = 'intern/common/home_with_login_modal.html'
+    template_name = 'stock/common/home.html'
 
     def get_context_data(self, **kwargs):
         context = super(TemplateView, self).get_context_data(**kwargs)
-        user_auth_form = AuthenticationForm()
-        user_registration_form = UserCreationForm()
-
-        context['registration_form'] = user_registration_form
-        context['auth_form'] = user_auth_form
+        context['login_form'] = AuthenticationForm()
+        context['registration_form'] = UserCreationForm()
         return context
+
 
 ###################################################
 #
 #   User views
 #
 ###################################################
-
-
 class LoginView(FormView):
-
-    """Login page
-    """
-    template_name = 'registration/login.html'
     success_url = reverse_lazy('simulation_result_list')
     form_class = AuthenticationForm
 
@@ -136,9 +128,14 @@ class LoginView(FormView):
 
         if user is not None and user.is_active:
             login(self.request, user)
-            return super(LoginView, self).form_valid(form)
+            return HttpResponseRedirect(reverse_lazy('simulation_result_list'))
         else:
             return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request, 'Login failed! Please check your username and password.')
+        return HttpResponseRedirect(reverse_lazy('home'))
 
 
 class LogoutView(TemplateView):
@@ -155,23 +152,31 @@ class LogoutView(TemplateView):
 
 
 class UserRegisterView(FormView):
-
-    """User registration page
-    """
-    template_name = 'registration/register_form.html'
     form_class = UserCreationForm
-    success_url = reverse_lazy('login')
+    success_url = reverse_lazy('home')
 
     def form_valid(self, form):
-        user_name = form.cleaned_data['username']
+        username = form.cleaned_data['username']
         password = form.cleaned_data['password2']
-        if len(User.objects.filter(username=user_name)) > 0:
+        if len(User.objects.filter(username=username)) > 0:
             return self.form_invalid(form)
         else:
-            user = User.objects.create_user(user_name, '', password)
+            user = User.objects.create_user(username, '', password)
             user.save()
 
-            return super(UserRegisterView, self).form_valid(form)
+        # login after
+        user = authenticate(username=username, password=password)
+
+        if user is not None and user.is_active:
+            login(self.request, user)
+            return HttpResponseRedirect(reverse_lazy('simulation_result_list'))
+        else:
+            return self.form_invalid(form)
+
+    def form_invalid(self, form):
+        messages.error(
+            self.request, 'User registration failed! Please check your username and password.')
+        return HttpResponseRedirect(reverse_lazy('home'))
 
 ###################################################
 #

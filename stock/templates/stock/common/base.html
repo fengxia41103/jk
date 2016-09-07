@@ -1,514 +1,163 @@
+{% extends "stock/common/layout.html" %}
 {% load staticfiles %}
 {% load compress %}
 {% load crispy_forms_tags %}
 
-<!DOCTYPE html>
-<html>
-<head>
-	<meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="apple-mobile-web-app-capable" content="yes" />
-	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="description" content="">
-    <meta name="author" content="">
 
-{% block core-library %}
-    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
-    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
-    <!-- script src="../../assets/js/ie-emulation-modes-warning.js"></script -->
-
-    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
-    <!--[if lt IE 9]>
-      <!-- script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script -->
-      <!-- script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script -->
-      <script src="{% static 'js/html5shiv.min.js' %}"></script>
-      <script src="{% static 'js/respond.min.js' %}"></script>
-    <![endif]-->
-
-	<!-- Latest compiled and minified CSS -->
-	{# http://www.bootstrapcdn.com/?theme=14#bootswatch_tab #}
-	<!--link rel="stylesheet" href="{% static 'bootstrap3/css/bootstrap.min.css' %}"-->
-	<link rel="stylesheet" href="{% static 'bootstrap3/css/bootstrap-theme.simplex.min.css' %}">
-
-	<!--link rel="stylesheet" href="https://netdna.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css"-->
-
-	<!-- Optional theme -->
-	<!--link rel="stylesheet" href="{% static 'bootstrap3/css/bootstrap-theme.min.css' %}"-->
-
-	<!-- http://fortawesome.github.io/Font-Awesome/get-started/ -->
-	<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.4.0/css/font-awesome.min.css">
-
-	<!-- easyui stylesheets -->
-	<!--link rel="stylesheet" type="text/css" href="{% static 'easyui/themes/default/easyui.css' %}"-->
-	<!--link rel="stylesheet" type="text/css" href="{% static 'easyui/themes/icon.css' %}"-->
-
-	<!-- application specific css -->
-	<!--link rel="stylesheet" type="text/x-scss" href="{% static 'sass/my.scss' %}"-->
-	{# lightbos http://ashleydw.github.io/lightbox/ #}
-	<link rel="stylesheet" type="text/css" href="{% static 'lightbox/ekko-lightbox.css' %}">
-
-	{# loading spinner: http://msurguy.github.io/ladda-bootstrap/ #}
-	<link rel="stylesheet" type="text/css" href="{% static 'loading/ladda-themeless.min.css' %}">
-
-	{# DataTable #}
-	<link rel="stylesheet" type="text/css" href="{% static 'datatable/css/jquery.dataTables.min.css' %}">
-
-	{# jqcloud #}
-	<link rel="stylesheet" type="text/css" href="{% static 'jqcloud/jqcloud.css' %}">
-
-	{# toast https://github.com/CodeSeven/toastr #}
-	<link rel="stylesheet" type="text/css" href="{% static 'toastr/toastr.min.css' %}">
-
-	<link rel="stylesheet" type="text/css" href="{% static 'css/chegg.css' %}">
-
-	{# app specific tweaks #}
-	<link rel="stylesheet" type="text/css" href="{% static 'sass/my.css' %}">
-
-	{# bootstrap3-datepicker #}
-	<link rel="stylesheet" type="text/css" href="{% static 'bootstrap-datepicker/css/bootstrap-datepicker.min.css' %}">
-
-	{# visjs #}
-	<link rel="stylesheet" type="text/css" href="{% static 'visjs/vis.min.css' %}">
-
-	<!-- JQuery lib -->
-	<script type="text/javascript" src="{% static 'jquery/jquery-2.1.3.min.js' %}"></script>
-
-	{# bootstrap-table,http://bootstrap-table.wenzhixin.net.cn/getting-started/ #}
-	<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.1/bootstrap-table.min.css">
-
-	{# bootstrap #}
-     <link href="//cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.0.2/css/bootstrap.min.css" rel="stylesheet">
+{% block title %}
+<title>Stock backtesting</title>
 {% endblock %}
 
-{# extra css code #}
-{% block custom_css %}
-{% endblock %}
 
-<title>Stock Analysis</title>
-</head>
-
-<body>
 {% block navbar %}
-	<div class="navbar navbar-default navbar-static-top" role="navigation">
-		<div class="container-fluid">
-		<div class="navbar-header">
-				<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
+<div class="navbar navbar-default navbar-static-top" role="navigation">
+    <div class="container-fluid">
+        <div class="navbar-header">
+            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
 				<span class="sr-only">Toggle navigation</span>
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 				<span class="icon-bar"></span>
 				</button>
-				<a class="navbar-brand" href="{% url 'home' %}">
-					<i class="fa fa-home"></i>
-					JK Project
-				</a>
-		</div>
-		<div class="collapse navbar-collapse">
-			<ul class="nav navbar-nav">
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fa fa-home"></i> JK Project
+            </a>
+        </div>
+        <div class="collapse navbar-collapse">
+            <ul class="nav navbar-nav">
 
-				<li>
-					<a href="">
-					<i class="fa fa-user"></i>
-					Hello {{ user }}
-					</a>
-				</li>
+                <li>
+                    <a href="">
+                        <i class="fa fa-user"></i> Hello {{ user }}
+                    </a>
+                </li>
 
-				<li>
-					<a href="{% url 'stock_list' %}">
-					<i class="fa fa-globe"></i>
-					S&P500
-					</a>
-				</li>
+                <li>
+                    <a href="{% url 'stock_list' %}">
+                        <i class="fa fa-globe"></i> S&P500
+                    </a>
+                </li>
 
-				<li class="dropdown">
-					<a href="" class="" data-toggle="dropdown">
-						<i class="fa fa-bar-chart"></i>
-						Heat
-						<b class="caret"></b>
-					</a>
-					<ul class="dropdown-menu">
-						<li>
-							<a href="{% url 'heat_prev_change' %}">
-								<i class="fa fa-pencil"></i>
-								By prev change
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'heat_spread' %}">
-								<i class="fa fa-pencil"></i>
-								By spread
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'heat_vol_over_float' %}">
-								<i class="fa fa-pencil"></i>
-								By vol/float
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'heat_day_change' %}">
-								<i class="fa fa-pencil"></i>
-								By day change
-							</a>
-						</li>
-					</ul>
-				</li>
+                <li class="dropdown">
+                    <a href="" class="" data-toggle="dropdown">
+                        <i class="fa fa-bar-chart"></i> Heat
+                        <b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="{% url 'heat_prev_change' %}">
+                                <i class="fa fa-pencil"></i> By prev change
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'heat_spread' %}">
+                                <i class="fa fa-pencil"></i> By spread
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'heat_vol_over_float' %}">
+                                <i class="fa fa-pencil"></i> By vol/float
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'heat_day_change' %}">
+                                <i class="fa fa-pencil"></i> By day change
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
-				<li class="dropdown">
-					<a href="" class="" data-toggle="dropdown">
-						<i class="fa fa-line-chart"></i>
-						Trend
-						<b class="caret"></b>
-					</a>
-					<ul class="dropdown-menu">
-						<li>
-							<a href="{% url 'trend_2day_transition' %}">
-							<i class="fa fa-pencil"></i>
-							2-day transition
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'trend_2day_gain' %}">
-							<i class="fa fa-pencil"></i>
-							2-day gain
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'trend_2day_loss' %}">
-							<i class="fa fa-pencil"></i>
-							2-day loss
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'trend_consistent_gain' %}">
-							<i class="fa fa-pencil"></i>
-							Consistent gain
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'trend_consistent_loss' %}">
-							<i class="fa fa-pencil"></i>
-							Consistent loss
-							</a>
-						</li>
-					</ul>
-				</li>
+                <li class="dropdown">
+                    <a href="" class="" data-toggle="dropdown">
+                        <i class="fa fa-line-chart"></i> Trend
+                        <b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="{% url 'trend_2day_transition' %}">
+                                <i class="fa fa-pencil"></i> 2-day transition
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'trend_2day_gain' %}">
+                                <i class="fa fa-pencil"></i> 2-day gain
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'trend_2day_loss' %}">
+                                <i class="fa fa-pencil"></i> 2-day loss
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'trend_consistent_gain' %}">
+                                <i class="fa fa-pencil"></i> Consistent gain
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'trend_consistent_loss' %}">
+                                <i class="fa fa-pencil"></i> Consistent loss
+                            </a>
+                        </li>
+                    </ul>
+                </li>
 
-				<li>
-					<a href="{% url 'user_position_list' %}">
-					<i class="fa fa-balance-scale"></i>
-					Positions
-					</a>
-				</li>
-				<li>
-					<a href="{% url 'candidate_list' %}">
-					<i class="fa fa-thumbs-o-up"></i>
-					Candidates
-					</a>
-				</li>
+                <li>
+                    <a href="{% url 'user_position_list' %}">
+                        <i class="fa fa-balance-scale"></i> Positions
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'candidate_list' %}">
+                        <i class="fa fa-thumbs-o-up"></i> Candidates
+                    </a>
+                </li>
 
-				<li class="dropdown">
-					<a href="" class="" data-toggle="dropdown">
-						<i class="fa fa-line-chart"></i>
-						Backtesting
-						<b class="caret"></b>
-					</a>
-					<ul class="dropdown-menu">
-						<li>
-							<a href="{% url 'simulation_exec' %}">
-							<i class="fa fa-pencil"></i>
-							Simulation
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'simulation_result_list' %}">
-							<i class="fa fa-pencil"></i>
-							Sim results
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'stock_historicals_list' %}">
-							<i class="fa fa-pencil"></i>
-							Historicals
-							</a>
-						</li>
-						<li>
-							<a href="{% url 'backtesting_1' 'YUM' %}">
-							<i class="fa fa-pencil"></i>
-							Strategy #1
-							</a>
-						</li>
-					</ul>
-				</li>
-			</ul>
+                <li class="dropdown">
+                    <a href="" class="" data-toggle="dropdown">
+                        <i class="fa fa-line-chart"></i> Backtesting
+                        <b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="{% url 'simulation_exec' %}">
+                                <i class="fa fa-pencil"></i> Simulation
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'simulation_result_list' %}">
+                                <i class="fa fa-pencil"></i> Sim results
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'stock_historicals_list' %}">
+                                <i class="fa fa-pencil"></i> Historicals
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'backtesting_1' 'YUM' %}">
+                                <i class="fa fa-pencil"></i> Strategy #1
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
 
-			<ul class="nav navbar-nav navbar-right visible-md visible-lg">
-				{# user profile #}
-				<li class="dropdown" data-toggle="tooltip" title="更新你的用户信息" id="user-profile">
-				</li>
+            <ul class="nav navbar-nav navbar-right visible-md visible-lg">
+                {# user profile #}
+                <li class="dropdown" data-toggle="tooltip" title="更新你的用户信息" id="user-profile">
+                </li>
 
-				{% if user.is_authenticated %}
-				<li>
-					<a href="{% url 'logout' %}">
-						<i class="fa fa-sign-out"></i>
-						<span class="my-button-sm">Logout</span>
-					</a>
-				</li>
-				{% endif %}
-			</ul>
-		</div><!--/.nav-collapse -->
-		</div><!-- container-fluid -->
-	</div>
-{% endblock %}<!-- end of block navbar -->
-
-{% block main %}
-	<div class="col-sm-1">
-		<ul class="nav nav-stacked affix">
-		{% block nav-sidebar %}
-		{% endblock %}
-		</ul>
-	</div>
-
-	{% block custom_tags %}
-	{% endblock %}
-	<div id="wrap">
-	<div class="container">
-		{% block page-info %}
-		{% endblock %}
-
-		<div class="page-header">
-			<h1>
-				{% block page-header %}
-				{% endblock %}
-			</h1>
-		</div><!-- end of block header -->
-		{% block message %}
-		{% endblock %}
-
-		{% block content %}
-		{% endblock %}
-	</div><!-- /.container -->
-	<div id="push"></div>
-	</div>
-{% endblock %}<!-- end of block main -->
-
-{# sandbox for testing client libs/css/js #}
-{% block test %}
-{% endblock %}
-
-{% block footer %}
-<footer class="" id="footer">
-	<i class="fa fa-copyright"></i>
-	2015 PY Consulting Compile
-</footer>
-{% endblock %}<!- end of block footer -->
-
-<!-- Placed at the end of the document so the pages load faster -->
-{% block Javascripts %}
-    <!--script type="text/javascript"
-    	src="https://cdnjs.cloudflare.com/ajax/libs/echarts/2.2.0/echarts-all.js">
-    </script-->
-    <script type="text/javascript"
-    	src="{% static 'echarts/echarts-all.js' %}">
-    </script>
-
-	<!-- Latest compiled and minified JavaScript -->
-	<script src="{% static 'bootstrap3/js/bootstrap.min.js' %}"></script>
-
-
-	<!-- easyui js -->
-	<!--script type="text/javascript" src="{% static 'easyui/jquery.easyui.min.js' %}"></script-->
-
-    <script type="text/javascript"
-    	src="{% static 'js/jquery.cookie.js' %}">
-    </script>
-
-    <!-- http://malsup.com/jquery/block/#demos -->
-    <script type="text/javascript"
-    	src="{% static 'js/jquery.blockUI.min.js' %}">
-    </script>
-
-    {# loading spinner #}
-    <script type="text/javascript"
-    	src="{% static 'loading/spin.min.js' %}">
-    </script>
-    <script type="text/javascript"
-    	src="{% static 'loading/ladda.min.js' %}">
-    </script>
-
-	{# DataTable #}
-    <script type="text/javascript"
-    	src="{% static 'datatable/js/jquery.dataTables.min.js' %}">
-    </script>
-    <script type="text/javascript"
-    	src="{% static 'datatable/js/dataTables.bootstrap.min.js' %}">
-    </script>
-
-	{# lightbos: http://ashleydw.github.io/lightbox/ #}
-    <script type="text/javascript"
-    	src="{% static 'lightbox/ekko-lightbox.js' %}">
-    </script>
-
-    {# newticker: http://risq.github.io/jquery-advanced-news-ticker/ #}
-    <script type="text/javascript"
-    	src="{% static 'newsticker/jquery.newsTicker.min.js' %}">
-    </script>
-
-    {# https://github.com/lucaong/jQCloud #}
-    <script type="text/javascript"
-    	src="{% static 'jqcloud/jqcloud-1.0.4.min.js' %}">
-    </script>
-
-	{# toast https://github.com/CodeSeven/toastr #}
-    <script type="text/javascript"
-    	src="{% static 'toastr/toastr.min.js' %}">
-    </script>
-
-	{# TOC https://github.com/dcneiner/TableOfContents/tree/master #}
-    <script type="text/javascript"
-    	src="{% static 'js/jquery.toc.min.js' %}">
-    </script>
-
-    {# bootstrap datepicker #}
-    <script type="text/javascript"
-    	src="{% static 'bootstrap-datepicker/js/bootstrap-datepicker.min.js' %}">
-    </script>
-
-    {# visjs #}
-    <script type="text/javascript"
-    	src="{% static 'visjs/vis.min.js' %}">
-    </script>
-
-    {# sparkline http://omnipotent.net/jquery.sparkline/#s-about #}
-    <script type="text/javascript"
-    	src="{% static 'sparkline/jquery.sparkline.min.js' %}">
-    </script>
-
-	{# bootstrap-table,http://bootstrap-table.wenzhixin.net.cn/getting-started/ #}
-	<script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.1/bootstrap-table.min.js"></script>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.9.1/locale/bootstrap-table-zh-CN.min.js"></script>
-
-	<script type="text/javascript">
-		var j$ = jQuery.noConflict();
-
-		// set up csrf token for jQuery ajax call to Django views
-		var csrftoken = j$.cookie('csrftoken');
-		function csrfSafeMethod(method) {
-		    // these HTTP methods do not require CSRF protection
-		    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-		}
-		function sameOrigin(url) {
-		    // test that a given url is a same-origin URL
-		    // url could be relative or scheme relative or absolute
-		    var host = document.location.host; // host + port
-		    var protocol = document.location.protocol;
-		    var sr_origin = '//' + host;
-		    var origin = protocol + sr_origin;
-		    // Allow absolute or scheme relative URLs to same origin
-		    return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
-		        (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
-		        // or any other URL that isn't scheme relative or absolute i.e relative.
-		        !(/^(\/\/|http:|https:).*/.test(url));
-		}
-		j$.ajaxSetup({
-		    beforeSend: function(xhr, settings) {
-		        if (!csrfSafeMethod(settings.type) && sameOrigin(settings.url)) {
-		            // Send the token to same-origin, relative URLs only.
-		            // Send the token only if the method warrants CSRF protection
-		            // Using the CSRFToken value acquired earlier
-		            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-		        }
-		    }
-		});
-
-		// make fadeOut effect shorter
-		j$.blockUI.defaults.fadeOut = 1000;
-		function myBlockUI(){
- 			j$.blockUI({ css: {
-	            border: 'none',
-	            padding: '15px',
-	            backgroundColor: '#000',
-	            '-webkit-border-radius': '10px',
-	            '-moz-border-radius': '10px',
-	            opacity: .5,
-	            color: '#fff'
-	        	},
-	        	//'message':'请等待 ....'
-	        	'ignoreIfBlocked': true
-        	});
-		}
-
-		function update_user_profile(){
-	        j$.get("{% url 'user_profile' %}", // passed in from view
-	            function(resp) { // success callback
-	            	j$('#user-profile').html(resp);
-	            	toastr.success('Your preferences are loaded. Enjoy!');
-	            }
-	        ).always(function(){
-	        });
-		}
-
-		j$(document).ready(function(){
-			// common global widget initializations
-			j$('table.my-datatable').dataTable({
-				"paging": true,
-				"lengthMenu": [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
-				"info": true,
-				"pagingType": "simple",
-				select: "multi",
-				"fnInitComplete": function( oSettings ) {
-			        j$('.spark').sparkline('html', {type: 'line',width:'100px'} );
-			        j$('.spark_bar').sparkline('html', {type: 'bar',barColor:'red'} );
-
-					j$.each(j$('[data-type="position"]'),function(index,value){
-						var obj_id = j$(value).attr('obj_id');
-						setTimeout(get_stock_position(this,obj_id),500+index*500);
-					});
-				}
-			});
-
-			// register tab events
-			j$('a[data-toggle="tab"]').click(function ( e ) {
-			    e.preventDefault ();
-			    j$(this).tab('show');
-			});
-
-			// show first tab after page loading
-			j$('a[data-toggle="tab"]:first').tab('show');
-
-			// initialize all tooltips
-			j$("[data-toggle='tooltip']").tooltip({
-				'placement': 'bottom'
-			});
-
-			// navbar dropdown form
-			j$('.dropdown-menu').find('form').click(function (e) {
-				e.stopPropagation();
-			});
-
-			// datepicker
-		    j$('.dateinput').datepicker({
-		    	format: "yyyy-mm-dd" ,
-		    	todayHighlight: true,
-		    	todayBtn: true
-		   	});
-
-			{% if user.is_authenticated %}
-			// populate bookmarks
-			// update_user_bookmarks();
-
-			// populate user preference
-			update_user_profile();
-			{% endif %}
-		});
-	</script>
-{% endblock %} <!-- end of block JS -->
-
-{# extra javascript code #}
-{% block custom_js %}
-{% endblock %}
-
-</body>
-
-</html>
+                {% if user.is_authenticated %}
+                <li>
+                    <a href="{% url 'logout' %}">
+                        <i class="fa fa-sign-out"></i>
+                        <span class="my-button-sm">Logout</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        <!--/.nav-collapse -->
+    </div>
+    <!-- container-fluid -->
+</div>{% endblock %}<!-- end of block navbar -->

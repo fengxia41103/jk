@@ -11,8 +11,7 @@ from stock import views
 
 urlpatterns = patterns(
     '',
-    # url(r'^$', views.HomeView.as_view(), name='home'),
-    url(r'^$', views.LoginView.as_view(), name='home'),
+    url(r'^$', views.HomeView.as_view(), name='home'),
     url(r'login/$', views.LoginView.as_view(), name='login'),
     url(r'logout/$', views.LogoutView.as_view(), name='logout'),
     url(r'^register/$', views.UserRegisterView.as_view(),
@@ -25,7 +24,8 @@ urlpatterns = patterns(
         name='user_position_list'),
 
     url(r'^stock/$', views.MyStockList.as_view(), name='stock_list'),
-    url(r'^stock/(?P<pk>\d+)/$', views.MyStockDetail.as_view(), name='stock_detail'),
+    url(r'^stock/(?P<pk>\d+)/$',
+        views.MyStockDetail.as_view(), name='stock_detail'),
     url(r'^stock/update/$', views.MyStockUpdate.as_view(),
         name='stock_update'),
     url(r'^historicals/$', views.MyStockHistoricalList.as_view(),
