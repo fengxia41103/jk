@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/1.7/ref/settings/
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
+
+# for django-pagination, very COOL!
+from django.conf import global_settings
+
 from production_envvars import *
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
@@ -152,8 +156,6 @@ STATICFILES_FINDERS = (
 # crispy forms
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
-# for django-pagination, very COOL!
-from django.conf import global_settings
 TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
     'django.core.context_processors.request',
     'social.apps.django_app.context_processors.backends',
@@ -225,6 +227,9 @@ BROKER_URL = 'redis://localhost:6379/0'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
+# Just ignore the results, in case you're not consuming results.
+CELERY_IGNORE_RESULT = True
+CELERY_STORE_ERRORS_EVEN_IF_IGNORED = False
 
 # django-debug-toolbar
 INTERNAL_IPS = ('127.0.0.1',)

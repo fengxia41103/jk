@@ -1,31 +1,47 @@
 # -*- coding: utf-8 -*-
 
-from django.db import models
+import itertools
+import logging
+from datetime import datetime as dt
+from decimal import Decimal
+from math import fabs
+
+import numpy as np
+from annoying.fields import JSONField  # django-annoying
 from django.contrib import admin
-from django.forms import ModelForm
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.generic import GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.core.urlresolvers import reverse
-from django.contrib.auth.models import User
-from django.utils import timezone
-from annoying.fields import JSONField  # django-annoying
-from django.db.models import Q, F
-from datetime import datetime as dt
-from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
 from django.core.mail import send_mail
-from decimal import Decimal
-from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db.models import Avg, Max, Min, Count, Sum
+from django.core.urlresolvers import reverse
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
+from django.db import models
+from django.db.models import Avg
+from django.db.models import Count
+from django.db.models import F
+from django.db.models import Max
+from django.db.models import Min
+from django.db.models import Q
+from django.db.models import Sum
+from django.db.models.signals import post_save
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.forms import ModelForm
+from django.utils import timezone
+######################################################
+#
+#   RESTful API endpoints
+#
+#####################################################
+from rest_framework import filters
+from rest_framework import serializers
+from rest_framework import viewsets
 
-from math import fabs
-import numpy as np
-import itertools
-
-import logging
 logger = logging.getLogger('jk')
 logger.setLevel(logging.DEBUG)
+
 
 class MyBaseModel (models.Model):
     # fields
@@ -237,239 +253,17 @@ class MyStock(models.Model):
         default=False,
         verbose_name=u'Is a SP500 stock'
     )
-    is_china_stock = models.BooleanField(
+    is_composite = models.BooleanField(
         default=False,
-        verbose_name=u'Is a China stock'
-    )
-    is_index = models.BooleanField(
-        default = False,
-        verbose_name = u'Is an index',
-        help_text = u'Index is a derived value from basket of stocks'
-    )
-    prev_close = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Prev day closing price'
-    )
-    prev_open = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Prev day opening price'
-    )
-    prev_high = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Prev day highest price'
-    )
-    prev_low = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Prev day lowest price'
-    )
-    prev_vol = models.IntegerField(
-        default=0,
-        verbose_name=u'Prev day volume'
-    )
-    day_open = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Today opening price'
-    )
-    pe = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'P/E'
-    )
-    bid = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Bid price'
-    )
-    ask = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Ask price'
-    )
-    vol = models.FloatField(
-        default=0.0,
-        verbose_name=u'Volume (in 000)'
-    )
-    floating_share = models.FloatField(
-        default=0.0,
-        verbose_name=u'Floating share(in million)'
-    )
-    day_high = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Day high'
-    )
-    day_low = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Day low'
+        verbose_name=u'Is a composite stock',
+        help_text=u'Composite is a derived value from basket of stocks'
     )
 
-    last = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Spot price'
-    )
-    last_update_time = models.DateTimeField(
-        null=True,
-        blank=True,
-        auto_now=True,
-        verbose_name=u'Spot sample time'
-    )
     is_in_play = models.BooleanField(
         default=False,
-        verbose_name=u'Has pending position'
+        verbose_name=u'Does stock have an open position',
+        help_text=u'A stock is in "in play" if it holds an open position.'
     )
-    prev_change = models.FloatField(
-        default=0.0,
-        verbose_name=u'Prev day change (%)'
-    )
-    day_change = models.FloatField(
-        default=0.0,
-        verbose_name=u'Today change(%)'
-    )
-    spread = models.DecimalField(
-        max_digits=20,
-        decimal_places=5,
-        default=0.0,
-        verbose_name=u'Bid-ask spread'
-    )
-    vol_over_float = models.FloatField(
-        default=0.0,
-        verbose_name=u'Vol/floating shares (%)'
-    )
-    week_adjusted_close = models.TextField(
-        default='',
-        verbose_name=u'1-week adjusted closing price'
-    )
-    month_adjusted_close = models.TextField(
-        default='',
-        verbose_name=u'1-month adjusted closing price'
-    )
-    fib_weekly_adjusted_close = models.TextField(
-        default='',
-        verbose_name=u'Fibonacci timezone adjusted closing price'
-    )
-    fib_daily_adjusted_close = models.TextField(
-        default='',
-        verbose_name=u'Fibonacci timezone adjusted closing price'
-    )
-    fib_weekly_score = models.FloatField(
-        default=0,
-        verbose_name=u'Weighed sum of weekly adj close price'
-    )
-    fib_daily_score = models.FloatField(
-        default=0,
-        verbose_name=u'Weighed sum of daily adj close price'
-    )
-
-    def _oneday_change(self):
-        """Midday change percentage
-
-        Midday change is computed as:
-                (last polled bid price/today's openning price) in %
-        """
-        if self.day_open:
-            return (self.last - self.day_open) / self.day_open * Decimal(100)
-        else:
-            return None
-    oneday_change = property(_oneday_change)
-
-    def _twoday_change(self):
-        """Current bid over yesterday's openning price in percentage.
-        """
-        if self.prev_open:
-            return (self.last - self.prev_open) / self.prev_open * Decimal(100)
-        else:
-            return None
-    twoday_change = property(_twoday_change)
-
-    def _week_change(self):
-        """Weekly closing price over the same week's openning price.
-
-        Data is saved in week_adjusted_close as (open,close) delimited by comma.
-        This format is copied by Yahoo!Finance.
-        """
-        if self.week_adjusted_close:
-            vals = self.week_adjusted_close.split(',')
-            return (Decimal(vals[-1]) - Decimal(vals[0])) / Decimal(vals[0]) * Decimal(100)
-        else:
-            return None
-    week_change = property(_week_change)
-
-    def _month_change(self):
-        """Closing price over the openning price 1-month ago.
-        """
-        if self.month_adjusted_close:
-            vals = self.month_adjusted_close.split(',')
-            return (Decimal(vals[-1]) - Decimal(vals[0])) / Decimal(vals[0]) * Decimal(100)
-        else:
-            return None
-    month_change = property(_month_change)
-
-    def _trend_is_consistent_gain(self):
-        """Stock is growing consistently.
-
-        A stock is considered gaining consistent when:
-        1. it gained today
-        2. it gained since yesterday's opening
-        3. it gained in this week
-        4. it gained in this month
-
-        Taking four segments forces a stronger check against its price trend.
-        There isn't a particular theory behind such check. But IMHO,
-        a consistend gain is an indicator of a rare gaining period.
-        """
-        if self.oneday_change > 0 and self.twoday_change > 0 and self.week_change > 0 and self.month_change > 0:
-            return True
-        else:
-            return False
-    trend_is_consistent_gain = property(_trend_is_consistent_gain)
-
-    def _trend_is_consistent_loss(self):
-        """Reverse of consistent_gain. See above.
-        """
-        if self.oneday_change < 0 and self.twoday_change < 0 and self.week_change < 0 and self.month_change < 0:
-            return True
-        else:
-            return False
-    trend_is_consistent_loss = property(_trend_is_consistent_loss)
-
-    def _fib_weekly_score_pcnt(self):
-        """Fibonacci weekly score in %.
-
-        Score is calculated by sampling in time based on Fib values as time intervals.
-        The score is computed offline so it is historically correct.
-        """
-        if self.last:
-            return self.fib_weekly_score / float(self.last) * 100
-        else:
-            return None
-    fib_weekly_score_pcnt = property(_fib_weekly_score_pcnt)
-
-    def _fib_daily_score_pcnt(self):
-        """Fibonacci daily score.
-        """
-        if self.last:
-            return self.fib_daily_score / float(self.last) * 100
-        else:
-            return None
-    fib_daily_score_pcnt = property(_fib_daily_score_pcnt)
 
     def __unicode__(self):
         return '%s (%s)' % (self.symbol, self.company_name)
@@ -483,19 +277,45 @@ def stock_update_handler(sender, **kwargs):
     if instance.id:
         original = MyStock.objects.get(id=instance.id)
 
-        # spot price changed
-        if original.last != instance.last and instance.day_open:
-            # update day_change
-            instance.day_change = (
-                instance.last - instance.day_open) / instance.day_open * Decimal(100)
+        # # spot price changed
+        # if original.last != instance.last and instance.day_open:
+        #     # update day_change
+        #     instance.day_change = (
+        #         instance.last - instance.day_open) / instance.day_open * Decimal(100)
 
-        # if ask or bid changed
-        if original.ask != instance.ask or original.bid != instance.bid:
-            instance.spread = instance.ask - instance.bid
+        # # if ask or bid changed
+        # if original.ask != instance.ask or original.bid != instance.bid:
+        #     instance.spread = instance.ask - instance.bid
 
-        # if vol changed
-        if original.vol != instance.vol and instance.float_share:
-            instance.vol_over_float = instance.vol / instance.float_share / 10
+        # # if vol changed
+        # if original.vol != instance.vol and instance.float_share:
+        #     instance.vol_over_float = instance.vol / instance.float_share / 10
+
+
+class MyStockTechIndicator(models.Model):
+    """Model to hold all technical indicators.
+
+    For list: https://www.alphavantage.co/documentation/#technical-indicators
+    """
+    his = models.OneToOneField('MyStockHistorical')
+    sma = models.DecimalField(
+        default=0,
+        max_digits=20,
+        decimal_places=3,
+        verbose_name=u'Simple moving average'
+    )
+    ema = models.DecimalField(
+        default=0,
+        max_digits=20,
+        decimal_places=3,
+        verbose_name=u'Exponential moving average'
+    )
+    ema = models.DecimalField(
+        default=0,
+        max_digits=20,
+        decimal_places=3,
+        verbose_name=u'Exponential moving average'
+    )
 
 
 class MyStockHistorical(models.Model):
@@ -509,47 +329,51 @@ class MyStockHistorical(models.Model):
         verbose_name=u'Date'
     )
     open_price = models.DecimalField(
+        default=0,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'Open'
     )
     high_price = models.DecimalField(
+        default=0,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'High'
     )
     low_price = models.DecimalField(
+        default=0,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'Low'
     )
     close_price = models.DecimalField(
+        default=0,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'Close'
     )
     adj_open = models.DecimalField(
         default=-1,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'Adjusted open'
     )
     adj_high = models.DecimalField(
         default=-1,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'Adjusted high'
     )
     adj_low = models.DecimalField(
         default=-1,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'Adjusted low'
     )
     adj_close = models.DecimalField(
         default=-1,
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         verbose_name=u'Adjusted close'
     )
     adj_factor = models.FloatField(
@@ -558,29 +382,11 @@ class MyStockHistorical(models.Model):
     )
     amount = models.FloatField(
         default=-1,
-        verbose_name=u'成交金额 (000)'
+        verbose_name=u'Trading amount 成交金额 (000)'
     )
     vol = models.FloatField(
-        verbose_name=u'Volume (000)'
-    )
-    flag_by_strategy = models.CharField(
-        max_length=1,
-        null=True,
-        blank=True,
-        default='U',
-        verbose_name=u'Back testing flag'
-    )
-    val_by_strategy = models.FloatField(
-        null=True,
-        blank=True,
-        default=0.0,
-        verbose_name=u'Computed value based on a strategy'
-    )
-    peer_rank = models.IntegerField(
-        null=True,
-        blank=True,
         default=0,
-        verbose_name=u'Ranking among peers'
+        verbose_name=u'Trading volume (000)'
     )
     status = models.IntegerField(
         default=-1,
@@ -602,42 +408,6 @@ class MyStockHistorical(models.Model):
         blank=True,
         default=None,
         verbose_name=u"(Today's adj close - Yesterday's adj close)/Yesterday's adj close*100"
-    )
-    relative_hl = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"Relative Position (H,L)"
-    )
-    relative_ma = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"Relative Position Moving Average"
-    )
-    lg_slope = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"Linear regression slope"
-    )
-    si = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"SI indicator"
-    )
-    cci = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"CCI indicator"
-    )
-    decycler_oscillator = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"Decycler oscillator"
     )
 
     def _avg_price(self):
@@ -669,7 +439,7 @@ class MyUserProfile(models.Model):
     )
     per_trade_total = models.DecimalField(
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         default=1000.0,
         verbose_name=u'Per trade dollar amount'
     )
@@ -752,7 +522,7 @@ class MyPosition(models.Model):
     )
     close_position = models.DecimalField(
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         default=0.0,
         verbose_name=u'We closed at'
     )
@@ -764,25 +534,25 @@ class MyPosition(models.Model):
     close_date = models.DateField(
         null=True,
         blank=True,
-        default = None, # if close_date == None, this is an open position
+        default=None,  # if close_date == None, this is an open position
         verbose_name=u'Position close date'
     )
     life_in_days = models.IntegerField(
-        default = 0,
-        verbose_name = u'Life in days'
+        default=0,
+        verbose_name=u'Life in days'
     )
     gain = models.DecimalField(
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         default=0.0,
         verbose_name=u'Gain'
-    )    
+    )
     cost = models.DecimalField(
         max_digits=20,
-        decimal_places=5,
+        decimal_places=3,
         default=0.0,
         verbose_name=u'Cost'
-    )  
+    )
 
     def add(self, user, price, vol, source='simulation', on_date=None):
         """
@@ -836,13 +606,13 @@ class MyPosition(models.Model):
             self.close_date = on_date
         else:
             self.close_date = dt.now().date()
-        self.life_in_days = (self.close_date - self.open_date).days  
+        self.life_in_days = (self.close_date - self.open_date).days
 
         """Realized gain/loss.
 
         Profit/loss realized by holding this stock till closing.
-        """         
-        self.gain = (self.close_position - self.position) * self.vol         
+        """
+        self.gain = (self.close_position - self.position) * self.vol
         self.save()
 
     def _potential_gain(self):
@@ -873,6 +643,7 @@ class MyPosition(models.Model):
         """
         return (dt.now().date() - self.created.date()).days
     elapse_in_days = property(_elapse_in_days)
+
 
 @receiver(pre_save, sender=MyPosition)
 def day_change_handler(sender, **kwargs):
@@ -915,10 +686,6 @@ class MySimulationCondition(models.Model):
     """
     DATA_CHOICES = (
         (1, "S&P500"),
-        (2, "CI00*"),
-        (3, "WIND 8821*"),
-        (4, "China stock"),
-        (5, 'WIND 2nd-tier sector'),
     )
     DATA_SORT_CHOICES = (
         (0, "ascending"),
@@ -1027,7 +794,7 @@ class MySimulationCondition(models.Model):
                            "sell_cutoff")
 
     def _snapshots(self):
-        return MySimulationSnapshot.objects.filter(simulation = self)
+        return MySimulationSnapshot.objects.filter(simulation=self)
     snapshots = property(_snapshots)
 
     def _snapshots_sort_by_date(self):
@@ -1059,7 +826,7 @@ class MySimulationCondition(models.Model):
 
         This is computed from individual sells.
         """
-        return MyPosition.objects.filter(simulation=self,is_open=False).count()
+        return MyPosition.objects.filter(simulation=self, is_open=False).count()
     num_of_sells = property(_num_of_sells)
 
     def _asset_daily_return(self):
@@ -1068,7 +835,7 @@ class MySimulationCondition(models.Model):
         This index shows how a user's asset fluctuates from day to day
         during simulation period.
         """
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt', flat=True).order_by('on_date')    
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt', flat=True).order_by('on_date')
     asset_daily_return = property(_asset_daily_return)
 
     def _asset_gain_pcnt_t0(self):
@@ -1078,7 +845,7 @@ class MySimulationCondition(models.Model):
         This can be viewed as an overall performance indicator over time.
         """
         # return [x.asset_gain_pcnt_t0 for x in self.snapshots]
-        return list(MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt_t0',flat=True).order_by('on_date'))
+        return list(MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt_t0', flat=True).order_by('on_date'))
     asset_gain_pcnt_t0 = property(_asset_gain_pcnt_t0)
 
     def _asset_end_return(self):
@@ -1145,17 +912,17 @@ class MySimulationCondition(models.Model):
         this value, we could apply a strategy that dictate 
         by how long we can hold a position.
         """
-        life_in_days = MyPosition.objects.filter(simulation=self, is_open = False).annotate(
-            max_life = Max('life_in_days'),
-            avg_life = Avg('life_in_days')
+        life_in_days = MyPosition.objects.filter(simulation=self, is_open=False).annotate(
+            max_life=Max('life_in_days'),
+            avg_life=Avg('life_in_days')
         )
 
         # life_in_days = [s.life_in_days for s in sells]
 
         # index [0] is the min(), [-1] is the max()floatformat
-        # min is skipped since it is always 0 because 
+        # min is skipped since it is always 0 because
         # we may be buying and unloading a stock on the same day
-        return (('max',life_in_days['max_life']), ('Avg',life_in_days['avg_life']))
+        return (('max', life_in_days['max_life']), ('Avg', life_in_days['avg_life']))
     equity_life_in_days = property(_equity_life_in_days)
 
     def _stock_sell_stat(self):
@@ -1165,33 +932,18 @@ class MySimulationCondition(models.Model):
             max_life=Max('life_in_days'),
             min_life=Min('life_in_days'),
             avg_life=Avg('life_in_days'),
-            num_of_trades = Count('symbol')
-        ).filter(simulation = self, is_open=False)
+            num_of_trades=Count('symbol')
+        ).filter(simulation=self, is_open=False)
         return sells
     stock_sell_stat = property(_stock_sell_stat)
 
-# class MySimulationSnapshotCustomManager(models.Manager):
-
-#     def filter_by_user_pe_threshold(self, user):
-#         """Filter by PE threshold defined in user profile.
-
-#         Args:
-#                 :user: User model object. Each user has a 1-1 relashionship to a UserProfile.
-#         """
-#         data = self.get_queryset()
-
-#         # get user profile
-#         user_profile, created = MyUserProfile.objects.get_or_create(owner=user)
-#         pe_low = int(user_profile.pe_threshold.split('-')[0])
-#         pe_high = int(user_profile.pe_threshold.split('-')[1])
-#         return data.filter(pe__gte=pe_low, pe__lte=pe_high)
 
 class MySimulationSnapshot(models.Model):
     """Simulation snapshot.
     """
     # custom managers
     # Note: the 1st one defined will be taken as the default!
-    # objects = MyStockCustomManager()    
+    # objects = MyStockCustomManager()
 
     simulation = models.ForeignKey('MySimulationCondition')
     on_date = models.DateField(
@@ -1202,41 +954,41 @@ class MySimulationSnapshot(models.Model):
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Cash',
-        default = 0
+        default=0
     )
     equity = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Equity',
-        default = 0
+        default=0
     )
     asset = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Asset',
-        default = 0
+        default=0
     )
     gain_from_holding = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Gain from holding',
-        default = 0
+        default=0
     )
     gain_from_exit = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Gain from exit',
-        default = 0
-    )    
+        default=0
+    )
     asset_gain_pcnt = models.FloatField(
-        verbose_name = u'Asset gain from previous day',
-        default = 0,
-        help_text = u"This measures asset return in pcnt comparing to previous day"
+        verbose_name=u'Asset gain from previous day',
+        default=0,
+        help_text=u"This measures asset return in pcnt comparing to previous day"
     )
     asset_gain_pcnt_t0 = models.FloatField(
-        verbose_name = u'Asset gain from T0',
-        default = 0,
-        help_text = u"This measures asset return in pcnt comparing to T0's"
+        verbose_name=u'Asset gain from T0',
+        default=0,
+        help_text=u"This measures asset return in pcnt comparing to T0's"
     )
 
     def _buy_transactions(self):
@@ -1248,10 +1000,10 @@ class MySimulationSnapshot(models.Model):
         by our simulation run and belongs to this snapshot (by on_date).
         """
         buys = MyPosition.objects.filter(
-            simulation = self.simulation,
-            open_date = self.on_date # this is when position was created as a buy
+            simulation=self.simulation,
+            open_date=self.on_date  # this is when position was created as a buy
         ).order_by('stock__symbol')
-        return buys 
+        return buys
     buy_transactions = property(_buy_transactions)
 
     def _sell_transactions(self):
@@ -1261,8 +1013,8 @@ class MySimulationSnapshot(models.Model):
         instead of open_date.
         """
         sells = MyPosition.objects.filter(
-            simulation = self.simulation,
-            close_date = self.on_date # this is when position was closed as a sell
+            simulation=self.simulation,
+            close_date=self.on_date  # this is when position was closed as a sell
         ).order_by('stock__symbol')
         return sells
     sell_transactions = property(_sell_transactions)
@@ -1275,18 +1027,12 @@ class MySimulationSnapshot(models.Model):
         2. its close date is either missing (still opened) or later than on_date
         """
         return MyPosition.objects.filter(
-            Q(simulation = self.simulation) & Q(open_date__lte = self.on_date),
-            Q(close_date__isnull = True) | Q(close_date__gt = self.on_date)
+            Q(simulation=self.simulation) & Q(open_date__lte=self.on_date),
+            Q(close_date__isnull=True) | Q(close_date__gt=self.on_date)
         ).order_by('stock__symbol')
 
     equities = property(_equities)
 
-######################################################
-#
-#   RESTful API endpoints
-#
-#####################################################
-from rest_framework import serializers, viewsets, filters
 
 # Serializers define the API representation.
 

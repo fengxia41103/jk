@@ -1,62 +1,68 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from celery import shared_task
-
-import lxml.html
-import simplejson as json
-import pytz
-import logging
-from random import randint
-import time
+import codecs
+import cPickle
+import csv
+import datetime as dt
 import hashlib
+import logging
+import os
+import os.path
+import re
+import StringIO
+import sys
+import time
 import urllib
 import urllib2
-from tempfile import NamedTemporaryFile
-from django.core.files import File
-from django.contrib.auth.models import User
-
-import codecs
-from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
-# available since 2.26.0
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-import re
-import cPickle
-import sys
 from datetime import timedelta
-import datetime as dt
+from decimal import Decimal
 from itertools import izip_longest
-from lxml.html.clean import clean_html
-from math import cos, sin
+from math import cos
+from math import sin
+from random import randint
+from random import shuffle
+from tempfile import NamedTemporaryFile
+
+import lxml.html
 import numpy as np
+import pytz
+import simplejson as json
+import xlrd
+import xlwt
+from celery import shared_task
+from dateutil.relativedelta import relativedelta
+from django.contrib.auth.models import User
+from django.core.files import File
+from influxdb.influxdb08 import InfluxDBClient
+from lxml.html.clean import clean_html
+#################################
+#
+#   Alpha strategy values
+#
+#################################
+from numpy import mean
+from numpy import std
 from scipy import stats
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.ui import \
+    WebDriverWait  # available since 2.4.0
 
 from jk.tor_handler import *
 from stock.models import *
 from stock.simulations import *
 
-import logging
 logger = logging.getLogger('jk')
+
 
 def grouper(iterable, n, padvalue=None):
     # grouper('abcdefg', 3, 'x') --> ('a','b','c'), ('d','e','f'),
     # ('g','x','x')
     return list(izip_longest(*[iter(iterable)] * n, fillvalue=padvalue))
-
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
-# available since 2.26.0
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.select import Select
-from random import shuffle
-from decimal import Decimal
-import csv
-import StringIO
-from dateutil.relativedelta import relativedelta
 
 
 class MyStockFlagSP500():
@@ -83,7 +89,7 @@ class MyStockFlagSP500():
                 logger.error('[%s] error, %d' % (vals[0], len(vals)))
                 continue
 
-            stock, created = MyStock.objects.get_or_create(symbol=vals[0])
+            stock, created = MyStock.objects.get_or_create(symbol=vals[0], is_sp500=True)
             stock.is_sp500 = True
             stock.sector = vals[-1]
             stock.save()
@@ -325,7 +331,7 @@ class MyStockHistoricalYahoo():
         ago = now + relativedelta(years=-20)  # 20 years
 
         date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d' % (
-            ago.month, ago.day, ago.year, now.month, now.day, now.year+1)
+            ago.month, ago.day, ago.year, now.month, now.day, now.year + 1)
         url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (
             symbol, date_str)
         logger.debug(url)
@@ -340,7 +346,7 @@ class MyStockHistoricalYahoo():
                 # protect from blank line or invalid symbol, eg. China stock symbols
                 # logger.debug('not vals')
                 continue
-            elif not reduce(lambda x, y: x and y, vals): 
+            elif not reduce(lambda x, y: x and y, vals):
                 # any empty string, None will be skipped
                 # logger.debug('not all columns have value')
                 continue
@@ -353,7 +359,7 @@ class MyStockHistoricalYahoo():
 
             # stamp = [int(v) for v in vals[0].split('-')]
             # date_stamp = dt(year=stamp[0], month=stamp[1], day=stamp[2])
-            date_stamp = dt.strptime(vals[0],'%Y-%m-%d')
+            date_stamp = dt.strptime(vals[0], '%Y-%m-%d')
             if date_stamp.date().isoformat() in his:
                 # logger.debug('already have this')
                 continue  # we already have these
@@ -512,11 +518,6 @@ def stock_monitor_yahoo_consumer2(symbols):
     crawler = MyStockMonitorYahoo2(http_agent)
     crawler.parser(symbols)
 
-import xlrd
-import xlwt
-import os
-import os.path
-
 
 class MyImportChinaStock():
 
@@ -577,111 +578,6 @@ class MyImportChinaStock():
 def import_china_stock_consumer(symbol, val_list):
     crawler = MyImportChinaStock()
     crawler.parser(symbol, val_list)
-
-
-class MyChenMin():
-
-    def __init__(self):
-        pass
-
-    def parser(self, f, output=None):
-        try:
-            book = xlrd.open_workbook(f)
-        except:
-            logger.error('%s error' % f)
-            return
-
-        sh = book.sheet_by_index(0)
-        if sh.name != u'账户对账单':
-            logger.error(f)
-
-        # range for 账户对账单
-        first_col_vals = [sh.cell_value(rowx=i, colx=0)
-                          for i in range(sh.nrows)]
-        start = end = None
-        for idx, val in enumerate(first_col_vals):
-            if val == u'对帐单':
-                start = idx
-            if val == u'当日持仓清单':
-                end = idx
-            if start and end:
-                break
-
-        vals = []
-        for row in xrange(start, end):
-            vals.append([sh.cell_value(rowx=row, colx=c)
-                         for c in range(sh.ncols)])
-
-        for row in filter(lambda x: u'20' in x[0], vals):
-            symbol = row[3]
-            transaction_type = row[1]
-            price = float(row[7])
-            vol = int(row[5])
-            total = float(row[8])
-            name = row[4]
-
-            # timestamp
-            yr = int(row[0][:4])
-            m = int(row[0][5:6])
-            d = int(row[0][-2:])
-            executed_on = dt(year=yr, month=m, day=d)
-
-            c = MyChenmin(
-                executed_on=executed_on,
-                transaction_type=transaction_type,
-                symbol=symbol,
-                name=name,
-                price=price,
-                vol=vol,
-                total=total
-            )
-            c.save()
-        logger.debug('%s done' % f)
-
-
-@shared_task
-def chenmin_consumer(files):
-    crawler = MyChenMin()
-    crawler.parser(files)
-
-from influxdb.influxdb08 import InfluxDBClient
-import time
-
-
-class MyStockInflux():
-
-    def __init__(self):
-        db_name = 'stock'
-        self.client = InfluxDBClient(
-            'localhost', 8086, 'root', 'root', db_name)
-        # all_dbs_list = self.client.get_list_database()
-        # that list comes back like: [{u'name': u'hello_world'}]
-        # if db_name not in [str    (x['name']) for x in all_dbs_list]:
-        #   print "Creating db {0}".format(db_name)
-        #   self.client.create_database(db_name)
-        # else:
-        #   print "Reusing db {0}".format(db_name)
-        self.client.switch_db(db_name)
-
-    def parser(self, symbol):
-        points = []
-        for h in MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp'):
-            points = [[h.id, h.date_stamp.strftime('%Y-%m-%d'), time.mktime(h.date_stamp.timetuple()), float(
-                h.open_price), float(h.high_price), float(h.low_price), float(h.close_price), float(h.adj_close), h.vol]]
-
-            self.client.write_points([{
-                'name': symbol,
-                'columns': ['id', 'date', 'time', 'open', 'high', 'low', 'close', 'adj_close', 'vol'],
-                'points':points
-            }], time_precision='s')
-
-        logger.debug('%s completed' % symbol)
-
-
-@shared_task
-def influx_consumer(symbol):
-    crawler = MyStockInflux()
-    crawler.parser(symbol)
 
 
 class MyStockBacktesting_1():
@@ -764,7 +660,7 @@ class MyStockBacktesting_1():
             t0.save()
 
         logger.debug('%s completed, elapse %f' %
-                          (symbol, time.time() - exec_start))
+                     (symbol, time.time() - exec_start))
 
 
 @shared_task
@@ -813,20 +709,13 @@ class MyStockBacktestingSimulation():
         simulator.run()
 
         logger.debug(' %s simulation end %f' %
-                          (self.condition, time.time() - exec_start))
+                     (self.condition, time.time() - exec_start))
 
 
 @shared_task
 def backtesting_simulation_consumer(condition, is_update=False):
     crawler = MyStockBacktestingSimulation(condition)
     crawler.run(is_update)
-
-#################################
-#
-#   Alpha strategy values
-#
-#################################
-from numpy import mean, std
 
 
 class MyStockStrategyValue(object):
@@ -838,7 +727,7 @@ class MyStockStrategyValue(object):
 
     def __init__(self):
         pass
-        
+
     def run(self, symbol, window_length):
         logger.debug('%s starting' % symbol)
         exec_start = time.time()
@@ -869,7 +758,7 @@ class MyStockStrategyValue(object):
             t0.save()
 
         logger.debug('%s completed, elapse %f' %
-                          (symbol, time.time() - exec_start))
+                     (symbol, time.time() - exec_start))
 
     def compute_value(self, t0, window):
         """Overriden by child class to execute computation.
@@ -899,9 +788,10 @@ class MyStockDailyReturn(MyStockStrategyValue):
 
         # compute nightly return
         if t0.adj_close and prev.adj_close:
-            t0.overnight_return = (t0.adj_close - prev.adj_close)/prev.adj_close*100
+            t0.overnight_return = (t0.adj_close - prev.adj_close) / prev.adj_close * 100
         else:
             t0.overnight_return = 0
+
 
 @shared_task
 def backtesting_daily_return_consumer(symbol):
@@ -1059,3 +949,71 @@ Indicator= 100*K*DecycleOsc/Price;
 def backtesting_decycler_oscillator_consumer(symbol):
     crawler = MyStockDecyclerOscillator()
     crawler.run(symbol, 3)
+
+
+class MyStockHistoricalAlphaVantage():
+    """Read historical daily from Alpha Vantage API.
+
+    There are two versions: daily and adjusted. On most days they are the same,
+    but we are sving them separately.
+
+    API doc: https://www.alphavantage.co/documentation/
+    """
+
+    def __init__(self, handler):
+        self.http_handler = handler
+        self.agent = handler.agent
+
+    def parser(self, symbol):
+        stock = MyStock.objects.get(symbol=symbol)
+        url = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol=%s&outputsize=full&apikey=4W4899YHR2QYOFQ2' % symbol
+        daily = self.http_handler.request(url)
+        daily = json.loads(daily)
+        logger.debug('[%s]:  reading daily historicals' % symbol)
+
+        existing = MyStockHistorical.objects.filter(stock=stock)
+        to_save = {}
+        for day, details in daily['Time Series (Daily)'].items():
+            ds = day.split('-')
+            date_stamp = dt(year=int(ds[0]), month=int(ds[1]), day=int(ds[2]))
+            aa = existing.filter(date_stamp=date_stamp)
+            assert len(aa) < 2
+
+            his = aa[0] if aa else MyStockHistorical(stock=stock,
+                                                     date_stamp=date_stamp)
+            his.open_price = Decimal(details['1. open'])
+            his.high_price = Decimal(details['2. high'])
+            his.low_price = Decimal(details['3. low'])
+            his.close_price = Decimal(details['4. close'])
+            his.vol = int(details['5. volume'])
+            to_save[date_stamp] = his
+
+        url = 'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=%s&outputsize=full&apikey=4W4899YHR2QYOFQ2' % symbol
+        adjusted = self.http_handler.request(url)
+        adjusted = json.loads(adjusted)
+        logger.debug('[%s]:  reading adjusted daily historicals' % symbol)
+        for day, details in adjusted['Time Series (Daily)'].items():
+            ds = day.split('-')
+            date_stamp = dt(year=int(ds[0]), month=int(ds[1]), day=int(ds[2]))
+            his = to_save[date_stamp]
+
+            his.adj_open = Decimal(details['1. open'])
+            his.adj_high = Decimal(details['2. high'])
+            his.adj_low = Decimal(details['3. low'])
+            his.close_price = Decimal(details['4. close'])
+            his.adj_close = Decimal(details['5. adjusted close'])
+            his.vol = int(details['6. volume'])
+            his.adj_factor = float(details['8. split coefficient'])
+
+        # ok so we now save
+
+        logger.debug('[%s]:  writing historicals to DB. This can take a while.' % symbol)
+        for obj in to_save.values():
+            obj.save()
+
+
+@shared_task
+def stock_historical_alpha_consumer(symbol):
+    http_agent = PlainUtility()
+    crawler = MyStockHistoricalAlphaVantage(http_agent)
+    crawler.parser(symbol)
