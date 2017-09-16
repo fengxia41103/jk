@@ -42,6 +42,12 @@ from rest_framework import viewsets
 logger = logging.getLogger('jk')
 logger.setLevel(logging.DEBUG)
 
+TECH_INDICATORS = (
+    ('sma', 'simple moving average'),
+    ('ema', 'exponential moving average'),
+    ('wma', 'weighted moving average')
+)
+
 
 class MyBaseModel (models.Model):
     # fields
@@ -189,46 +195,6 @@ class MyStockCustomManager(models.Manager):
         return data
 
 
-class MySector(models.Model):
-    """Sector that is used to group stocks.
-
-    The company that a stock represents is usually
-    linked to a sector. Each country may have a different way to
-    define these.
-    """
-    parent = models.ForeignKey(
-        'self',
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u'Parent sector'
-    )
-    code = models.CharField(
-        max_length=8,
-        verbose_name=u'Sector code'
-    )
-    source = models.CharField(
-        max_length=32,
-        verbose_name=u'Definition source'
-    )
-    name = models.CharField(
-        max_length=32,
-        null=True,
-        blank=True
-    )
-    description = models.TextField(
-        null=True,
-        blank=True
-    )
-    stocks = models.ManyToManyField('MyStock')
-
-    def __unicode__(self):
-        if self.name:
-            return u'{0} ({1})'.format(self.name, self.code)
-        else:
-            return self.code
-
-
 class MyStock(models.Model):
     # custom managers
     # Note: the 1st one defined will be taken as the default!
@@ -292,35 +258,28 @@ def stock_update_handler(sender, **kwargs):
         #     instance.vol_over_float = instance.vol / instance.float_share / 10
 
 
-class MyStockTechIndicator(models.Model):
+class MyStockDailyIndicator(models.Model):
     """Model to hold all technical indicators.
 
     For list: https://www.alphavantage.co/documentation/#technical-indicators
     """
-    his = models.OneToOneField('MyStockHistorical')
-    sma = models.DecimalField(
-        default=0,
-        max_digits=20,
-        decimal_places=3,
-        verbose_name=u'Simple moving average'
-    )
-    ema = models.DecimalField(
-        default=0,
-        max_digits=20,
-        decimal_places=3,
-        verbose_name=u'Exponential moving average'
-    )
-    ema = models.DecimalField(
-        default=0,
-        max_digits=20,
-        decimal_places=3,
-        verbose_name=u'Exponential moving average'
-    )
+    INDICATOR_CHOICES = TECH_INDICATORS
+    his = models.ForeignKey('MyStockHistorical')
+    indicator = models.CharField(max_length=32,
+                                 choices=INDICATOR_CHOICES)
 
 
 class MyStockHistorical(models.Model):
     """Model to save historical stock data.
     """
+    AGGREGATION_PERIODS = (
+        (1, 'daily'),
+        (2, 'weekly'),
+        (3, 'monthly')
+    )
+    period = models.IntegerField(
+        choices=AGGREGATION_PERIODS,
+        default=1)
     stock = models.ForeignKey(
         'MyStock',
         verbose_name=u'Stock'
@@ -329,28 +288,27 @@ class MyStockHistorical(models.Model):
         verbose_name=u'Date'
     )
     open_price = models.DecimalField(
-        default=0,
         max_digits=20,
         decimal_places=3,
         verbose_name=u'Open'
     )
     high_price = models.DecimalField(
-        default=0,
         max_digits=20,
         decimal_places=3,
         verbose_name=u'High'
     )
     low_price = models.DecimalField(
-        default=0,
         max_digits=20,
         decimal_places=3,
         verbose_name=u'Low'
     )
     close_price = models.DecimalField(
-        default=0,
         max_digits=20,
         decimal_places=3,
         verbose_name=u'Close'
+    )
+    vol = models.FloatField(
+        verbose_name=u'Trading volume (000)'
     )
     adj_open = models.DecimalField(
         default=-1,
@@ -383,10 +341,6 @@ class MyStockHistorical(models.Model):
     amount = models.FloatField(
         default=-1,
         verbose_name=u'Trading amount 成交金额 (000)'
-    )
-    vol = models.FloatField(
-        default=0,
-        verbose_name=u'Trading volume (000)'
     )
     status = models.IntegerField(
         default=-1,
@@ -695,32 +649,17 @@ class MySimulationCondition(models.Model):
         (1, "S1 (by ranking)"),
         (2, "S2 (buy low sell high)"),
     )
-    STRATEGY_VALUE_CHOICES = (
-        (1, "Daily return"),
-        (2, "Relative (H,L)"),
-        (3, 'Relative Moving Avg'),
-        # (4, 'CCI'),
-        # (5, 'SI'),
-        # (6, 'Linear Reg Slope'),
-        # (7, 'Decycler Oscillator'),
-    )
+    INDICATOR_CHOICES = TECH_INDICATORS
     data_source = models.IntegerField(
         choices=DATA_CHOICES,
         default=1
-    )
-    sector = models.ForeignKey(
-        'MySector',
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u'Data source sector'
     )
     strategy = models.IntegerField(
         choices=STRATEGY_CHOICES,
         default=1
     )
     strategy_value = models.IntegerField(
-        choices=STRATEGY_VALUE_CHOICES,
+        choices=INDICATOR_CHOICES,
         default=1,
         verbose_name=u"Strategy value"
     )
@@ -782,7 +721,6 @@ class MySimulationCondition(models.Model):
 
     class Meta:
         unique_together = ("data_source",
-                           "sector",
                            "strategy",
                            "strategy_value",
                            "data_sort",
