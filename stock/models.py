@@ -45,7 +45,62 @@ logger.setLevel(logging.DEBUG)
 TECH_INDICATORS = (
     ('sma', 'simple moving average'),
     ('ema', 'exponential moving average'),
-    ('wma', 'weighted moving average')
+    ('wma', 'weighted moving average'),
+    ('dema', 'double exponential moving average'),
+    ('tema', 'triple exponential moving average'),
+    ('trima', 'triangular moving average'),
+    ('kama', 'Kaufman adaptive moving average'),
+    ('mama', 'MESA adaptive moving average'),
+    ('t3', 'triple exponential moving average'),
+    ('macd', 'moving average convergence / divergence'),
+    ('macdext', 'moving average convergence / divergence values with controllable moving average type'),
+    ('stoch', 'stochastic oscillator'),
+    ('stochf', 'stochastic fast'),
+    ('rsi', 'relative strength index'),
+    ('stochrsi', 'stochastic relative strength index'),
+    ('willr', 'Williams\' %R'),
+    ('adx', 'average directional movement index'),
+    ('adxr', 'average directional movement index rating'),
+    ('apo', 'absolute price oscillator'),
+    ('ppo', 'percentage price oscillator'),
+    ('mom', 'momentum'),
+    ('bop', 'balance of power'),
+    ('cci', 'commodity channel index'),
+    ('cmo', 'Chande momentum oscillator'),
+    ('roc', 'rate of change'),
+    ('rocr', 'rate of change ratio'),
+    ('aroon', 'Aroon'),
+    ('aroonosc', 'Aroon oscillator'),
+    ('mfi', 'money flow index'),
+    ('trix', '1-day rate of change of a triple smooth exponential moving average'),
+    ('ultosc', 'ultimate oscillator'),
+    ('dx', 'directional movement index'),
+    ('minus_di', 'minus directional indicator'),
+    ('plus_di', 'plus directional indicator'),
+    ('minus_dm', 'minus directional movement'),
+    ('plus_dm', 'plus directional movement'),
+    ('bbands', 'Bollinger bands'),
+    ('midpoint', 'MIDPOINT = (highest value + lowest value)/2'),
+    ('midprice', 'MIDPRICE = (highest high + lowest low)/2'),
+    ('sar', 'parabolic SAR'),
+    ('trange', 'true range'),
+    ('atr', 'average true range'),
+    ('natr', 'normalized average true range'),
+    ('ad', 'Chaikin A/D line'),
+    ('adosc', 'Chaikin A/D oscillator'),
+    ('obv', 'balance volume'),
+    ('ht_trendline', 'Hilbert transform, instantaneous trendline'),
+    ('ht_sine', 'Hilbert transform, sine wave'),
+    ('ht_trendmode', 'Hilbert transform, trend vs cycle mode'),
+    ('ht_dcperiod', 'Hilbert transform, dominant cycle period'),
+    ('ht_dcphase', 'Hilbert transform, dominant cycle phase'),
+    ('ht_phasor', 'Hilbert transform, phasor components'),
+
+)
+INTERVAL_CHOICES = (
+    (1, 'daily'),
+    (2, 'weekly'),
+    (3, 'monthly')
 )
 
 
@@ -264,29 +319,87 @@ class MyStockDailyIndicator(models.Model):
     For list: https://www.alphavantage.co/documentation/#technical-indicators
     """
     INDICATOR_CHOICES = TECH_INDICATORS
-    his = models.ForeignKey('MyStockHistorical')
+    SERIES_CHOICES = (
+        ('o', 'open price'),
+        ('c', 'close price'),
+        ('l', 'low price'),
+        ('h', 'high price')
+    )
+    stock = models.ForeignKey('MyStock')
     indicator = models.CharField(max_length=32,
                                  choices=INDICATOR_CHOICES)
+
+    date_stamp = models.DateField(
+        verbose_name=u'Date'
+    )
+    interval = models.IntegerField(
+        choices=INTERVAL_CHOICES,
+        default=1  # daily data
+    )
+    time_period = models.IntegerField(
+        default=2,
+        help_text=u'Number of data points used to calculate each moving average value. Positive integers are accepted.'
+    )
+    series_type = models.CharField(
+        max_length=8,
+        choices=SERIES_CHOICES
+    )
+
+    # APO, ADOSC
+    fast_period = models.IntegerField(default=12)
+    slow_period = models.IntegerField(default=26)
+
+    # APO, BBANDS
+    ma_type = models.IntegerField(default=0)
+
+    fast_limit = models.FloatField(default=0.01)
+    slow_limit = models.FloatField(default=0.01)
+    signal_period = models.IntegerField(default=9)
+
+    # MACDEXT
+    fast_ma_type = models.IntegerField(default=0)
+    slow_ma_type = models.IntegerField(default=0)
+    signal_ma_type = models.IntegerField(default=0)
+
+    # STOCH
+    fast_kperiod = models.IntegerField(default=5)
+    slow_kperiod = models.IntegerField(default=3)
+    slow_dperiod = models.IntegerField(default=3)
+    slow_kma_type = models.IntegerField(default=0)
+    slow_dma_type = models.IntegerField(default=0)
+
+    # STOCHF, STOCHRSI
+    fast_dperiod = models.IntegerField(default=3)
+    fast_dma_type = models.IntegerField(default=0)
+
+    # ULTOSC
+    time_period1 = models.IntegerField(default=7)
+    time_period2 = models.IntegerField(default=14)
+    time_period3 = models.IntegerField(default=28)
+
+    # BBANDS
+    nbdevup = models.IntegerField(default=2)
+    nbdevdn = models.IntegerField(default=2)
+
+    # SAR
+    acceleration = models.FloatField(default=0.01)
+    max_acceleration = models.FloatField(default=0.2)
+
+    value = models.DecimalField(
+        max_digits=20,
+        decimal_places=3,
+        verbose_name=u'Indicator value'
+    )
 
 
 class MyStockHistorical(models.Model):
     """Model to save historical stock data.
     """
-    AGGREGATION_PERIODS = (
-        (1, 'daily'),
-        (2, 'weekly'),
-        (3, 'monthly')
-    )
-    period = models.IntegerField(
-        choices=AGGREGATION_PERIODS,
+    stock = models.ForeignKey('MyStock')
+    interval = models.IntegerField(
+        choices=INTERVAL_CHOICES,
         default=1)
-    stock = models.ForeignKey(
-        'MyStock',
-        verbose_name=u'Stock'
-    )
-    date_stamp = models.DateField(
-        verbose_name=u'Date'
-    )
+    date_stamp = models.DateField()
     open_price = models.DecimalField(
         max_digits=20,
         decimal_places=3,
@@ -347,23 +460,6 @@ class MyStockHistorical(models.Model):
         verbose_name=u'Stock trading status, eg. stopped trading on that day'
     )
 
-    # pre-computed index values
-    daily_return = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"(Today's close - Today's Open)/Today's Open*100"
-    )
-
-    # due to stock split, we have to use adj close
-    # instead of open price, unless we could acquire adjusted open also
-    overnight_return = models.FloatField(
-        null=True,
-        blank=True,
-        default=None,
-        verbose_name=u"(Today's adj close - Yesterday's adj close)/Yesterday's adj close*100"
-    )
-
     def _avg_price(self):
         """Average stock price.
 
@@ -376,8 +472,8 @@ class MyStockHistorical(models.Model):
     avg_price = property(_avg_price)
 
     class Meta:
-        unique_together = ('stock', 'date_stamp')
-        index_together = ['stock', 'date_stamp']
+        unique_together = ('stock', 'date_stamp', 'interval')
+        index_together = ['stock', 'date_stamp', 'interval']
 
 
 class MyUserProfile(models.Model):

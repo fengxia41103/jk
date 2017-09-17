@@ -1,15 +1,22 @@
+import logging
 import time
-from numpy import mean, std
 from collections import OrderedDict
-import simplejson as json
-from django.db.models import Avg, Max, Min, Count, Sum
 from decimal import Decimal
 
-import logging
-logger = logging.getLogger('jk')
+import simplejson as json
+from django.db.models import Avg
+from django.db.models import Count
+from django.db.models import Max
+from django.db.models import Min
+from django.db.models import Sum
+from numpy import mean
+from numpy import std
 
 # import models
 from stock.models import *
+
+logger = logging.getLogger('jk')
+
 
 class MySimulation(object):
     """Abstract model.
@@ -26,8 +33,8 @@ class MySimulation(object):
     """
 
     def __init__(self, user, simulation):
-        self.variable_trading_cost = 0.003 # this models things like capital tax
-        self.fixed_trading_cost = 5 # this represents a flat rate trading cost
+        self.variable_trading_cost = 0.003  # this models things like capital tax
+        self.fixed_trading_cost = 5  # this represents a flat rate trading cost
         self.user = user
         self.simulation = simulation
         self.data = []
@@ -70,31 +77,22 @@ class MySimulation(object):
         if data_source == 1:
             stocks = MyStock.objects.filter(
                 is_sp500=True, is_index=False).values_list('id', flat=True)
-        elif data_source == 2:
-            stocks = MyStock.objects.filter(
-                symbol__startswith="CI00").values_list('id', flat=True)
-        elif data_source == 3:
-            stocks = MyStock.objects.filter(
-                symbol__startswith="8821").values_list('id', flat=True)
-        elif data_source == 4:
-            stocks = MyStock.objects.filter(
-                is_china_stock=True).values_list('id', flat=True)
-        elif data_source == 5 and sector:
-            for s in MySector.objects.filter(code__startswith=sector):
-                for stock in s.stocks.all():
-                    if stock.symbol.startswith('8821'):
-                        continue
-                    else:
-                        stocks.append(stock.id)
-        histories = MyStockHistorical.objects.select_related().filter(stock__in=stocks, date_stamp__range=[start, end]).values(
-            'stock', 'stock__symbol', 'date_stamp', 'open_price', 'close_price', 'adj_close', 'relative_hl', 'daily_return', 'overnight_return')
+        histories = MyStockHistorical.objects.select_related().filter(
+            stock__in=stocks,
+            date_stamp__range=[start, end]).values(
+            'stock', 'stock__symbol', 'date_stamp',
+                'adj_open', 'adj_close', 'adj_high', 'adj_low',
+                'daily_return', 'overnight_return')
         # if not len(histories):
         #     logger.error('MySimulation: no historicals found! Aborting setup.')
         #     return False
 
         # dates
         # dates = list(set([h['date_stamp'] for h in histories]))
-        dates = list(MyStockHistorical.objects.filter(stock__in=stocks, date_stamp__range=[start, end]).values_list('date_stamp', flat=True).order_by('date_stamp').distinct())
+        dates = list(MyStockHistorical.objects.filter(
+            stock__in=stocks, date_stamp__range=[start, end]).values_list(
+                'date_stamp', flat=True).order_by('date_stamp').distinct())
+
         # dates.sort()
         start = dates[0]
         end = dates[-1]
@@ -117,7 +115,7 @@ class MySimulation(object):
                 stocks into bands. Bands are defined by buy_cutoff and sell_cutoff.
                 """
                 tmp = [(symbol, h[index_val_mapping[strategy_value]])
-                       for symbol, h in his_by_symbol.iteritems()]
+                       for symbol, h in his_by_symbol.items()]
                 symbols_by_rank = [x[0] for x in sorted(
                     tmp, key=lambda x: x[1], reverse=(self.simulation.data_sort == 1))]
                 self.data.append((on_date, symbols_by_rank))
@@ -152,9 +150,9 @@ class MySimulation(object):
 
             # snapshot
             snapshot = MySimulationSnapshot(
-                simulation = self.simulation,
-                on_date = on_date,
-                cash = self.capital,
+                simulation=self.simulation,
+                on_date=on_date,
+                cash=self.capital,
             )
 
             # compute equity, cash, asset
@@ -182,18 +180,18 @@ class MySimulation(object):
                     # ERROR: stock symbol is missing from historical data.
                     # Either we have not got all historicals yet, or the data
                     # source is not good enough.
-                    logger.error('MySimulation.run: %s not in historical!'%p['stock__symbol'])
+                    logger.error('MySimulation.run: %s not in historical!' % p['stock__symbol'])
                     continue
 
                 # record the spot equity value
                 if p['vol'] * simulated_spot == 0:
                     logger.error('spot equity = 0!')
-                    1/0
+                    1 / 0
                 daily_equity.append(p['vol'] * simulated_spot)
 
                 # compute gain/loss of the holding portfolio
                 # self.snapshot[on_date]['gain'][
-                #     'hold'] 
+                #     'hold']
                 gain_from_holding.append(p['vol'] * (simulated_spot - p['position']))
 
             # computed values
@@ -214,25 +212,25 @@ class MySimulation(object):
             # else:
             #     snapshot.gain_from_holding = 0
 
-            snapshot.asset = snapshot.equity+snapshot.cash
+            snapshot.asset = snapshot.equity + snapshot.cash
 
             # asset gain over previous day's
             if prev:
-                snapshot.asset_gain_pcnt = (snapshot.asset - prev.asset)/prev.asset*100
+                snapshot.asset_gain_pcnt = (snapshot.asset - prev.asset) / prev.asset * 100
             else:
                 snapshot.asset_gain_pcnt = 0
 
             # asset gain over T0
             if t0:
-                snapshot.asset_gain_pcnt_t0 = snapshot.asset/t0.asset
+                snapshot.asset_gain_pcnt_t0 = snapshot.asset / t0.asset
             else:
                 snapshot.asset_gain_pcnt_t0 = 0
 
             # gain from closing positions on_date
             tmp = MyPosition.objects.filter(
-                simulation = self.simulation,
-                close_date = on_date
-            ).aggregate(gain_from_exit = Sum('gain'))
+                simulation=self.simulation,
+                close_date=on_date
+            ).aggregate(gain_from_exit=Sum('gain'))
             if tmp['gain_from_exit']:
                 snapshot.gain_from_exit = tmp['gain_from_exit']
             else:
@@ -343,6 +341,7 @@ class MySimulationAlpha(MySimulation):
             self.capital -= pos.vol * pos.position
         MyPosition.objects.bulk_create(buy_records)
 
+
 class MySimulationJK(MySimulation):
     """
     Trading strategy:
@@ -377,7 +376,7 @@ class MySimulationJK(MySimulation):
             # will lead ot wrong gain value and so on.
             # The adj close price, on the other hand, has been adjusted for stock
             # splits, therefore is "stable" and consistent.
-            simulated_spot = his['adj_close']  
+            simulated_spot = his['adj_close']
 
             # for example, if sell_cutoff = 0.1,
             # we sell if daily spot is greater than 110% of our cost
@@ -414,7 +413,7 @@ class MySimulationJK(MySimulation):
             if daily_return > -1 * self.buy_cutoff:
                 continue
 
-            # if it passed threshold test, buy at today's 
+            # if it passed threshold test, buy at today's
             # adj close. Again, account for stock split.
             simulated_spot = his['open_price']
 
