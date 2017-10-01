@@ -118,7 +118,7 @@ elif DEPLOY_TYPE == 'production':
         #}
         'default': {
             'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'jk',
+            'NAME': 'lenovo',
                     'USER': PRODUCTION_DB_USER,
                     'PASSWORD': PRODUCTION_DB_PWD,
                     # Or an IP Address that your DB is hosted on

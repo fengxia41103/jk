@@ -1,106 +1,60 @@
 {% extends "stock/common/base.html" %}
 
 {% block page-header %}
-	S&P500
+S&P500
 {% endblock %}
 
 
 {% block content %}
-	<table class="table table-striped table-hover" id="stock-list">
-	<thead>
-		<th>Symbol</th>
-		<th>Company Name</th>
-		<th>PE</th>
-		<th>Prev Open</th>
-		<th>Prev Close</th>
-		<th>Vol (000)</th>
-		<th>Float (M)</th>
-		<th>Day Open</th>
-		<th>Last</th>
-		<th>2 Day Open/Close</th>
-		<th>Trend</th>
-		<th>Overall</th>
-	</thead>
-	<tbody>
-		{% for obj in object_list %}
-		<tr><td>
-			<a href="{% url 'backtesting_1' obj.symbol%}">{{obj.symbol}}</a>
-		</td><td>
-			{{ obj.company_name }}
-		</td><td>
-			{{ obj.pe|floatformat:2 }}
-		</td><td>
-			{{ obj.prev_open|floatformat:2 }}
-		</td><td>
-			{{ obj.prev_close|floatformat:2 }}
-		</td><td>
-			{{ obj.vol }}
-		</td><td>
-			{{ obj.float_share }}
-		</td><td>
-			{{ obj.day_open|floatformat:2 }}
-		</td><td>
-			{{ obj.last|floatformat:2 }}
-		</td><td class="spark">
-			{{ obj.prev_open|floatformat:2}},
-			{{ obj.prev_close|floatformat:2 }},
-			{{ obj.day_open|floatformat:2 }},
-			{{ obj.last|floatformat:2 }}
-		</td><td>
-			{% if obj.prev_open > obj.close %}
-				{% if obj.day_open > obj.last %}
-				\ &rarr; \
-				{% else %}
-				\ &rarr; /
-				{% endif %}
-			{% else %}
-				{% if obj.day_open > obj.last %}
-				/ &rarr; \
-				{% else %}
-				/ &rarr; /
-				{% endif %}				
-			{% endif %}
-		</td><td>
-			{% if obj.last > obj.prev_open %}
-				/
-			{% else %}
-				\
-			{% endif %}
-		</td></tr>
-    	{% endfor %}
-	</tbody>
-	</table>
+<table class="table table-striped table-hover" id="stock-list">
+  <thead>
+    <th>Symbol</th>
+    <th>Company Name</th>
+    <th>is SP500</th>
+  </thead>
+  <tbody>
+    {% for obj in object_list %}
+    <tr><td>
+      {{ obj.symbol }}
+    </td><td>
+      {{ obj.company_name }}
+    </td><td>
+      {{ obj.is_sp500 }}
+    </td></tr>
+    {% endfor %}
+  </tbody>
+</table>
 {% endblock %}
 
 {% block custom_js %}
 <script type="text/javascript">
-	function update_stock(){
-	    // ajax to server to get a list of columns:4"markers that are within the viewport
-	    j$.post("{% url 'stock_update' %}", // passed in from view
-	        {
-	        }, 
-	        function(resp) { // success callback
-	            //toastr.info('Spot price updated');
-	            setTimeout(update_stock, 60000); // refresh every 60 seconds
-	        },'json'
-	    ).always(function(){
-			// remove spinner      	
-	    });  	
-	}	
+ function update_stock(){
+   // ajax to server to get a list of columns:4"markers that are within the viewport
+   j$.post("{% url 'stock_update' %}", // passed in from view
+	   {
+	   }, 
+	   function(resp) { // success callback
+	     //toastr.info('Spot price updated');
+	     setTimeout(update_stock, 60000); // refresh every 60 seconds
+	   },'json'
+   ).always(function(){
+     // remove spinner      	
+   });  	
+ }	
 
-	j$(document).ready(function(){
-		/* Use 'html' instead of an array of values to pass options 
-        to a sparkline with data in the tag */
-        j$('.spark').sparkline('html', {type: 'line',width:"100px"} );	
+ j$(document).ready(function(){
+   /* Use 'html' instead of an array of values to pass options 
+      to a sparkline with data in the tag */
+   j$('.spark').sparkline('html', {type: 'line',width:"100px"} );	
 
-		j$('#stock-list').DataTable({
-			"lengthMenu": [[50,100, -1], [50, 100, "All"]],
-			"info": false,
-			'pagingType': 'simple'
-		});	
-		
-		update_stock();		
-	});
+   j$('#stock-list').DataTable({
+     "lengthMenu": [[50,100, -1], [50, 100, "All"]],
+     "info": false,
+     'pagingType': 'simple'
+   });	
+   
+   //update_stock();		
+ });
 </script>
 {% endblock %}
 

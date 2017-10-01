@@ -1,12 +1,13 @@
-from django.conf.urls import patterns, url
-from django.conf.urls import url
-from django.views.generic.edit import CreateView
-from django.contrib.auth.forms import UserCreationForm
 import django.contrib.auth.views as AuthViews
-from django.views.decorators.csrf import ensure_csrf_cookie
 from django.conf import settings
+from django.conf.urls import patterns
+from django.conf.urls import url
 from django.conf.urls.static import static
+from django.contrib.auth.forms import UserCreationForm
 from django.views.decorators.cache import cache_page
+from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.generic.edit import CreateView
+
 from stock import views
 
 urlpatterns = patterns(
@@ -68,8 +69,6 @@ urlpatterns = patterns(
     url(r'^condition/detail/(?P<pk>\d+)/$',
         views.MySimulationConditionDetail.as_view(), name='condition_detail'),
 
-    url(r'^backtesting/s1/(?P<symbol>\w+)/$',
-        views.MyStockStrategy1Detail.as_view(), name='backtesting_1'),
     url(r'^backtesting/simulation/$',
         views.MySimulationExec.as_view(), name='simulation_exec'),
     url(r'^backtesting/result/$', views.MySimulationResultList.as_view(),

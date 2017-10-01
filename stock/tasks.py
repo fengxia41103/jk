@@ -85,7 +85,8 @@ class MyStockFlagSP500():
                 logger.error('[%s] error, %d' % (vals[0], len(vals)))
                 continue
 
-            stock, created = MyStock.objects.get_or_create(symbol=vals[0], is_sp500=True)
+            stock, created = MyStock.objects.get_or_create(symbol=vals[0])
+            stock.company_name = vals[1]
             stock.is_sp500 = True
             stock.sector = vals[-1]
             stock.save()
@@ -97,95 +98,6 @@ def stock_flag_sp500_consumer():
     http_agent = PlainUtility()
     crawler = MyStockFlagSP500(http_agent)
     crawler.parser()
-
-
-class MyStockBacktesting_1():
-
-    def __init__(self):
-        pass
-
-    def parser(self, symbol):
-        logger.debug('%s starting' % symbol)
-        exec_start = time.time()
-
-        records = MyStockHistorical.objects.filter(
-            stock__symbol=symbol).order_by('date_stamp')
-
-        # The starting point is depending on how much past data your strategy is calling for.
-        # For example, if we are to calculate 10 weeks of fib score, we need at
-        # least 10 weeks of history data.
-        start = 10
-        if start > len(records):
-            logger.error('%s: not enough data' % symbol)
-            return
-
-        t0 = None
-        for i in range(start, len(records)):
-            logger.debug('%s: %d/%d' % (symbol, i, len(records)))
-            prev_d = records[i - 1]
-            t0 = records[i]  # set T0
-            now = t0.date_stamp
-
-            # day changes
-            # simulate a middle point between high and low as spot
-            spot = float(t0.high_price + t0.low_price) / 2.0
-            oneday_change = (spot - float(t0.open_price)) / \
-                float(t0.open_price) * 100.0
-            twoday_change = (spot - float(prev_d.open_price)) / \
-                float(prev_d.open_price) * 100.0
-
-            # week changes
-            ago = now + relativedelta(days=-5)  # search for last week's
-            prev_week = records.filter(stock=t0.stock, date_stamp=ago)
-            if prev_week:
-                prev_week = prev_week[0]
-            else:
-                continue  # not enough data points for this strategy
-            week_change = (spot - float(prev_week.open_price)) / \
-                float(prev_week.open_price) * 100.0
-
-            # month changes
-            ago = now + relativedelta(months=-1)  # search for last month's
-            prev_mon = records.filter(stock=t0.stock, date_stamp=ago)
-            if prev_mon:
-                prev_mon = prev_mon[0]
-            else:
-                continue  # not enough data points for this strategy
-            month_change = (spot - float(prev_mon.open_price)) / \
-                float(prev_mon.open_price) * 100.0
-
-            # consistency
-            if oneday_change > 0 and twoday_change > 0 and week_change > 0 and month_change > 0:
-                trend_is_consistent_gain = True
-            else:
-                trend_is_consistent_gain = False
-
-            if oneday_change < 0 and twoday_change < 0 and week_change < 0 and month_change < 0:
-                trend_is_consistent_loss = True
-            else:
-                trend_is_consistent_loss = False
-
-            """
-            Strategy: marked as "G" if trend is consistently gaining, "L" if consistently losing, "U" if otherwise.
-            """
-            if trend_is_consistent_gain:
-                t0.flag_by_strategy = 'G'  # "gain"
-            elif trend_is_consistent_loss:
-                t0.flag_by_strategy = 'L'  # "loss"
-            else:
-                t0.flag_by_strategy = 'U'  # stands for "unknown"
-
-            # save to DB
-            t0.save()
-
-        logger.debug('%s completed, elapse %f' %
-                     (symbol, time.time() - exec_start))
-
-
-@shared_task
-def backtesting_s1_consumer(symbol):
-    crawler = MyStockBacktesting_1()
-    crawler.parser(symbol)
 
 
 class MyStockBacktestingSimulation():

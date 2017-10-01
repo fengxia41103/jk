@@ -155,7 +155,7 @@ class LoginView(FormView):
 
         if user is not None and user.is_active:
             login(self.request, user)
-            return HttpResponseRedirect(reverse_lazy('simulation_result_list'))
+            return HttpResponseRedirect(reverse_lazy('stock_list'))
         else:
             return self.form_invalid(form)
 
@@ -543,62 +543,6 @@ class MyStockCandidateList(ListView):
                       x.fib_daily_score_pcnt + float(x.oneday_change) > 0 and
                       x.fib_daily_score_pcnt + float(x.twoday_change) > 0,
                       stocks)
-
-
-@class_view_decorator(login_required)
-class MyStockStrategy1Detail(TemplateView):
-    model = MyStockHistorical
-    template_name = 'stock/backtesting/s1_detail.html'
-
-    def occurrences(self, haystack, needle):
-        """Count occurences of a substring within a string.
-
-        This is a helper function to count the number of occurance
-        of a pattern (substring) within a string.
-
-        Args:
-                :haystack: a string or list. The long string we are to search for a pattern.
-                :needle: a string or list. the pattern we are searching.
-
-        Returns:
-                :int: number of occurance
-        """
-        return sum(haystack[i:i + len(needle)] == needle for i in xrange(len(haystack) - len(needle) + 1))
-
-    def get_context_data(self, **kwargs):
-        context = super(TemplateView, self).get_context_data(**kwargs)
-        stock = MyStock.objects.get(symbol__iexact=self.kwargs['symbol'])
-        context['stock'] = stock
-
-        histories = tmp = ''.join(MyStockHistorical.objects.filter(
-            stock=stock).values_list('flag_by_strategy', flat=True).order_by('date_stamp'))
-        tmp = re.sub('[U]+', 'U', tmp)
-        tmp = re.sub('[G]+', 'G', tmp)
-        tmp = re.sub('[L]+', 'L', tmp)
-        context['flag_by_strategy'] = histories
-
-        # probabilities
-        total_sample = len(tmp) - 5 + 1
-        context['prob_ggg'] = self.occurrences(tmp, 'GUGUG')
-        context['prob_ggl'] = self.occurrences(tmp, 'GUGUL')
-        context['prob_glg'] = self.occurrences(tmp, 'GULUG')
-        context['prob_gll'] = self.occurrences(tmp, 'GULUL')
-        context['prob_lgg'] = self.occurrences(tmp, 'LUGUG')
-        context['prob_lgl'] = self.occurrences(tmp, 'LUGUL')
-        context['prob_llg'] = self.occurrences(tmp, 'LULUG')
-        context['prob_lll'] = self.occurrences(tmp, 'LULUL')
-        context['prob_conseq_u'] = FreqDist(
-            [str(len(x)) for x in re.findall('[U]+', histories)]).most_common(10)
-        context['prob_conseq_g'] = FreqDist(
-            [str(len(x)) for x in re.findall('[G]+', histories)]).most_common(10)
-        context['prob_conseq_l'] = FreqDist(
-            [str(len(x)) for x in re.findall('[L]+', histories)]).most_common(10)
-        context['ending_g_over_l'] = sum([context['prob_ggg'], context['prob_glg'], context['prob_lgg'], context[
-                                         'prob_llg']]) * 1.0 / sum([context['prob_ggl'], context['prob_gll'], context['prob_lgl'], context['prob_lll']])
-
-        context['peers'] = MyStock.objects.all(
-        ).values_list('symbol', flat=True)
-        return context
 
 
 @class_view_decorator(login_required)

@@ -27,15 +27,15 @@ from django.conf import settings
 from django.db.models.loading import get_model
 from django.utils import timezone
 
+sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
+
+
 # import models
 from stock.models import *
 from stock.simulations import *
 from stock.tasks import *
 from stock.utility import JSONEncoder
-
-sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
-
 
 logger = logging.getLogger('jk')
 
@@ -97,11 +97,6 @@ def crawl_alpha_historical():
         is_sp500=True).values_list('symbol', flat=True)
     for s in symbols:
         stock_historical_alpha_consumer.delay(s)
-
-
-def backtest_s1():
-    for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol', flat=True))):
-        backtesting_s1_consumer.delay(symbol)
 
 
 def consumer_daily_return():
@@ -253,6 +248,7 @@ def main():
     # populate_sp_500()
 
     # Pull historical data
+    # stock_flag_sp500_consumer.delay()
     crawl_alpha_historical()
 
     # Pull spot data
@@ -273,9 +269,6 @@ def main():
     #     capital = 10000,
     #     per_trade = 500
     # )
-
-    # back test type 1
-    # backtest_s1()
 
     # rerun simulations
     # rerun_existing_simulations()
