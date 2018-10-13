@@ -38,7 +38,6 @@ from influxdb.influxdb08 import InfluxDBClient
 from lxml.html.clean import clean_html
 from numpy import mean
 from numpy import std
-from scipy import stats
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
@@ -49,6 +48,7 @@ from selenium.webdriver.support.ui import \
 
 from jk.production_envvars import ALPHAVANTAGE_KEY
 from jk.tor_handler import *
+from scipy import stats
 from stock.models import *
 from stock.simulations import *
 
@@ -111,9 +111,11 @@ class MyStockBacktestingSimulation():
         """Simulation run.
 
         Arguments:
-                :is_update: True if we are to remove existing simulation results and run
-                        simulation from scratch; False will exit if there are existing results already
-                        so we don't run the same simulation twice.
+            :is_update: True if we are to remove existing
+                    simulation results and run simulation from
+                    scratch; False will exit if there are existing
+                    results already so we don't run the same
+                    simulation twice.
         """
         # pick a user
         user = User.objects.all()[0]
