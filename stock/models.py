@@ -1,31 +1,47 @@
 # -*- coding: utf-8 -*-
 
-from django.db import models
+import itertools
+import logging
+from datetime import datetime as dt
+from decimal import Decimal
+from math import fabs
+
+import numpy as np
+from annoying.fields import JSONField  # django-annoying
 from django.contrib import admin
-from django.forms import ModelForm
+from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.generic import GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.core.urlresolvers import reverse
-from django.contrib.auth.models import User
-from django.utils import timezone
-from annoying.fields import JSONField  # django-annoying
-from django.db.models import Q, F
-from datetime import datetime as dt
-from django.db.models.signals import pre_save, post_save
-from django.dispatch import receiver
 from django.core.mail import send_mail
-from decimal import Decimal
-from django.core.validators import MaxValueValidator, MinValueValidator
-from django.db.models import Avg, Max, Min, Count, Sum
+from django.core.urlresolvers import reverse
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
+from django.db import models
+from django.db.models import Avg
+from django.db.models import Count
+from django.db.models import F
+from django.db.models import Max
+from django.db.models import Min
+from django.db.models import Q
+from django.db.models import Sum
+from django.db.models.signals import post_save
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
+from django.forms import ModelForm
+from django.utils import timezone
+######################################################
+#
+#   RESTful API endpoints
+#
+#####################################################
+from rest_framework import filters
+from rest_framework import serializers
+from rest_framework import viewsets
 
-from math import fabs
-import numpy as np
-import itertools
-
-import logging
 logger = logging.getLogger('jk')
 logger.setLevel(logging.DEBUG)
+
 
 class MyBaseModel (models.Model):
     # fields
@@ -151,7 +167,10 @@ class MyStockCustomManager(models.Manager):
         """Filter by PE threshold defined in user profile.
 
         Args:
-                :user: User model object. Each user has a 1-1 relashionship to a UserProfile.
+
+        :user: User model object. Each user has a 1-1
+               relashionship to a UserProfile.
+
         """
         data = self.get_queryset()
 
@@ -165,7 +184,7 @@ class MyStockCustomManager(models.Manager):
         """Filter previou day change is > 0.
 
         Args:
-                :user: User model object.
+        :user: User model object.
         """
         # data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0,day_open__lte=F('prev_close')).order_by('-prev_change')[:top_count]
         data = self.filter_by_user_pe_threshold(user).filter(
@@ -242,9 +261,9 @@ class MyStock(models.Model):
         verbose_name=u'Is a China stock'
     )
     is_index = models.BooleanField(
-        default = False,
-        verbose_name = u'Is an index',
-        help_text = u'Index is a derived value from basket of stocks'
+        default=False,
+        verbose_name=u'Is an index',
+        help_text=u'Index is a derived value from basket of stocks'
     )
     prev_close = models.DecimalField(
         max_digits=20,
@@ -382,7 +401,7 @@ class MyStock(models.Model):
         """Midday change percentage
 
         Midday change is computed as:
-                (last polled bid price/today's openning price) in %
+        (last polled bid price/today's openning price) in %
         """
         if self.day_open:
             return (self.last - self.day_open) / self.day_open * Decimal(100)
@@ -402,8 +421,9 @@ class MyStock(models.Model):
     def _week_change(self):
         """Weekly closing price over the same week's openning price.
 
-        Data is saved in week_adjusted_close as (open,close) delimited by comma.
-        This format is copied by Yahoo!Finance.
+        Data is saved in week_adjusted_close as (open,close) delimited
+        by comma.  This format is copied by Yahoo!Finance.
+
         """
         if self.week_adjusted_close:
             vals = self.week_adjusted_close.split(',')
@@ -764,25 +784,25 @@ class MyPosition(models.Model):
     close_date = models.DateField(
         null=True,
         blank=True,
-        default = None, # if close_date == None, this is an open position
+        default=None,  # if close_date == None, this is an open position
         verbose_name=u'Position close date'
     )
     life_in_days = models.IntegerField(
-        default = 0,
-        verbose_name = u'Life in days'
+        default=0,
+        verbose_name=u'Life in days'
     )
     gain = models.DecimalField(
         max_digits=20,
         decimal_places=5,
         default=0.0,
         verbose_name=u'Gain'
-    )    
+    )
     cost = models.DecimalField(
         max_digits=20,
         decimal_places=5,
         default=0.0,
         verbose_name=u'Cost'
-    )  
+    )
 
     def add(self, user, price, vol, source='simulation', on_date=None):
         """
@@ -836,13 +856,13 @@ class MyPosition(models.Model):
             self.close_date = on_date
         else:
             self.close_date = dt.now().date()
-        self.life_in_days = (self.close_date - self.open_date).days  
+        self.life_in_days = (self.close_date - self.open_date).days
 
         """Realized gain/loss.
 
         Profit/loss realized by holding this stock till closing.
-        """         
-        self.gain = (self.close_position - self.position) * self.vol         
+        """
+        self.gain = (self.close_position - self.position) * self.vol
         self.save()
 
     def _potential_gain(self):
@@ -873,6 +893,7 @@ class MyPosition(models.Model):
         """
         return (dt.now().date() - self.created.date()).days
     elapse_in_days = property(_elapse_in_days)
+
 
 @receiver(pre_save, sender=MyPosition)
 def day_change_handler(sender, **kwargs):
@@ -1027,7 +1048,7 @@ class MySimulationCondition(models.Model):
                            "sell_cutoff")
 
     def _snapshots(self):
-        return MySimulationSnapshot.objects.filter(simulation = self)
+        return MySimulationSnapshot.objects.filter(simulation=self)
     snapshots = property(_snapshots)
 
     def _snapshots_sort_by_date(self):
@@ -1059,7 +1080,7 @@ class MySimulationCondition(models.Model):
 
         This is computed from individual sells.
         """
-        return MyPosition.objects.filter(simulation=self,is_open=False).count()
+        return MyPosition.objects.filter(simulation=self, is_open=False).count()
     num_of_sells = property(_num_of_sells)
 
     def _asset_daily_return(self):
@@ -1068,7 +1089,7 @@ class MySimulationCondition(models.Model):
         This index shows how a user's asset fluctuates from day to day
         during simulation period.
         """
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt', flat=True).order_by('on_date')    
+        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt', flat=True).order_by('on_date')
     asset_daily_return = property(_asset_daily_return)
 
     def _asset_gain_pcnt_t0(self):
@@ -1078,7 +1099,7 @@ class MySimulationCondition(models.Model):
         This can be viewed as an overall performance indicator over time.
         """
         # return [x.asset_gain_pcnt_t0 for x in self.snapshots]
-        return list(MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt_t0',flat=True).order_by('on_date'))
+        return list(MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt_t0', flat=True).order_by('on_date'))
     asset_gain_pcnt_t0 = property(_asset_gain_pcnt_t0)
 
     def _asset_end_return(self):
@@ -1145,17 +1166,17 @@ class MySimulationCondition(models.Model):
         this value, we could apply a strategy that dictate 
         by how long we can hold a position.
         """
-        life_in_days = MyPosition.objects.filter(simulation=self, is_open = False).annotate(
-            max_life = Max('life_in_days'),
-            avg_life = Avg('life_in_days')
+        life_in_days = MyPosition.objects.filter(simulation=self, is_open=False).annotate(
+            max_life=Max('life_in_days'),
+            avg_life=Avg('life_in_days')
         )
 
         # life_in_days = [s.life_in_days for s in sells]
 
         # index [0] is the min(), [-1] is the max()floatformat
-        # min is skipped since it is always 0 because 
+        # min is skipped since it is always 0 because
         # we may be buying and unloading a stock on the same day
-        return (('max',life_in_days['max_life']), ('Avg',life_in_days['avg_life']))
+        return (('max', life_in_days['max_life']), ('Avg', life_in_days['avg_life']))
     equity_life_in_days = property(_equity_life_in_days)
 
     def _stock_sell_stat(self):
@@ -1165,8 +1186,8 @@ class MySimulationCondition(models.Model):
             max_life=Max('life_in_days'),
             min_life=Min('life_in_days'),
             avg_life=Avg('life_in_days'),
-            num_of_trades = Count('symbol')
-        ).filter(simulation = self, is_open=False)
+            num_of_trades=Count('symbol')
+        ).filter(simulation=self, is_open=False)
         return sells
     stock_sell_stat = property(_stock_sell_stat)
 
@@ -1186,12 +1207,13 @@ class MySimulationCondition(models.Model):
 #         pe_high = int(user_profile.pe_threshold.split('-')[1])
 #         return data.filter(pe__gte=pe_low, pe__lte=pe_high)
 
+
 class MySimulationSnapshot(models.Model):
     """Simulation snapshot.
     """
     # custom managers
     # Note: the 1st one defined will be taken as the default!
-    # objects = MyStockCustomManager()    
+    # objects = MyStockCustomManager()
 
     simulation = models.ForeignKey('MySimulationCondition')
     on_date = models.DateField(
@@ -1202,41 +1224,41 @@ class MySimulationSnapshot(models.Model):
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Cash',
-        default = 0
+        default=0
     )
     equity = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Equity',
-        default = 0
+        default=0
     )
     asset = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Asset',
-        default = 0
+        default=0
     )
     gain_from_holding = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Gain from holding',
-        default = 0
+        default=0
     )
     gain_from_exit = models.DecimalField(
         max_digits=20,
         decimal_places=4,
         verbose_name=u'Gain from exit',
-        default = 0
-    )    
+        default=0
+    )
     asset_gain_pcnt = models.FloatField(
-        verbose_name = u'Asset gain from previous day',
-        default = 0,
-        help_text = u"This measures asset return in pcnt comparing to previous day"
+        verbose_name=u'Asset gain from previous day',
+        default=0,
+        help_text=u"This measures asset return in pcnt comparing to previous day"
     )
     asset_gain_pcnt_t0 = models.FloatField(
-        verbose_name = u'Asset gain from T0',
-        default = 0,
-        help_text = u"This measures asset return in pcnt comparing to T0's"
+        verbose_name=u'Asset gain from T0',
+        default=0,
+        help_text=u"This measures asset return in pcnt comparing to T0's"
     )
 
     def _buy_transactions(self):
@@ -1248,10 +1270,10 @@ class MySimulationSnapshot(models.Model):
         by our simulation run and belongs to this snapshot (by on_date).
         """
         buys = MyPosition.objects.filter(
-            simulation = self.simulation,
-            open_date = self.on_date # this is when position was created as a buy
+            simulation=self.simulation,
+            open_date=self.on_date  # this is when position was created as a buy
         ).order_by('stock__symbol')
-        return buys 
+        return buys
     buy_transactions = property(_buy_transactions)
 
     def _sell_transactions(self):
@@ -1261,8 +1283,8 @@ class MySimulationSnapshot(models.Model):
         instead of open_date.
         """
         sells = MyPosition.objects.filter(
-            simulation = self.simulation,
-            close_date = self.on_date # this is when position was closed as a sell
+            simulation=self.simulation,
+            close_date=self.on_date  # this is when position was closed as a sell
         ).order_by('stock__symbol')
         return sells
     sell_transactions = property(_sell_transactions)
@@ -1275,18 +1297,12 @@ class MySimulationSnapshot(models.Model):
         2. its close date is either missing (still opened) or later than on_date
         """
         return MyPosition.objects.filter(
-            Q(simulation = self.simulation) & Q(open_date__lte = self.on_date),
-            Q(close_date__isnull = True) | Q(close_date__gt = self.on_date)
+            Q(simulation=self.simulation) & Q(open_date__lte=self.on_date),
+            Q(close_date__isnull=True) | Q(close_date__gt=self.on_date)
         ).order_by('stock__symbol')
 
     equities = property(_equities)
 
-######################################################
-#
-#   RESTful API endpoints
-#
-#####################################################
-from rest_framework import serializers, viewsets, filters
 
 # Serializers define the API representation.
 

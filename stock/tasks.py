@@ -1,62 +1,69 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
 
-from celery import shared_task
-
-import lxml.html
-import simplejson as json
-import pytz
-import logging
-from random import randint
-import time
+import codecs
+import cPickle
+import csv
+import datetime as dt
 import hashlib
+import logging
+import os
+import os.path
+import re
+import StringIO
+import sys
+import time
 import urllib
 import urllib2
-from tempfile import NamedTemporaryFile
-from django.core.files import File
-from django.contrib.auth.models import User
-
-import codecs
-from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
-# available since 2.26.0
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-import re
-import cPickle
-import sys
 from datetime import timedelta
-import datetime as dt
+from decimal import Decimal
 from itertools import izip_longest
-from lxml.html.clean import clean_html
-from math import cos, sin
+from math import cos
+from math import sin
+from random import randint
+from random import shuffle
+from tempfile import NamedTemporaryFile
+
+import lxml.html
 import numpy as np
+import pytz
+import simplejson as json
+import xlrd
+import xlwt
+from celery import shared_task
+from dateutil.relativedelta import relativedelta
+from django.contrib.auth.models import User
+from django.core.files import File
+from influxdb.influxdb08 import InfluxDBClient
+from lxml.html.clean import clean_html
+#################################
+#
+#   Alpha strategy values
+#
+#################################
+from numpy import mean
+from numpy import std
 from scipy import stats
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.select import Select
+from selenium.webdriver.support.ui import \
+    WebDriverWait  # available since 2.4.0
 
 from jk.tor_handler import *
 from stock.models import *
 from stock.simulations import *
 
-import logging
 logger = logging.getLogger('jk')
+
 
 def grouper(iterable, n, padvalue=None):
     # grouper('abcdefg', 3, 'x') --> ('a','b','c'), ('d','e','f'),
     # ('g','x','x')
     return list(izip_longest(*[iter(iterable)] * n, fillvalue=padvalue))
 
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
-# available since 2.26.0
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.select import Select
-from random import shuffle
-from decimal import Decimal
-import csv
-import StringIO
-from dateutil.relativedelta import relativedelta
 
 
 class MyStockFlagSP500():
@@ -325,7 +332,7 @@ class MyStockHistoricalYahoo():
         ago = now + relativedelta(years=-20)  # 20 years
 
         date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d' % (
-            ago.month, ago.day, ago.year, now.month, now.day, now.year+1)
+            ago.month, ago.day, ago.year, now.month, now.day, now.year + 1)
         url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (
             symbol, date_str)
         logger.debug(url)
@@ -340,7 +347,7 @@ class MyStockHistoricalYahoo():
                 # protect from blank line or invalid symbol, eg. China stock symbols
                 # logger.debug('not vals')
                 continue
-            elif not reduce(lambda x, y: x and y, vals): 
+            elif not reduce(lambda x, y: x and y, vals):
                 # any empty string, None will be skipped
                 # logger.debug('not all columns have value')
                 continue
@@ -353,7 +360,7 @@ class MyStockHistoricalYahoo():
 
             # stamp = [int(v) for v in vals[0].split('-')]
             # date_stamp = dt(year=stamp[0], month=stamp[1], day=stamp[2])
-            date_stamp = dt.strptime(vals[0],'%Y-%m-%d')
+            date_stamp = dt.strptime(vals[0], '%Y-%m-%d')
             if date_stamp.date().isoformat() in his:
                 # logger.debug('already have this')
                 continue  # we already have these
@@ -512,10 +519,6 @@ def stock_monitor_yahoo_consumer2(symbols):
     crawler = MyStockMonitorYahoo2(http_agent)
     crawler.parser(symbols)
 
-import xlrd
-import xlwt
-import os
-import os.path
 
 
 class MyImportChinaStock():
@@ -644,8 +647,6 @@ def chenmin_consumer(files):
     crawler = MyChenMin()
     crawler.parser(files)
 
-from influxdb.influxdb08 import InfluxDBClient
-import time
 
 
 class MyStockInflux():
@@ -764,7 +765,7 @@ class MyStockBacktesting_1():
             t0.save()
 
         logger.debug('%s completed, elapse %f' %
-                          (symbol, time.time() - exec_start))
+                     (symbol, time.time() - exec_start))
 
 
 @shared_task
@@ -813,7 +814,7 @@ class MyStockBacktestingSimulation():
         simulator.run()
 
         logger.debug(' %s simulation end %f' %
-                          (self.condition, time.time() - exec_start))
+                     (self.condition, time.time() - exec_start))
 
 
 @shared_task
@@ -821,16 +822,10 @@ def backtesting_simulation_consumer(condition, is_update=False):
     crawler = MyStockBacktestingSimulation(condition)
     crawler.run(is_update)
 
-#################################
-#
-#   Alpha strategy values
-#
-#################################
-from numpy import mean, std
 
 
 class MyStockStrategyValue(object):
-    """Abstract model that defines a "run" method 
+    """Abstract model that defines a "run" method
     that can overriden by children class to define
     their own compute_value method, which computes
     the so called index value per strategy.
@@ -838,7 +833,7 @@ class MyStockStrategyValue(object):
 
     def __init__(self):
         pass
-        
+
     def run(self, symbol, window_length):
         logger.debug('%s starting' % symbol)
         exec_start = time.time()
@@ -869,7 +864,7 @@ class MyStockStrategyValue(object):
             t0.save()
 
         logger.debug('%s completed, elapse %f' %
-                          (symbol, time.time() - exec_start))
+                     (symbol, time.time() - exec_start))
 
     def compute_value(self, t0, window):
         """Overriden by child class to execute computation.
@@ -880,7 +875,9 @@ class MyStockStrategyValue(object):
 class MyStockDailyReturn(MyStockStrategyValue):
     """Daily return value.
 
-    Compute historical oneday_change = (today's close - prev's close)/prev's close *100
+    Compute historical oneday_change = (today's close - prev's
+    close)/prev's close *100
+
     """
 
     def __init__(self):
@@ -899,9 +896,10 @@ class MyStockDailyReturn(MyStockStrategyValue):
 
         # compute nightly return
         if t0.adj_close and prev.adj_close:
-            t0.overnight_return = (t0.adj_close - prev.adj_close)/prev.adj_close*100
+            t0.overnight_return = (t0.adj_close - prev.adj_close) / prev.adj_close * 100
         else:
             t0.overnight_return = 0
+
 
 @shared_task
 def backtesting_daily_return_consumer(symbol):
@@ -911,7 +909,7 @@ def backtesting_daily_return_consumer(symbol):
 
 class MyStockRelativeHL(MyStockStrategyValue):
     """
-    Relative Position indicator in (H,L) = -100*(Highest(High,Len)-Close)/(Highest(High,Len)-Lowest(Low,Len))+50;   // Len is 40 by default 
+    Relative Position indicator in (H,L) = -100*(Highest(High,Len)-Close)/(Highest(High,Len)-Lowest(Low,Len))+50;   // Len is 40 by default
 
     """
 
@@ -936,8 +934,8 @@ def backtesting_relative_hl_consumer(symbol):
 class MyStockRelativeMovingAvg(MyStockStrategyValue):
     """Relative Position Indicator.
 
-    Using moving Average= (Price - Average(Price,Len))/StdDev(Price,Len). 
-    Len is 40 by default. 
+    Using moving Average= (Price - Average(Price,Len))/StdDev(Price,Len).
+    Len is 40 by default.
     """
 
     def __init__(self,):
@@ -960,12 +958,12 @@ def backtesting_relative_ma_consumer(symbol):
 class MyStockCCI(MyStockStrategyValue):
     """CCI Indicator.
 
-        MA = Average(Price,Len); 
-        value1=0; 
-        for i=0 to Len-1 
+        MA = Average(Price,Len);
+        value1=0;
+        for i=0 to Len-1
                 value1+ = |Price[i]-MA|;
-        value1=value1/Len; 
-        CCI = (Price-MA)/(0.015*value1); 
+        value1=value1/Len;
+        CCI = (Price-MA)/(0.015*value1);
     """
 
     def __init__(self,):
@@ -990,9 +988,9 @@ class MyStockSI(MyStockStrategyValue):
     """SI indicator.
             K = max( |H - C[1]|, |L-C[1]|);
             R = the largest of :
-                    if H-C[1],  then  |H-C[1]|-0.5|L-C[1]|+0.25|C[1]-O[1]| 
-                    if L-C[1],  then  |L-C[1]|-0.5|H-C[1]|+0.25|C[1]-O[1]| 
-                    if H-L,         then  H-L+0.25|C[1]-O[1]| 
+                    if H-C[1],  then  |H-C[1]|-0.5|L-C[1]|+0.25|C[1]-O[1]|
+                    if L-C[1],  then  |L-C[1]|-0.5|H-C[1]|+0.25|C[1]-O[1]|
+                    if H-L,         then  H-L+0.25|C[1]-O[1]|
             SI Indicator = 50*(C-C[1] + 0.5*(C-O) + 0.25*(C[1]-O[1])*K/R
     """
 
@@ -1035,13 +1033,13 @@ class MyStockDecyclerOscillator(MyStockStrategyValue):
     """
     Decycler Oscillator (Price, HPPeriod, K);  HPPeriod=10, K=1
 Alpha1= (Cos(0.707*360/HPPeriod) + Sin(0.707*360/HPPeriod)-1)/Cos(0.707*360/HPPeriod)
-HP = (1-Alpha1/2) * (1-alpha1/2)*(Price-2*Price[1]+Price[2]) + 
+HP = (1-Alpha1/2) * (1-alpha1/2)*(Price-2*Price[1]+Price[2]) +
                 2*(1-Alpha1)*HP[1] -(1-Alpha1)*(1-alpha1)*HP[2];
-Decycle = Price-HP; 
+Decycle = Price-HP;
 Alpha2 = (Cos(0.707*360/(0.5*HPPeriod)) + Sin(0.707*360/(0.5*HPPeriod))-1)/Cos(0.707*360/(0.5*HPPeriod))
-DecycleOsc = (1-Alpha2/2) * (1-alpha2/2)*(Decycle-2*Decycle[1]+Decycle[2]) + 
+DecycleOsc = (1-Alpha2/2) * (1-alpha2/2)*(Decycle-2*Decycle[1]+Decycle[2]) +
                 2*(1-Alpha2)*DecycleOsc[1] -(1-Alpha2)*(1-alpha2)*DecycleOsc[2];
-Indicator= 100*K*DecycleOsc/Price; 
+Indicator= 100*K*DecycleOsc/Price;
     """
 
     def __init__(self,):

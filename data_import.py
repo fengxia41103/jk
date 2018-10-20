@@ -603,17 +603,17 @@ def main():
     '''
     Pull historical data
     '''
-    crawl_update_sp500_historical_yahoo()
+    #crawl_update_sp500_historical_yahoo()
 
     '''
     Pull spot data
     '''
-    crawl_update_sp500_spot_yahoo()
+    #crawl_update_sp500_spot_yahoo()
 
     '''
     Compute strategy index values
     '''
-    # consumer_daily_return()
+    consumer_daily_return()
     # consumer_relative_hl()
     # consumer_relative_ma()
 
