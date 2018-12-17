@@ -88,7 +88,6 @@ from stock.models import *
 from stock.simulations import MySimulationAlpha
 from stock.simulations import MySimulationBuyHighSellLow
 from stock.simulations import MySimulationBuyLowSellHigh
-
 ######################################################
 #
 #   Simulator views
@@ -158,7 +157,7 @@ class LoginView(FormView):
 
         if user is not None and user.is_active:
             login(self.request, user)
-            return HttpResponseRedirect(reverse_lazy('stock_list'))
+            return HttpResponseRedirect(reverse_lazy('simulation_result_list'))
         else:
             return self.form_invalid(form)
 
@@ -317,11 +316,11 @@ class MyStockUpdate(TemplateView):
         total = 500
         symbols = MyStock.objects.filter(
             is_sp500=True).values_list('symbol', flat=True)
-        # for i in xrange(total / step):
-        #     stock_monitor_yahoo_consumer.delay(
-        #         ','.join(symbols[i * step:(i * step + step)]))
-        #     stock_monitor_yahoo_consumer2.delay(
-        #         ','.join(symbols[i * step:(i * step + step)]))
+        for i in xrange(total / step):
+            stock_monitor_yahoo_consumer.delay(
+                ','.join(symbols[i * step:(i * step + step)]))
+            stock_monitor_yahoo_consumer2.delay(
+                ','.join(symbols[i * step:(i * step + step)]))
 
         return HttpResponse(json.dumps({'status': 'ok'}),
                             content_type='application/javascript')
@@ -602,6 +601,7 @@ class MyStockStrategy1Detail(TemplateView):
         context['peers'] = MyStock.objects.all(
         ).values_list('symbol', flat=True)
         return context
+
 
 @class_view_decorator(login_required)
 class MySimulationExec(FormView):

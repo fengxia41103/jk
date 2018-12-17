@@ -21,11 +21,6 @@ import urllib2
 from decimal import Decimal
 
 import django
-
-sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
-
-
 import lxml.html
 import simplejson as json
 import xlrd
@@ -55,6 +50,10 @@ from stock.tasks import stock_prev_month_yahoo_consumer
 from stock.tasks import stock_prev_week_yahoo_consumer
 from stock.tasks import stock_prev_yahoo_consumer
 from stock.utility import JSONEncoder
+
+sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
+
 
 
 
@@ -513,8 +512,8 @@ def batch_simulation_daily_return(date_range, strategies=[1, 2], capital=10000, 
                 cutoffs = itertools.product(buy_cutoff, sell_cutoff)
                 # cutoffs = [(1,1)]
             elif strategy == 3:
-                buy_cutoff = range(1, 10, 1)
-                sell_cutoff = range(1, 10, 1)
+                buy_cutoff = range(1, 6, 1)
+                sell_cutoff = range(1, 6, 1)
                 cutoffs = itertools.product(buy_cutoff, sell_cutoff)
 
             # Set up simulation condition objects based on

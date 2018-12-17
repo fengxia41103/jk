@@ -204,7 +204,7 @@ class MySimulation(object):
 
                     # ASSMPTION: without knowing what happened, we assume that
                     # this stock was bought w/ a 20% premium!
-                    simulated_spot = p['position'] * 1.2
+                    simulated_spot = p['position'] * Decimal(1.2)
 
                 # record the spot equity value
                 if p['vol'] * simulated_spot == 0:
