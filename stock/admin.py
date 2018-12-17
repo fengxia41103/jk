@@ -7,8 +7,15 @@ from stock.models import *
 
 
 class MyStockAdmin(admin.ModelAdmin):
-    list_filter = ['is_sp500', 'is_in_play', 'is_composite']
-    list_display = ('company_name', 'symbol')
-
-
+    list_filter = ['is_sp500', 'is_in_play', 'is_index']
+    list_display = ('company_name', 'symbol', 'pe', 'day_open',
+                    'day_low', 'day_high', 'is_in_play')
 admin.site.register(MyStock, MyStockAdmin)
+
+
+class MySimulationConditionAdmin(admin.ModelAdmin):
+    list_display = ("data_source", "strategy", "data_sort", "start",
+                    "end", "capital", "per_trade", "buy_cutoff", "sell_cutoff")
+
+    list_filter = ("strategy", "buy_cutoff", "sell_cutoff")
+admin.site.register(MySimulationCondition, MySimulationConditionAdmin)

@@ -228,7 +228,10 @@ class MyStockCustomManager(models.Manager):
         """Filter by PE threshold defined in user profile.
 
         Args:
-                :user: User model object. Each user has a 1-1 relashionship to a UserProfile.
+
+        :user: User model object. Each user has a 1-1
+               relashionship to a UserProfile.
+
         """
         data = self.get_queryset()
 
@@ -242,7 +245,7 @@ class MyStockCustomManager(models.Manager):
         """Filter previou day change is > 0.
 
         Args:
-                :user: User model object.
+        :user: User model object.
         """
         # data = self.filter_by_user_pe_threshold(user).filter(prev_change__gt=0,day_open__lte=F('prev_close')).order_by('-prev_change')[:top_count]
         data = self.filter_by_user_pe_threshold(user).filter(
@@ -279,6 +282,83 @@ class MyStock(models.Model):
         verbose_name=u'Is a composite stock',
         help_text=u'Composite is a derived value from basket of stocks'
     )
+    is_index = models.BooleanField(
+        default=False,
+        verbose_name=u'Is an index',
+        help_text=u'Index is a derived value from basket of stocks'
+    )
+    prev_close = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Prev day closing price'
+    )
+    prev_open = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Prev day opening price'
+    )
+    prev_high = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Prev day highest price'
+    )
+    prev_low = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Prev day lowest price'
+    )
+    prev_vol = models.IntegerField(
+        default=0,
+        verbose_name=u'Prev day volume'
+    )
+    day_open = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Today opening price'
+    )
+    pe = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'P/E'
+    )
+    bid = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Bid price'
+    )
+    ask = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Ask price'
+    )
+    vol = models.FloatField(
+        default=0.0,
+        verbose_name=u'Volume (in 000)'
+    )
+    floating_share = models.FloatField(
+        default=0.0,
+        verbose_name=u'Floating share(in million)'
+    )
+    day_high = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Day high'
+    )
+    day_low = models.DecimalField(
+        max_digits=20,
+        decimal_places=5,
+        default=0.0,
+        verbose_name=u'Day low'
+    )
 
     is_in_play = models.BooleanField(
         default=False,
@@ -289,6 +369,17 @@ class MyStock(models.Model):
     def __unicode__(self):
         return '%s (%s)' % (self.symbol, self.company_name)
 
+    def _oneday_change(self):
+        """
+        Midday change is computed as:
+        (last polled bid price/today's openning price) in %
+        """
+        if self.day_open:
+            return (self.last - self.day_open) / self.day_open * Decimal(100)
+        else:
+            return None
+    oneday_change = property(_oneday_change)
+
 
 @receiver(pre_save, sender=MyStock)
 def stock_update_handler(sender, **kwargs):
@@ -298,7 +389,7 @@ def stock_update_handler(sender, **kwargs):
     if instance.id:
         original = MyStock.objects.get(id=instance.id)
 
-        # # spot price changed
+        # spot price changed
         # if original.last != instance.last and instance.day_open:
         #     # update day_change
         #     instance.day_change = (
@@ -307,6 +398,14 @@ def stock_update_handler(sender, **kwargs):
         # # if ask or bid changed
         # if original.ask != instance.ask or original.bid != instance.bid:
         #     instance.spread = instance.ask - instance.bid
+        # Data is saved in week_adjusted_close as (open,close) delimited
+        # by comma.  This format is copied by Yahoo!Finance.
+
+        if self.week_adjusted_close:
+            vals = self.week_adjusted_close.split(',')
+            return (Decimal(vals[-1]) - Decimal(vals[0])) / Decimal(vals[0]) * Decimal(100)
+        else:
+            return None
 
         # # if vol changed
         # if original.vol != instance.vol and instance.float_share:
@@ -528,18 +627,21 @@ class MyUserProfile(models.Model):
 class MyPosition(models.Model):
     """Stock position on portfolio.
 
-    Each position is a stock that user is currently holding.
-    A position is like a tiny accounting book:
+    Each position is a stock that user is currently holding.  A
+    position is like a tiny accounting book:
+
         :position: cost we paid when buying these stocks
         :vol: qty
         :close_position: price we took when selling these stocks
 
-    The difference between the buy and sell will be the gain/loss
-    we took buy doing this trade. Also, as long as we are holding it,
-    its value fluctuates along with the market. Thus the source
-    of final gain/loss came from two places:
+    The difference between the buy and sell will be the gain/loss we
+    took buy doing this trade. Also, as long as we are holding it, its
+    value fluctuates along with the market. Thus the source of final
+    gain/loss came from two places:
+
         1. diff between cost and exit price
         2. fluctuation from the market
+
     """
     created = models.DateTimeField(
         auto_now_add=True,
@@ -612,16 +714,19 @@ class MyPosition(models.Model):
         If updated vol == 0, this position will be marked "closed".
 
         User profile's cash will be updated:
+
         if buy: cash -= price * vol
         if sell: cash += price * vol
 
         Args:
-                :user: User object. This is also the owner of this position. Buying request
-                will be compared against user's quota.
-                :price: buying at price
-                :vol: buying vol
-                :source: used to track live trading. Not used.
-                :on_date: trading date. Not used.
+
+        :user: User object. This is also the owner of this position. Buying request
+               will be compared against user's quota.
+        :price: buying at price
+        :vol: buying vol
+        :source: used to track live trading. Not used.
+        :on_date: trading date. Not used.
+
         """
 
         # new position = weighted avg
@@ -648,7 +753,8 @@ class MyPosition(models.Model):
         Closed price at requested price.
 
         Args:
-                :price: selling price.
+
+        :price: selling price.
         """
         self.close_position = price
         self.is_open = False
@@ -717,22 +823,22 @@ class MySimulationCondition(models.Model):
     we want to spend per trade.
 
     Fields:
-            :strategy: Defines which strategy one would
-                    use for a simulation run.
-                    S1 strategy calls for an index value precalculated based on
-                    certain algorithm and trade based; S2 is a buy low sell high strategy
-                    that will monitor a stock's open/close/spot to determine when to buy
-                    and when to sell.
-            :buy_cutoff: If a stock has dropped over buy_cutoff percentage,
-                    one buys this stock. This value has different meanings in 
-                    different strategies. In S1, this is the cutoff band
-                    that has grouped stocked based on a pre-computed index value;
-                    in S2, this is daily drop %.
-            :sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff
-                    defines a percentage that one would close a position.
-                    In S1 this is the band when a stock falls outof a artificial band
-                    determined by a pre-computed index value; in S2 this is the 
-                    percentage relative to the initial price at buying.
+    :strategy: Defines which strategy one would
+            use for a simulation run.
+            S1 strategy calls for an index value precalculated based on
+            certain algorithm and trade based; S2 is a buy low sell high strategy
+            that will monitor a stock's open/close/spot to determine when to buy
+            and when to sell.
+    :buy_cutoff: If a stock has dropped over buy_cutoff percentage,
+            one buys this stock. This value has different meanings in 
+            different strategies. In S1, this is the cutoff band
+            that has grouped stocked based on a pre-computed index value;
+            in S2, this is daily drop %.
+    :sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff
+            defines a percentage that one would close a position.
+            In S1 this is the band when a stock falls outof a artificial band
+            determined by a pre-computed index value; in S2 this is the 
+            percentage relative to the initial price at buying.
     """
     DATA_CHOICES = (
         (1, "S&P500"),
@@ -744,6 +850,7 @@ class MySimulationCondition(models.Model):
     STRATEGY_CHOICES = (
         (1, "S1 (by ranking)"),
         (2, "S2 (buy low sell high)"),
+        (3, "S3 (buy high sell low)")
     )
     INDICATOR_CHOICES = TECH_INDICATORS
     data_source = models.IntegerField(

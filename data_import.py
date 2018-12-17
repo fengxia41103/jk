@@ -1,5 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+# setup Django
 import codecs
 import cPickle
 import csv
@@ -18,24 +20,44 @@ import urllib
 import urllib2
 from decimal import Decimal
 
-# setup Django
 import django
+
+sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
+
+
 import lxml.html
 import simplejson as json
 import xlrd
 from django.conf import settings
 from django.db.models.loading import get_model
 from django.utils import timezone
-
-sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
-
+from influxdb.influxdb08 import InfluxDBClient
 
 # import models
 from stock.models import *
 from stock.simulations import *
 from stock.tasks import *
+from stock.tasks import backtesting_daily_return_consumer
+from stock.tasks import backtesting_relative_hl_consumer
+from stock.tasks import backtesting_relative_ma_consumer
+from stock.tasks import backtesting_s1_consumer
+from stock.tasks import backtesting_simulation_consumer
+from stock.tasks import chenmin_consumer
+from stock.tasks import import_china_stock_consumer
+from stock.tasks import influx_consumer
+from stock.tasks import stock_flag_sp500_consumer
+from stock.tasks import stock_historical_yahoo_consumer
+from stock.tasks import stock_monitor_yahoo_consumer
+from stock.tasks import stock_monitor_yahoo_consumer2
+from stock.tasks import stock_prev_fib_yahoo_consumer
+from stock.tasks import stock_prev_month_yahoo_consumer
+from stock.tasks import stock_prev_week_yahoo_consumer
+from stock.tasks import stock_prev_yahoo_consumer
 from stock.utility import JSONEncoder
+
+
+
 
 logger = logging.getLogger('jk')
 
@@ -47,7 +69,7 @@ def populate_sp_500():
     for s in symbols.split(','):
         if '.' in s:
             continue
-        stock, created = MyStock.objects.get_or_create(symbol=s, is_sp500=True)
+        stock, created = MyStock.objects.get_or_create(symbol=s)
 
 
 def crawl_stock_prev_yahoo():
@@ -92,11 +114,22 @@ def crawl_update_sp500_historical_yahoo():
         stock_historical_yahoo_consumer.delay(s)
 
 
-def crawl_alpha_historical():
-    symbols = MyStock.objects.filter(
-        is_sp500=True).values_list('symbol', flat=True)
-    for s in symbols:
-        stock_historical_alpha_consumer.delay(s)
+def crawler_chenmin():
+    root = '/home/fengxia/Downloads/chenmin'
+    files = filter(lambda x: '.xls' in x, os.listdir(root))
+    for f in [os.path.join(root, f) for f in files]:
+        chenmin_consumer.delay(f)
+
+
+def crawler_influx():
+    for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol', flat=True))):
+        influx_consumer.delay(symbol)
+        print '%s queued' % symbol
+
+
+def backtest_s1():
+    for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol', flat=True))):
+        backtesting_s1_consumer.delay(symbol)
 
 
 def consumer_daily_return():
@@ -117,7 +150,6 @@ def consumer_relative_ma():
 def dump(qs, outfile_path):
     """
     Takes in a Django queryset and spits out a CSV file.
-
     Usage::
 
         >> from utils import dump2csv
@@ -153,29 +185,321 @@ def dump(qs, outfile_path):
             writer.writerow(row)
 
 
+def dump_chenmin():
+    root = '/home/fengxia/Desktop/chenmin'
+    total = len(MyChenmin.objects.values_list('symbol', flat=True).distinct())
+
+    for idx, symbol in enumerate(MyChenmin.objects.values_list('symbol', flat=True).distinct()):
+        dump(MyChenmin.objects.filter(symbol=symbol).order_by(
+            'executed_on'), os.path.join(root, symbol + '.csv'))
+        print '%d/%d' % (idx, total), symbol
+
+
+def import_chenmin_csv():
+    root = '/home/fengxia/Desktop/chenmin/alpha'
+    for f in os.listdir(root):
+        symbol, ext = os.path.splitext(os.path.basename(f))
+        stock, created = MyStock.objects.get_or_create(symbol=symbol)
+        his = [x.isoformat() for x in MyStockHistorical.objects.filter(
+            stock=stock).values_list('date_stamp', flat=True)]
+        records = []
+
+        with open(os.path.join(root, f), 'rb') as csvfile:
+            for cnt, vals in enumerate(csv.reader(csvfile)):
+                if not vals:
+                    continue  # handle blank lines
+
+                # some time stamp is in form of "x/x/x", normalized to "x-x-x"
+                # format
+                vals[0] = vals[0].replace('/', '-')
+                if len(vals) != 6:
+                    print 'error in %s' % symbol
+                    print cnt, vals
+                    raw_input()
+                elif '-' not in vals[0]:
+                    continue  # skip these title lines
+
+                stamp = [int(v) for v in vals[0].split('-')]
+                date_stamp = dt(year=stamp[0], month=stamp[1], day=stamp[2])
+
+                if date_stamp.date().isoformat() in his:
+                    continue  # we already have these
+                else:
+                    try:
+                        open_p = Decimal(vals[1])
+                    except:
+                        open_p = Decimal(-1)
+                    try:
+                        high_p = Decimal(vals[2])
+                    except:
+                        high_p = Decimal(-1)
+                    try:
+                        low_p = Decimal(vals[3])
+                    except:
+                        low_p = Decimal(-1)
+                    try:
+                        close_p = Decimal(vals[4])
+                    except:
+                        close_p = Decimal(-1)
+                    try:
+                        vol = int(vals[5]) / 1000.0
+                    except:
+                        vol = -1
+                    try:
+                        adj_p = Decimal(vals[6])
+                    except:
+                        adj_p = Decimal(-1)
+                    h = MyStockHistorical(
+                        stock=stock,
+                        date_stamp=date_stamp,
+                        open_price=open_p,
+                        high_price=high_p,
+                        low_price=low_p,
+                        close_price=close_p,
+                        vol=vol,
+                        adj_close=adj_p
+                    )
+                    records.append(h)
+                    if len(records) >= 1000:
+                        MyStockHistorical.objects.bulk_create(records)
+                        records = []
+        if len(records):
+            MyStockHistorical.objects.bulk_create(records)
+
+        # persist
+        print '[%s] complete' % symbol
+
+
+def import_chenmin_csv2():
+    f = '/home/fengxia/Desktop/chenmin/d_data1.csv'
+    records = []
+    for china in MyStock.objects.filter(is_china_stock=True):
+        MyStockHistorical.objects.filter(stock=china).delete()
+
+    historicals = {}
+    with open(f, 'rb') as csvfile:
+        for cnt, vals in enumerate(csv.reader(csvfile)):
+            if not vals:
+                continue  # handle blank lines
+            if not re.search('^\d+', vals[0]):
+                continue
+
+            symbol = vals[0].strip()
+            if symbol in historicals:
+                historicals[symbol].append(vals)
+            else:
+                historicals[symbol] = [vals]
+
+    for symbol, val_list in historicals.iteritems():
+        import_china_stock_consumer.delay(symbol, val_list)
+
+
+def crawler_flag_sp500():
+    stock_flag_sp500_consumer.delay()
+
+
+def import_china_stock_floating_share():
+    f = u'/home/fengxia/Desktop/chenmin/study/All_Stock_流通股本.csv'
+    records = []
+
+    with open(f, 'rb') as csvfile:
+        for cnt, vals in enumerate(csv.reader(csvfile)):
+            if '.' not in vals[0]:
+                continue
+
+            symbol = vals[0].split('.')[0]
+            floating_share = float(vals[-1]) / 1000000.0
+            print symbol, floating_share
+
+            stock = MyStock.objects.get(symbol=symbol)
+            stock.floating_share = floating_share
+            stock.save()
+
+
+def import_wind_sector():
+    f = u'/home/fengxia/Desktop/chenmin/sector/sector.xls'
+    workbook = xlrd.open_workbook(f)
+    sheet = workbook.sheet_by_index(0)
+    s1 = s2 = s3 = s4 = None
+
+    for row_idx in range(4, 274):
+        level_1 = sheet.cell_value(row_idx, 0)
+        if level_1:
+            level_1 = str(int(level_1))
+        level_1_desp = sheet.cell_value(row_idx, 1).strip()
+
+        level_2 = sheet.cell_value(row_idx, 2)
+        if level_2:
+            level_2 = str(int(level_2))
+        level_2_desp = sheet.cell_value(row_idx, 3).strip()
+
+        level_3 = sheet.cell_value(row_idx, 4)
+        if level_3:
+            level_3 = str(int(level_3))
+        level_3_desp = sheet.cell_value(row_idx, 5).strip()
+
+        level_4 = sheet.cell_value(row_idx, 6)
+        if level_4:
+            level_4 = str(int(level_4))
+        level_4_desp = sheet.cell_value(row_idx, 7).strip()
+
+        if not level_4_desp:
+            continue  # blank cell
+
+        if level_1 and level_1_desp:
+            s1 = MySector(
+                code=level_1,
+                name=level_1_desp,
+                source='wind',
+            )
+            s1.save()
+            print 'level 1 %s created' % level_1
+
+        if level_2 and level_2_desp and s1:
+            s2 = MySector(
+                code=level_2,
+                name=level_2_desp,
+                source='wind',
+                parent=s1
+            )
+            s2.save()
+            print 'level 2 %s created' % level_2
+
+        if level_3 and level_3_desp and s2:
+            s3 = MySector(
+                code=level_3,
+                name=level_3_desp,
+                source='wind',
+                parent=s2
+            )
+            s3.save()
+            print 'level 3 %s created' % level_3
+
+        # level-4 description line
+        if s4 and level_4_desp:
+            s4.description = level_4_desp
+            s4.save()
+            print 'level 4 description saved'
+
+        # level-4 name line
+        if level_4_desp and level_4 and s3:
+            s4 = MySector(
+                code=level_4,
+                name=level_4_desp,
+                source='wind',
+                parent=s3
+            )
+            s4.save()
+            print 'level 4 %s created' % level_4
+
+
+def import_wind_sector_stock():
+    root = '/home/fengxia/Desktop/chenmin/sector/wind'
+    missing_sectors = []
+    missing_symbols = []
+    for f in os.listdir(root):
+        sector, ext = os.path.splitext(os.path.basename(f))
+        try:
+            sector = MySector.objects.get(code=sector)
+        except:
+            missing_sectors.append(sector)
+            continue
+
+        with open(os.path.join(root, f), 'rb') as csvfile:
+            for cnt, vals in enumerate(csv.reader(csvfile)):
+                symbol = vals[2].split('.')[0]
+                if not re.search('^\d+', symbol):
+                    continue
+                try:
+                    stock = MyStock.objects.get(symbol=symbol)
+                    sector.stocks.add(stock)
+                    print 'sector %s add stock %s' % (sector.name, stock.symbol)
+                except:
+                    missing_symbols.append(symbol)
+
+    print 'missing sectors', missing_sectors
+    print 'missing symbols:', missing_symbols
+
+
+def import_wind_sector_index():
+    sectors = {
+        '882112': '3030',
+        '882111': '3020',
+        '882116': '4020',
+        '882119': '4510',
+        '882101': '1510',
+        '882117': '4030',
+        '882121': '4530',
+        '882108': '2540',
+        '882110': '2550',
+        '882115': '4010',
+        '882100': '1010',
+        '882118': '4040',
+        '882103': '2020',
+        '882120': '4520',
+        '882106': '2520',
+        '882113': '3510',
+        '882104': '2030',
+        '882102': '2010',
+        '882105': '2510',
+        '882107': '2530',
+        '882114': '3520',
+        '882123': '5510',
+        '882122': '5010',
+        '882109': '3010',
+    }
+    f = u'/home/fengxia/Desktop/chenmin/sector/Wind_index_historical_2005-2015.xlsx'
+    workbook = xlrd.open_workbook(f)
+    for sheet in workbook.sheets():
+        symbol = sheet.name.strip()
+        stock, created = MyStock.objects.get_or_create(symbol=symbol)
+        print 'stock symbol', symbol
+
+        print 'sector code', sectors[symbol]
+        sector = MySector.objects.get(code=sectors[symbol])
+        sector.stocks.add(stock)
+
+        records = []
+        print 'rows', sheet.nrows
+        for r_idx in range(sheet.nrows):
+            vals = sheet.row_values(r_idx)[:6]
+            if reduce(lambda x, y: x or y, map(lambda x: not x, vals[:-1])): continue
+            try:
+                # for date stamp line, vals[0] is a floating number
+                int(vals[0])
+            except:
+                continue
+
+            date_stamp = xlrd.xldate.xldate_as_datetime(
+                vals[0], workbook.datemode)
+            h = MyStockHistorical(
+                stock=stock,
+                date_stamp=date_stamp,
+                open_price=vals[1],
+                high_price=vals[2],
+                low_price=vals[3],
+                close_price=vals[4],
+                vol=vals[5] / 1000,
+            )
+            records.append(h)
+        MyStockHistorical.objects.bulk_create(records)
+        # print 'done', symbol, len(records)
+
+
 def batch_simulation_daily_return(date_range, strategies=[1, 2], capital=10000, per_trade=1000):
     sources = [1, 2, 3, 5]
     strategy_values = [1]
 
-    # get 8211 related sectors
-    stock_8211 = MyStock.objects.filter(symbol__startswith="8821")
-    sectors = [None] + reduce(lambda x, y: x + y,
-                              [list(s.mysector_set.all()) for s in stock_8211])
-
     # simulation run
     conditions = []
-    for (source, strategy, strategy_value, sector) in itertools.product(sources, strategies, strategy_values, sectors):
+    for (source, strategy, strategy_value) in itertools.product(sources, strategies, strategy_values):
         for (start, end) in date_range:
             # we only try strategy 2 with source 1
             if strategy == 2 and source != 1:
                 continue
 
-            # we only try strategy 5 with sector
-            if sector and source != 5:
-                continue
-
             # simulation parameters
-            logger.debug(source, strategy, strategy_value, start, end, sector)
+            logger.debug(source, strategy, strategy_value, start, end)
 
             # cutoffs have different meanings based on strategy
             if strategy == 1:
@@ -188,6 +512,10 @@ def batch_simulation_daily_return(date_range, strategies=[1, 2], capital=10000, 
                 sell_cutoff = range(1, 6, 1)
                 cutoffs = itertools.product(buy_cutoff, sell_cutoff)
                 # cutoffs = [(1,1)]
+            elif strategy == 3:
+                buy_cutoff = range(1, 10, 1)
+                sell_cutoff = range(1, 10, 1)
+                cutoffs = itertools.product(buy_cutoff, sell_cutoff)
 
             # Set up simulation condition objects based on
             # combination of specified parameters. Note that
@@ -196,7 +524,6 @@ def batch_simulation_daily_return(date_range, strategies=[1, 2], capital=10000, 
             for (buy_cutoff, sell_cutoff) in cutoffs:
                 condition, created = MySimulationCondition.objects.get_or_create(
                     data_source=source,
-                    sector=sector,
                     data_sort=1,  # descending
                     strategy=strategy,
                     strategy_value=strategy_value,
@@ -216,7 +543,7 @@ def batch_simulation_daily_return(date_range, strategies=[1, 2], capital=10000, 
         # using python pickle instead. The downside of this is that
         # we are relying on a python-specif data format.
         # But it is safe in this context.
-        if strategy == 2:
+        if strategy in [2, 3]:
             # buy low sell high
             # Set is_update=True will remove all existing results first
             # and then rerun all simulations. This is necessary
@@ -232,9 +559,10 @@ def batch_simulation_daily_return(date_range, strategies=[1, 2], capital=10000, 
                 cPickle.dumps(condition), is_update=False)
 
 
-def rerun_existing_simulations():
+def rerun_existing_simulations(strategy=2):
     total_count = MySimulationCondition.objects.all().count()
-    for counter, condition in enumerate(MySimulationCondition.objects.filter(strategy=2)):
+    for counter, condition in enumerate(
+            MySimulationCondition.objects.filter(strategy=strategy)):
         logger.debug('%s: %d/%d' % (inspect.stack()[1][3], counter, total_count))
 
         # simulation run
@@ -245,33 +573,63 @@ def main():
     django.setup()
 
     # tasks
-    # populate_sp_500()
+    # populate_sp_500   ()
+    # crawl_stock_prev_yahoo()
+    # crawl_stock_yahoo_spot()
 
-    # Pull historical data
-    # stock_flag_sp500_consumer.delay()
-    crawl_alpha_historical()
+    # crawler_chenmin()
+    # dump_chenmin()
+    # crawler_influx()
 
-    # Pull spot data
+    # import_chenmin_csv2()
+    # crawler_flag_sp500()
+    # consumer_oneday_change()
+    # import_china_stock_floating_share()
+    # import_wind_sector()
+    # import_wind_sector_stock()
+    # import_wind_sector_index()
+    # temp()
 
-    # Compute strategy index values
+    '''
+    Pull historical data
+    '''
+    # crawl_update_sp500_historical_yahoo()
+
+    '''
+    Pull spot data
+    '''
+    # crawl_update_sp500_spot_yahoo()
+
+    '''
+    Compute strategy index values
+    '''
     # consumer_daily_return()
     # consumer_relative_hl()
     # consumer_relative_ma()
 
-    # simulation
-    # batch_simulation_daily_return(
-    #     date_range = [
-    #         # ('2014-01-01', '2014-01-10'),
-    #         ('2016-01-01', '2017-01-01'),
-    #         ('2015-01-01', '2016-01-01')
-    #     ],
-    #     strategies = [2],
-    #     capital = 10000,
-    #     per_trade = 500
-    # )
+    '''
+    simulation
+    '''
+    batch_simulation_daily_return(
+        date_range=[
+            ('2014-01-01', '2014-01-10'),
+            ('2016-01-01', '2017-01-01'),
+            ('2015-01-01', '2016-01-01')
+        ],
+        strategies=[3],
+        capital=10000,
+        per_trade=500
+    )
 
-    # rerun simulations
-    # rerun_existing_simulations()
+    '''
+    back test type 1
+    '''
+    # backtest_s1()
+
+    '''
+    rerun simulations
+    '''
+    # rerun_existing_simulations(3)
 
 
 if __name__ == '__main__':
