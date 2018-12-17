@@ -1,41 +1,66 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import sys
-import time
-import os
-import os.path
-import gc
-import csv
-import lxml.html
-import codecs
-import urllib
-import urllib2
-import re
-import xlrd
-import cPickle
-import time
-import simplejson as json
-import datetime as dt
-from decimal import Decimal
-import itertools
-import inspect
 
 # setup Django
+import codecs
+import cPickle
+import csv
+import datetime as dt
+import gc
+import inspect
+import itertools
+# logging
+import logging
+import os
+import os.path
+import re
+import sys
+import time
+import urllib
+import urllib2
+from decimal import Decimal
+
 import django
+
 sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
-from django.conf import settings
 
+
+
+import lxml.html
+import simplejson as json
+import xlrd
+from django.conf import settings
+from django.db.models.loading import get_model
 from django.utils import timezone
+from influxdb.influxdb08 import InfluxDBClient
 
 # import models
 from stock.models import *
 from stock.simulations import *
 from stock.tasks import *
+from stock.tasks import backtesting_daily_return_consumer
+from stock.tasks import backtesting_relative_hl_consumer
+from stock.tasks import backtesting_relative_ma_consumer
+from stock.tasks import backtesting_s1_consumer
+from stock.tasks import backtesting_simulation_consumer
+from stock.tasks import chenmin_consumer
+from stock.tasks import import_china_stock_consumer
+from stock.tasks import influx_consumer
+from stock.tasks import stock_flag_sp500_consumer
+from stock.tasks import stock_historical_yahoo_consumer
+from stock.tasks import stock_monitor_yahoo_consumer
+from stock.tasks import stock_monitor_yahoo_consumer2
+from stock.tasks import stock_prev_fib_yahoo_consumer
+from stock.tasks import stock_prev_month_yahoo_consumer
+from stock.tasks import stock_prev_week_yahoo_consumer
+from stock.tasks import stock_prev_yahoo_consumer
 from stock.utility import JSONEncoder
 
-# logging
-import logging
+
+
+
+
 logger = logging.getLogger('jk')
 
 
@@ -48,16 +73,12 @@ def populate_sp_500():
             continue
         stock, created = MyStock.objects.get_or_create(symbol=s)
 
-from stock.tasks import stock_prev_yahoo_consumer
-
 
 def crawl_stock_prev_yahoo():
     step = 100
     total = 500
     for s in MyStock.objects.filter(is_sp500=True).values_list('symbol', flat=True):
         stock_prev_yahoo_consumer.delay(s)
-
-from stock.tasks import stock_monitor_yahoo_consumer
 
 
 def crawl_stock_yahoo_spot():
@@ -68,8 +89,6 @@ def crawl_stock_yahoo_spot():
     for i in xrange(total / step):
         stock_monitor_yahoo_consumer.delay(
             ','.join(symbols[i * step:(i * step + step)]))
-
-from stock.tasks import stock_monitor_yahoo_consumer2
 
 
 def crawl_update_sp500_spot_yahoo():
@@ -86,9 +105,6 @@ def crawl_update_sp500_spot_yahoo():
             ','.join(symbols[i * step:(i * step + step)]))
 
 
-from stock.tasks import stock_prev_week_yahoo_consumer, stock_prev_month_yahoo_consumer, stock_prev_fib_yahoo_consumer, stock_historical_yahoo_consumer
-
-
 def crawl_update_sp500_historical_yahoo():
     symbols = MyStock.objects.filter(
         is_sp500=True).values_list('symbol', flat=True)
@@ -99,17 +115,11 @@ def crawl_update_sp500_historical_yahoo():
         stock_historical_yahoo_consumer.delay(s)
 
 
-from stock.tasks import chenmin_consumer
-
-
 def crawler_chenmin():
     root = '/home/fengxia/Downloads/chenmin'
     files = filter(lambda x: '.xls' in x, os.listdir(root))
     for f in [os.path.join(root, f) for f in files]:
         chenmin_consumer.delay(f)
-
-from stock.tasks import influx_consumer
-from influxdb.influxdb08 import InfluxDBClient
 
 
 def crawler_influx():
@@ -117,42 +127,30 @@ def crawler_influx():
         influx_consumer.delay(symbol)
         print '%s queued' % symbol
 
-from stock.tasks import backtesting_s1_consumer
-
 
 def backtest_s1():
     for symbol in list(set(MyStockHistorical.objects.values_list('stock__symbol', flat=True))):
         backtesting_s1_consumer.delay(symbol)
-
-from stock.tasks import backtesting_daily_return_consumer
 
 
 def consumer_daily_return():
     for symbol in MyStock.objects.filter(is_sp500=True).values_list('symbol', flat=True):
         backtesting_daily_return_consumer.delay(symbol)
 
-from stock.tasks import backtesting_relative_hl_consumer
-
 
 def consumer_relative_hl():
     for symbol in MyStock.objects.filter(is_sp500=True).values_list('symbol', flat=True):
         backtesting_relative_hl_consumer.delay(symbol)
-
-from stock.tasks import backtesting_relative_ma_consumer
 
 
 def consumer_relative_ma():
     for symbol in MyStock.objects.filter(is_sp500=True).values_list('symbol', flat=True):
         backtesting_relative_ma_consumer.delay(symbol)
 
-import csv
-from django.db.models.loading import get_model
-
 
 def dump(qs, outfile_path):
     """
-    Takes in a Django queryset and spits out a CSV file.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-
+    Takes in a Django queryset and spits out a CSV file.
     Usage::
 
             >> from utils import dump2csv
@@ -272,8 +270,6 @@ def import_chenmin_csv():
         # persist
         print '[%s] complete' % symbol
 
-from stock.tasks import import_china_stock_consumer
-
 
 def import_chenmin_csv2():
     f = '/home/fengxia/Desktop/chenmin/d_data1.csv'
@@ -297,8 +293,6 @@ def import_chenmin_csv2():
 
     for symbol, val_list in historicals.iteritems():
         import_china_stock_consumer.delay(symbol, val_list)
-
-from stock.tasks import stock_flag_sp500_consumer
 
 
 def crawler_flag_sp500():
@@ -492,8 +486,8 @@ def import_wind_sector_index():
         MyStockHistorical.objects.bulk_create(records)
         # print 'done', symbol, len(records)
 
-from stock.tasks import backtesting_simulation_consumer
-def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 10000, per_trade = 1000):
+
+def batch_simulation_daily_return(date_range, strategies=[1, 2], capital=10000, per_trade=1000):
     sources = [1, 2, 3, 5]
     strategy_values = [1]
 
@@ -505,7 +499,7 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
     # simulation run
     conditions = []
     for (source, strategy, strategy_value, sector) in itertools.product(sources, strategies, strategy_values, sectors):
-        for (start,end) in date_range:      
+        for (start, end) in date_range:
             # we only try strategy 2 with source 1
             if strategy == 2 and source != 1:
                 continue
@@ -524,14 +518,18 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
                 sell_cutoff = [b + step for b in buy_cutoff]
                 cutoffs = zip(buy_cutoff, sell_cutoff)
             elif strategy == 2:
-                buy_cutoff = range(1,6,1)
-                sell_cutoff = range(1,6,1)
+                buy_cutoff = range(1, 6, 1)
+                sell_cutoff = range(1, 6, 1)
                 cutoffs = itertools.product(buy_cutoff, sell_cutoff)
                 # cutoffs = [(1,1)]
+            elif strategy == 3:
+                buy_cutoff = range(1, 10, 1)
+                sell_cutoff = range(1, 10, 1)
+                cutoffs = itertools.product(buy_cutoff, sell_cutoff)
 
             # Set up simulation condition objects based on
             # combination of specified parameters. Note that
-            # the count of this matrix increases dramatically 
+            # the count of this matrix increases dramatically
             # if we expand this parameter list.
             for (buy_cutoff, sell_cutoff) in cutoffs:
                 condition, created = MySimulationCondition.objects.get_or_create(
@@ -556,7 +554,7 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
         # using python pickle instead. The downside of this is that
         # we are relying on a python-specif data format.
         # But it is safe in this context.
-        if strategy == 2:
+        if strategy in [2, 3]:
             # buy low sell high
             # Set is_update=True will remove all existing results first
             # and then rerun all simulations. This is necessary
@@ -571,13 +569,16 @@ def batch_simulation_daily_return(date_range, strategies = [1,2], capital = 1000
             backtesting_simulation_consumer.delay(
                 cPickle.dumps(condition), is_update=False)
 
-def rerun_existing_simulations():
+
+def rerun_existing_simulations(strategy=2):
     total_count = MySimulationCondition.objects.all().count()
-    for counter, condition in enumerate(MySimulationCondition.objects.filter(strategy=2)):
-        logger.debug('%s: %d/%d'%(inspect.stack()[1][3], counter, total_count))
+    for counter, condition in enumerate(
+            MySimulationCondition.objects.filter(strategy=strategy)):
+        logger.debug('%s: %d/%d' % (inspect.stack()[1][3], counter, total_count))
 
         # simulation run
         backtesting_simulation_consumer.delay(cPickle.dumps(condition), is_update=True)
+
 
 def main():
     django.setup()
@@ -603,33 +604,33 @@ def main():
     '''
     Pull historical data
     '''
-    #crawl_update_sp500_historical_yahoo()
+    # crawl_update_sp500_historical_yahoo()
 
     '''
     Pull spot data
     '''
-    #crawl_update_sp500_spot_yahoo()
+    # crawl_update_sp500_spot_yahoo()
 
     '''
     Compute strategy index values
     '''
-    consumer_daily_return()
+    # consumer_daily_return()
     # consumer_relative_hl()
     # consumer_relative_ma()
 
     '''
     simulation
     '''
-    # batch_simulation_daily_return(
-    #     date_range = [
-    #         # ('2014-01-01', '2014-01-10'),
-    #         ('2016-01-01', '2017-01-01'),
-    #         ('2015-01-01', '2016-01-01')
-    #     ],
-    #     strategies = [2],
-    #     capital = 10000,
-    #     per_trade = 500
-    # )
+    batch_simulation_daily_return(
+        date_range=[
+            ('2014-01-01', '2014-01-10'),
+            ('2016-01-01', '2017-01-01'),
+            ('2015-01-01', '2016-01-01')
+        ],
+        strategies=[3],
+        capital=10000,
+        per_trade=500
+    )
 
     '''
     back test type 1
@@ -639,7 +640,7 @@ def main():
     '''
     rerun simulations
     '''
-    # rerun_existing_simulations()
+    # rerun_existing_simulations(3)
 
 
 if __name__ == '__main__':

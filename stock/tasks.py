@@ -65,7 +65,6 @@ def grouper(iterable, n, padvalue=None):
     return list(izip_longest(*[iter(iterable)] * n, fillvalue=padvalue))
 
 
-
 class MyStockFlagSP500():
 
     def __init__(self, handler):
@@ -520,7 +519,6 @@ def stock_monitor_yahoo_consumer2(symbols):
     crawler.parser(symbols)
 
 
-
 class MyImportChinaStock():
 
     def __init__(self):
@@ -646,7 +644,6 @@ class MyChenMin():
 def chenmin_consumer(files):
     crawler = MyChenMin()
     crawler.parser(files)
-
 
 
 class MyStockInflux():
@@ -806,7 +803,8 @@ class MyStockBacktestingSimulation():
         exec_start = time.time()
         simulation_methods = {
             1: 'MySimulationAlpha',
-            2: 'MySimulationJK'
+            2: 'MySimulationBuyLowSellHigh',
+            3: "MySimulationBuyHighSellLow"
         }
         trading_method = getattr(sys.modules[__name__], simulation_methods[
                                  self.condition.strategy])
@@ -821,7 +819,6 @@ class MyStockBacktestingSimulation():
 def backtesting_simulation_consumer(condition, is_update=False):
     crawler = MyStockBacktestingSimulation(condition)
     crawler.run(is_update)
-
 
 
 class MyStockStrategyValue(object):

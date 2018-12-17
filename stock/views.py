@@ -1,75 +1,104 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from django import forms
-from django.conf import settings
-from django.forms.models import modelformset_factory, inlineformset_factory
-from django.contrib.contenttypes.generic import generic_inlineformset_factory
-from django.contrib.auth.decorators import login_required, permission_required
-from django.utils.decorators import method_decorator
-from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
-from django.contrib.auth import authenticate, logout, login
-from django.template import RequestContext
-from django.views.generic import TemplateView, ListView, DetailView
-from django.views.generic.edit import FormView, CreateView, UpdateView, DeleteView
-from django.core.urlresolvers import reverse_lazy, resolve, reverse
-from django.shortcuts import render, render_to_response
-from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
-from django.utils.encoding import smart_text
-from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Count, Max, Min, Avg
+import codecs
+import cPickle
+import csv
+import hashlib
+import os
+import os.path
+import pickle
+import random
+# so what
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import unittest
+import urllib
+from datetime import date
+from datetime import datetime as dt
+from itertools import groupby
+from statistics import mean
 
-from django.http import HttpResponse
-from django.shortcuts import render
-from django.views.decorators.vary import vary_on_headers
-# protect the view with require_POST decorator
-from django.views.decorators.http import require_POST
-from django.contrib import messages
-from django.db.models import Q, F
-from django.template import loader, Context
-
+import django_filters
+import lxml.html
+import simplejson as json
+import testtools
 # django-crispy-forms
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Submit
-
-# django-filters
-from django_filters import FilterSet, BooleanFilter
-from django_filters.views import FilterView
-import django_filters
-
+from django import forms
+from django.conf import settings
+from django.contrib import messages
+from django.contrib.auth import authenticate
+from django.contrib.auth import login
+from django.contrib.auth import logout
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.contenttypes.generic import generic_inlineformset_factory
 # django emails
 from django.core.mail import send_mail
-
-# so what
-import re
-import os
-import os.path
-import shutil
-import subprocess
-import testtools
-import sys
-import random
-import codecs
-import unittest
-import time
-import tempfile
-import csv
-import hashlib
-from datetime import datetime as dt
-from datetime import date
-import simplejson as json
-from itertools import groupby
-import urllib
-import lxml.html
-from numpy import mean, std
-import pickle
-import cPickle
-from utility import MyUtility, JSONEncoder
+from django.core.urlresolvers import resolve
+from django.core.urlresolvers import reverse
+from django.core.urlresolvers import reverse_lazy
+from django.db.models import Avg
+from django.db.models import Count
+from django.db.models import F
+from django.db.models import Max
+from django.db.models import Min
+from django.db.models import Q
+from django.forms.models import inlineformset_factory
+from django.forms.models import modelformset_factory
+from django.http import HttpResponse
+from django.http import HttpResponseRedirect
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.shortcuts import render_to_response
+from django.template import Context
+from django.template import RequestContext
+from django.template import loader
+from django.utils.decorators import method_decorator
+from django.utils.encoding import smart_text
+from django.views.decorators.csrf import csrf_exempt
+# protect the view with require_POST decorator
+from django.views.decorators.http import require_POST
+from django.views.decorators.vary import vary_on_headers
+from django.views.generic import DetailView
+from django.views.generic import ListView
+from django.views.generic import TemplateView
+from django.views.generic.edit import CreateView
+from django.views.generic.edit import DeleteView
+from django.views.generic.edit import FormView
+from django.views.generic.edit import UpdateView
+# django-filters
+from django_filters import BooleanFilter
+from django_filters import FilterSet
+from django_filters.views import FilterView
+from nltk import FreqDist
+from numpy import mean
+from numpy import std
 
 from stock.forms import *
 from stock.models import *
-from stock.simulations import MySimulationAlpha, MySimulationJK
+from stock.simulations import MySimulationAlpha
+from stock.simulations import MySimulationBuyHighSellLow
+from stock.simulations import MySimulationBuyLowSellHigh
+######################################################
+#
+#   Simulator views
+#
+#####################################################
 from stock.tasks import MyStockBacktestingSimulation
+from stock.tasks import backtesting_simulation_consumer
+from tasks import stock_monitor_yahoo_consumer
+from tasks import stock_monitor_yahoo_consumer2
+from utility import JSONEncoder
+from utility import MyUtility
 
 ###################################################
 #
@@ -272,8 +301,6 @@ class MyStockDetail(DetailView):
             stock__symbol=index_symbol, date_stamp__in=on_dates).values_list('adj_close', flat=True).order_by('date_stamp')]
         return context
 
-from tasks import stock_monitor_yahoo_consumer, stock_monitor_yahoo_consumer2
-
 
 @class_view_decorator(login_required)
 class MyStockUpdate(TemplateView):
@@ -473,8 +500,6 @@ class MyStockTransaction(TemplateView):
         return HttpResponse(json.dumps({'status': 'ok'}),
                             content_type='application/javascript')
 
-from statistics import mean
-
 
 @class_view_decorator(login_required)
 class UserPositionList(ListView):
@@ -520,8 +545,6 @@ class MyStockCandidateList(ListView):
                       x.fib_daily_score_pcnt + float(x.oneday_change) > 0 and
                       x.fib_daily_score_pcnt + float(x.twoday_change) > 0,
                       stocks)
-
-from nltk import FreqDist
 
 
 @class_view_decorator(login_required)
@@ -578,13 +601,6 @@ class MyStockStrategy1Detail(TemplateView):
         context['peers'] = MyStock.objects.all(
         ).values_list('symbol', flat=True)
         return context
-
-######################################################
-#
-#   Simulator views
-#
-#####################################################
-from stock.tasks import backtesting_simulation_consumer
 
 
 @class_view_decorator(login_required)
@@ -662,9 +678,7 @@ class MySimulationResultList(ListView):
     template_name = 'stock/backtesting/simulation_result_list.html'
 
     def get_queryset(self):
-        return MySimulationCondition.objects.filter(
-            strategy=2,
-        )
+        return MySimulationCondition.objects.all()
 
 
 @class_view_decorator(login_required)

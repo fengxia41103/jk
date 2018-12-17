@@ -728,18 +728,21 @@ class MyUserProfile(models.Model):
 class MyPosition(models.Model):
     """Stock position on portfolio.
 
-    Each position is a stock that user is currently holding.
-    A position is like a tiny accounting book:
+    Each position is a stock that user is currently holding.  A
+    position is like a tiny accounting book:
+
         :position: cost we paid when buying these stocks
         :vol: qty
         :close_position: price we took when selling these stocks
 
-    The difference between the buy and sell will be the gain/loss
-    we took buy doing this trade. Also, as long as we are holding it,
-    its value fluctuates along with the market. Thus the source
-    of final gain/loss came from two places:
+    The difference between the buy and sell will be the gain/loss we
+    took buy doing this trade. Also, as long as we are holding it, its
+    value fluctuates along with the market. Thus the source of final
+    gain/loss came from two places:
+
         1. diff between cost and exit price
         2. fluctuation from the market
+
     """
     created = models.DateTimeField(
         auto_now_add=True,
@@ -812,16 +815,19 @@ class MyPosition(models.Model):
         If updated vol == 0, this position will be marked "closed".
 
         User profile's cash will be updated:
+
         if buy: cash -= price * vol
         if sell: cash += price * vol
 
         Args:
-                :user: User object. This is also the owner of this position. Buying request
-                will be compared against user's quota.
-                :price: buying at price
-                :vol: buying vol
-                :source: used to track live trading. Not used.
-                :on_date: trading date. Not used.
+
+        :user: User object. This is also the owner of this position. Buying request
+               will be compared against user's quota.
+        :price: buying at price
+        :vol: buying vol
+        :source: used to track live trading. Not used.
+        :on_date: trading date. Not used.
+
         """
 
         # new position = weighted avg
@@ -848,7 +854,8 @@ class MyPosition(models.Model):
         Closed price at requested price.
 
         Args:
-                :price: selling price.
+
+        :price: selling price.
         """
         self.close_position = price
         self.is_open = False
@@ -917,22 +924,22 @@ class MySimulationCondition(models.Model):
     we want to spend per trade.
 
     Fields:
-            :strategy: Defines which strategy one would
-                    use for a simulation run.
-                    S1 strategy calls for an index value precalculated based on
-                    certain algorithm and trade based; S2 is a buy low sell high strategy
-                    that will monitor a stock's open/close/spot to determine when to buy
-                    and when to sell.
-            :buy_cutoff: If a stock has dropped over buy_cutoff percentage,
-                    one buys this stock. This value has different meanings in 
-                    different strategies. In S1, this is the cutoff band
-                    that has grouped stocked based on a pre-computed index value;
-                    in S2, this is daily drop %.
-            :sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff
-                    defines a percentage that one would close a position.
-                    In S1 this is the band when a stock falls outof a artificial band
-                    determined by a pre-computed index value; in S2 this is the 
-                    percentage relative to the initial price at buying.
+    :strategy: Defines which strategy one would
+            use for a simulation run.
+            S1 strategy calls for an index value precalculated based on
+            certain algorithm and trade based; S2 is a buy low sell high strategy
+            that will monitor a stock's open/close/spot to determine when to buy
+            and when to sell.
+    :buy_cutoff: If a stock has dropped over buy_cutoff percentage,
+            one buys this stock. This value has different meanings in 
+            different strategies. In S1, this is the cutoff band
+            that has grouped stocked based on a pre-computed index value;
+            in S2, this is daily drop %.
+    :sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff
+            defines a percentage that one would close a position.
+            In S1 this is the band when a stock falls outof a artificial band
+            determined by a pre-computed index value; in S2 this is the 
+            percentage relative to the initial price at buying.
     """
     DATA_CHOICES = (
         (1, "S&P500"),
@@ -948,6 +955,7 @@ class MySimulationCondition(models.Model):
     STRATEGY_CHOICES = (
         (1, "S1 (by ranking)"),
         (2, "S2 (buy low sell high)"),
+        (3, "S3 (buy high sell low)")
     )
     STRATEGY_VALUE_CHOICES = (
         (1, "Daily return"),
