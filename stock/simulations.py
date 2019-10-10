@@ -202,10 +202,6 @@ class MySimulation(object):
                     # source is not good enough.
                     logger.error('MySimulation.run: %s not in historical!' % p['stock__symbol'])
 
-                    # ASSMPTION: without knowing what happened, we assume that
-                    # this stock was bought w/ a 20% premium!
-                    simulated_spot = p['position'] * Decimal(1.2)
-
                 # record the spot equity value
                 if p['vol'] * simulated_spot == 0:
                     logger.error('spot equity = 0!')
@@ -391,23 +387,24 @@ class MySimulationBuyLowSellHigh(MySimulation):
         positions = MyPosition.objects.filter(
             simulation=self.simulation, is_open=True)
         for p in positions:
-            # TODO: don't know why a symbol could stop showing up
-            # in historicals. To protect such case, we put a line here.
+            # ASSUMPTION: if position symbol stopped showing up,
+            # we assume the stock was bought out w/ 20% premium!
             if p.stock.symbol not in self.historicals[on_date]:
-                continue
+                simulated_spot = p.position * Decimal(1.2)
 
-            his = self.historicals[on_date][p.stock.symbol]
+            else:
+                his = self.historicals[on_date][p.stock.symbol]
 
-            # NOTE: Assume we are selling at adj close.  This is
-            # critical to counter for the stock split.  For example,
-            # AAPL, had a 7:1 stock split oon 6/6, thus its open price
-            # on 6/6 was 649.90, but it changed to 92.70 on 6/7.
-            # Using open price will dramatically skew the position
-            # price, which will lead to wrong gain value and so on.
-            # The adj close price, on the other hand, has been
-            # adjusted for stock splits, therefore is "stable" and
-            # consistent.
-            simulated_spot = his['adj_close']
+                # NOTE: Assume we are selling at adj close.  This is
+                # critical to counter for the stock split.  For example,
+                # AAPL, had a 7:1 stock split oon 6/6, thus its open price
+                # on 6/6 was 649.90, but it changed to 92.70 on 6/7.
+                # Using open price will dramatically skew the position
+                # price, which will lead to wrong gain value and so on.
+                # The adj close price, on the other hand, has been
+                # adjusted for stock splits, therefore is "stable" and
+                # consistent.
+                simulated_spot = his['adj_close']
 
             # for example, if sell_cutoff = 0.1, we sell if daily spot
             # is greater than 110% of our cost
@@ -496,23 +493,23 @@ class MySimulationBuyHighSellLow(MySimulation):
         positions = MyPosition.objects.filter(
             simulation=self.simulation, is_open=True)
         for p in positions:
-            # TODO: don't know why a symbol could stop showing up
-            # in historicals. To protect such case, we put a line here.
+            # ASSUMPTION: if position symbol stopped showing up,
+            # we assume the stock was bought out w/ 20% premium!
             if p.stock.symbol not in self.historicals[on_date]:
-                continue
+                simulated_spot = p.position * Decimal(1.2)
+            else:
+                his = self.historicals[on_date][p.stock.symbol]
 
-            his = self.historicals[on_date][p.stock.symbol]
-
-            # NOTE: Assume we are selling at adj close.  This is
-            # critical to counter for the stock split.  For example,
-            # AAPL, had a 7:1 stock split oon 6/6, thus its open price
-            # on 6/6 was 649.90, but it changed to 92.70 on 6/7.
-            # Using open price will dramatically skew the position
-            # price, which will lead to wrong gain value and so on.
-            # The adj close price, on the other hand, has been
-            # adjusted for stock splits, therefore is "stable" and
-            # consistent.
-            simulated_spot = his['adj_close']
+                # NOTE: Assume we are selling at adj close.  This is
+                # critical to counter for the stock split.  For example,
+                # AAPL, had a 7:1 stock split oon 6/6, thus its open price
+                # on 6/6 was 649.90, but it changed to 92.70 on 6/7.
+                # Using open price will dramatically skew the position
+                # price, which will lead to wrong gain value and so on.
+                # The adj close price, on the other hand, has been
+                # adjusted for stock splits, therefore is "stable" and
+                # consistent.
+                simulated_spot = his['adj_close']
 
             # for example, if sell_cutoff = 0.1, we sell if daily spot
             # is less than 90% of our cost, meaning it had dropped over 10%.

@@ -21,6 +21,9 @@ import urllib2
 from decimal import Decimal
 
 import django
+sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
+
 import lxml.html
 import simplejson as json
 import xlrd
@@ -50,13 +53,6 @@ from stock.tasks import stock_prev_month_yahoo_consumer
 from stock.tasks import stock_prev_week_yahoo_consumer
 from stock.tasks import stock_prev_yahoo_consumer
 from stock.utility import JSONEncoder
-
-sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
-
-
-
-
 
 logger = logging.getLogger('jk')
 
