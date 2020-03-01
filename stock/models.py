@@ -924,17 +924,18 @@ class MySimulationCondition(models.Model):
     we want to spend per trade.
 
     Fields:
-    :strategy: Defines which strategy one would
-            use for a simulation run.
-            S1 strategy calls for an index value precalculated based on
-            certain algorithm and trade based; S2 is a buy low sell high strategy
-            that will monitor a stock's open/close/spot to determine when to buy
-            and when to sell.
+    :strategy: Defines which strategy one would use for a simulation
+            run.  S1 strategy calls for an index value precalculated
+            based on certain algorithm and trade based; S2 is a buy
+            low sell high strategy that will monitor a stock's
+            open/close/spot to determine when to buy and when to sell.
+
     :buy_cutoff: If a stock has dropped over buy_cutoff percentage,
             one buys this stock. This value has different meanings in 
             different strategies. In S1, this is the cutoff band
             that has grouped stocked based on a pre-computed index value;
             in S2, this is daily drop %.
+
     :sell_cutoff: As the counterpart to the buy_cutoff, sell_cutoff
             defines a percentage that one would close a position.
             In S1 this is the band when a stock falls outof a artificial band
@@ -1155,36 +1156,49 @@ class MySimulationCondition(models.Model):
     def _gain_from_holding(self):
         """Equity gains from holding.
 
-        This tracks equity gains from holding a particular stock,
-        not from trading it. It indicates
+        This tracks equity gains from holding a particular stock, not
+        from trading it. It indicates:
+
         how well equities were performing. This is completely determined by
         how well we picked stock, thus is a good indicator of applied strategy.
         """
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('gain_from_holding', flat=True).order_by('on_date')
+        return MySimulationSnapshot.objects.filter(
+            simulation=self).values_list(
+                'gain_from_holding',
+                flat=True
+        ).order_by('on_date')
     gain_from_holding = property(_gain_from_holding)
 
     def _gain_from_exit(self):
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('gain_from_exit', flat=True).order_by('on_date')
+        return MySimulationSnapshot.objects.filter(
+            simulation=self).values_list(
+                'gain_from_exit',
+                flat=True
+        ).order_by('on_date')
     gain_from_exit = property(_gain_from_exit)
 
     def _equity_life_in_days(self):
         """Equity life in days.
 
-        We want to measure how long we usually hold a position. By monitoing
-        this value, we could apply a strategy that dictate 
+        We want to measure how long we usually hold a position. By
+        monitoing this value, we could apply a strategy that dictate
         by how long we can hold a position.
         """
-        life_in_days = MyPosition.objects.filter(simulation=self, is_open=False).annotate(
+        life_in_days = MyPosition.objects.filter(
+            simulation=self,
+            is_open=False
+        ).annotate(
             max_life=Max('life_in_days'),
             avg_life=Avg('life_in_days')
         )
 
         # life_in_days = [s.life_in_days for s in sells]
 
-        # index [0] is the min(), [-1] is the max()floatformat
-        # min is skipped since it is always 0 because
-        # we may be buying and unloading a stock on the same day
-        return (('max', life_in_days['max_life']), ('Avg', life_in_days['avg_life']))
+        # index [0] is the min(), [-1] is the max()floatformat min is
+        # skipped since it is always 0 because we may be buying and
+        # unloading a stock on the same day
+        return (('max', life_in_days['max_life']),
+                ('Avg', life_in_days['avg_life']))
     equity_life_in_days = property(_equity_life_in_days)
 
     def _stock_sell_stat(self):

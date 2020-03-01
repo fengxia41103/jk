@@ -209,8 +209,7 @@ class MySimulation(object):
                 daily_equity.append(p['vol'] * simulated_spot)
 
                 # compute gain/loss of the holding portfolio
-                # self.snapshot[on_date]['gain'][
-                #     'hold']
+                # self.snapshot[on_date]['gain']['hold']
                 gain_from_holding.append(p['vol'] * (simulated_spot - p['position']))
 
             # computed values
@@ -294,8 +293,8 @@ class MySimulationAlpha(MySimulation):
             "stock__symbol", flat=True).distinct()
 
         # In this strategy, buy_cutoff defines the starting index,
-        # sell_cutoff defines the ending index. Everything outside this band is
-        # a sell.
+        # sell_cutoff defines the ending index. Everything outside
+        # this band is a sell.
         start_cutoff = max(int(total_symbols * self.buy_cutoff) - 1, 0)
         end_cutoff = int(total_symbols * self.sell_cutoff)
         buys = symbols[start_cutoff:end_cutoff]
@@ -326,8 +325,8 @@ class MySimulationAlpha(MySimulation):
             "stock__symbol", flat=True).distinct()
 
         # In this strategy, buy_cutoff defines the starting index,
-        # sell_cutoff defines the ending index. Everything within this band is
-        # a buy.
+        # sell_cutoff defines the ending index. Everything within this
+        # band is a buy.
         buy_records = []
         start_cutoff = max(int(total_symbols * self.buy_cutoff) - 1, 0)
         end_cutoff = int(total_symbols * self.sell_cutoff)
@@ -369,7 +368,7 @@ class MySimulationBuyLowSellHigh(MySimulation):
        price has dropped. The bigger the drop, the higher the rank.
 
     2. Buy stocks whose rank is above the buy_cutoff band, eg. if
-       cutoff = 0.25 and total s amples = 20, buy if rank <= 0.25*20=5
+       cutoff = 0.25 and total samples = 20, buy if rank <= 0.25*20=5
 
     3. Sell if stock's price has recovered more than sell_cutoff,
        eg. if cutoff = 0.25 and position @ 100, selll if new price >=
@@ -396,14 +395,14 @@ class MySimulationBuyLowSellHigh(MySimulation):
                 his = self.historicals[on_date][p.stock.symbol]
 
                 # NOTE: Assume we are selling at adj close.  This is
-                # critical to counter for the stock split.  For example,
-                # AAPL, had a 7:1 stock split oon 6/6, thus its open price
-                # on 6/6 was 649.90, but it changed to 92.70 on 6/7.
-                # Using open price will dramatically skew the position
-                # price, which will lead to wrong gain value and so on.
-                # The adj close price, on the other hand, has been
-                # adjusted for stock splits, therefore is "stable" and
-                # consistent.
+                # critical to counter for the stock split.  For
+                # example, AAPL, had a 7:1 stock split oon 6/6, thus
+                # its open price on 6/6 was 649.90, but it changed to
+                # 92.70 on 6/7.  Using open price will dramatically
+                # skew the position price, which will lead to wrong
+                # gain value and so on.  The adj close price, on the
+                # other hand, has been adjusted for stock splits,
+                # therefore is "stable" and consistent.
                 simulated_spot = his['adj_close']
 
             # for example, if sell_cutoff = 0.1, we sell if daily spot

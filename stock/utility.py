@@ -1,31 +1,35 @@
-﻿#!/usr/bin/python
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-from selenium import webdriver
-import unittest
-import random
-import string
 import datetime
 import pprint
+import random
 import re
-import time
 import shelve
+import string
+import sys
+import time
+import unittest
+import urllib2
+from datetime import date
+from datetime import timedelta
+from decimal import Decimal
 from itertools import izip_longest
-from unittest import TestCase, TestSuite
+from unittest import TestCase
+from unittest import TestSuite
+
+import lxml.html
+import simplejson as json
+from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.common.keys import Keys
 # available since 2.26.0
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.select import Select
-from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-import urllib2
-import lxml.html
-import sys
-from itertools import izip_longest
-import simplejson as json
-from decimal import Decimal
+from selenium.webdriver.support.ui import \
+    WebDriverWait  # available since 2.4.0
 
 # import models
 #from pi.models import *
@@ -135,3 +139,31 @@ class MyUtility():
         # grouper('abcdefg', 3, 'x') --> ('a','b','c'), ('d','e','f'),
         # ('g','x','x')
         return list(izip_longest(*[iter(iterable)] * n, fillvalue=padvalue))
+
+    @classmethod
+    def sliding_windows(self, start_date, end_date, window_size):
+        '''Create an array of [(starting date, ending date),] using a sliding
+        window specified by `window_size`.
+
+        For example, given starting ate of "2011-1-1" and window size
+        10, you get first range of 2010/1/1-2010/1/10, then next is
+        2010/1/2-2010/1/11, and so on. The last window in the series
+        will be (end_date - 10 days, end_date).
+
+        Args:
+          start_date: starting date in ISO format &mdash; `year-month-day`
+          end_date: ending date in ISO format
+          window_size: number of days
+
+        Returns:
+          list: [(date ISO string,date ISO string),]
+
+        '''
+
+        delta = end_date - start_date
+
+        sliding_windows = [(start_date + timedelta(days=i),
+                            start_date + timedelta(days=i + window_size))
+                           for i in range(delta.days - window_size)]
+        return map(lambda (x, y): (x.isoformat(), y.isoformat()),
+                   sliding_windows)

@@ -143,7 +143,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
-STATIC_URL = '/static/'
+STATIC_URL = 'http://127.0.0.1/static/'
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, "static"),
 )
@@ -222,7 +222,7 @@ elif DEPLOY_TYPE == 'production':
 
 # Celery redis
 # CELERY SETTINGS
-BROKER_URL = 'redis://localhost:6379/0'
+BROKER_URL = 'redis://%s:6379/0' % DEV_DB_HOST
 # BROKER_URL = 'amqp://guest:guest@localhost:5672//'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'

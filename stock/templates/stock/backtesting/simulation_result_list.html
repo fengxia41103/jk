@@ -4,68 +4,68 @@
 {% load crispy_forms_tags %}
 
 {% block page-header %}
-	Simulation results
+Simulation results
 {% endblock %}
 
 {% block strategy-result %}
 <form action="{% url 'simulation_result_comp' %}" class="uniForm" method="post" target="_blank">
-    {% csrf_token %}
-    <table class="table table-striped my-datatable">
-	    <thead>
-	    	<th></th>	   
-	    	<th>Index</th>
-	    	<th>Data source</th>
-	    	<th>Strategy value</th>
-	    	<th>Strategy</th>
-	    	<th>Start</th>
-	    	<th>End</th>
-	    	<th>Cutoffs</th>
-	    	<th>Capital</th>
-	    	<th>Per trade</th>
-	    	<th>Sector</th>
-	    	<th>Num of buys</th>
-	    	<th>Num of sells</th>
-	    	<th>End return %</th>
-	    	<th>Manage</th>
-	    </thead>
-	    <tbody>
-	    	{% for cond in object_list %}
-	    		<tr><td>
-	    			<input type="checkbox" name="conditions" value="{{ cond.id }}"/>
-	    		</td><td>
-	    			{{ cond.id }}
-	    		</td><td>
-	    			{{ cond.get_data_source_display }}
-	    		</td><td>
-	    			{{ cond.get_strategy_value_display }}
-	    		</td><td>
-	    			{{ cond.get_strategy_display }}
-	    		</td><td>
-	    			{{ cond.start }}
-	    		</td><td>
-	    			{{ cond.end }}
-	    		</td><td>
-	    			{{ cond.buy_cutoff }}% &mdash; {{ cond.sell_cutoff }}%
-	    		</td><td>
-	    			{{ cond.capital|intcomma }}
-	    		</td><td>
-	    			{{ cond.per_trade|intcomma }}
-	    		</td><td>
-	    			{{ cond.sector }}
-	    		</td><td>
-	    			{{ cond.num_of_buys|intcomma }}
-	    		</td><td>
-	    			{{ cond.num_of_sells|intcomma }}
-	    		</td><td>
-	    			{{ cond.asset_end_return|floatformat:"2" }}
-	    		</td><td>
-	    			<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
-	    			|
-	    			<a href="{% url 'condition_delete' cond.id %}">Delete</a>
-	    		</td</tr>
-	    	{% endfor %}
-	    </tbody>
-    </table>
-    <input type="submit" class="btn btn-primary" value="View report" />
+  {% csrf_token %}
+  <table class="table table-striped my-datatable">
+    <thead>
+      <th></th>	   
+      <th>Index</th>
+      <th>Data source</th>
+      <th>Strategy value</th>
+      <th>Strategy</th>
+      <th>Start</th>
+      <th>End</th>
+      <th>Cutoffs</th>
+      <th>Capital</th>
+      <th>Per trade</th>
+      <th>Sector</th>
+      <th>Num of buys</th>
+      <th>Num of sells</th>
+      <th>End return %</th>
+      <th>Manage</th>
+    </thead>
+    <tbody>
+      {% for cond in object_list %}
+      <tr><td>
+	<input type="checkbox" name="conditions" value="{{ cond.id }}"/>
+      </td><td>
+	{{ cond.id }}
+      </td><td>
+	{{ cond.get_data_source_display }}
+      </td><td>
+	{{ cond.get_strategy_value_display }}
+      </td><td>
+	{{ cond.get_strategy_display }}
+      </td><td>
+	{{ cond.start }}
+      </td><td>
+	{{ cond.end }}
+      </td><td>
+	{{ cond.buy_cutoff }}% &mdash; {{ cond.sell_cutoff }}%
+      </td><td>
+	{{ cond.capital|intcomma }}
+      </td><td>
+	{{ cond.per_trade|intcomma }}
+      </td><td>
+	{{ cond.sector }}
+      </td><td>
+	{{ cond.num_of_buys|intcomma }}
+      </td><td>
+	{{ cond.num_of_sells|intcomma }}
+      </td><td>
+	{{ cond.asset_end_return|floatformat:"2" }}
+      </td><td>
+	<a href="{% url 'condition_detail' cond.id %}" target="_blank">Detail</a>
+	|
+	<a href="{% url 'condition_delete' cond.id %}">Delete</a>
+      </td</tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <input type="submit" class="btn btn-primary" value="View report" />
 </form>
 {% endblock %}
