@@ -1,7 +1,8 @@
-from django import forms
-from django.forms import ModelForm
-from django.contrib.admin.widgets import AdminDateWidget
 import datetime as dt
+
+from django import forms
+from django.contrib.admin.widgets import AdminDateWidget
+from django.forms import ModelForm
 
 from stock.models import *
 
@@ -26,5 +27,7 @@ class HistoricalListForm(forms.Form):
 
 
 class StrategyControlForm(ModelForm):
+
     class Meta:
         model = MySimulationCondition
+        fields = '__all__'

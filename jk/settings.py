@@ -17,10 +17,15 @@ import os
 # for django-pagination, very COOL!
 from django.conf import global_settings
 
-from production_envvars import *
+DJANGO_DEBUG = os.environ.get('DJANGO_DEBUG', False)
+DEPLOY_TYPE = os.environ.get("DEPLOY_TYPE", "dev")
+DB_USER = os.environ.get("DJANGO_DB_USER")
+DB_PWD = os.environ.get("DJANGO_DB_PWD")
+DB_HOST = os.environ.get("DJANGO_DB_HOST")
+DB_PORT = os.environ.get("DJANGO_DB_PORT")
+REDIS_HOST = os.environ.get("DJANGO_REDIS_HOST")
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.7/howto/deployment/checklist/
@@ -53,8 +58,6 @@ INSTALLED_APPS = (
     'django.contrib.sites',
 
     # custom packages
-    # 'devserver', # django-devserver
-    'debug_toolbar',
     'widget_tweaks',  # https://github.com/kmike/django-widget-tweaks/
     'storages',  # django-storage
     's3_folder_storage',  # django-s3-folder-storage
@@ -66,7 +69,6 @@ INSTALLED_APPS = (
     'localflavor',  # django-localflavor
     'rest_framework',  # djangorestframework
     'tastypie',  # django-tastypie
-    # django-cors-headers, https://github.com/OttoYiu/django-cors-headers
     'corsheaders',
     'djangular',  # django-angular
     'el_pagination',  # django-el-pagination
@@ -74,7 +76,6 @@ INSTALLED_APPS = (
 )
 
 MIDDLEWARE_CLASSES = (
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
     # 'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -95,37 +96,16 @@ WSGI_APPLICATION = 'jk.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/1.7/ref/settings/#databases
-if DEPLOY_TYPE == 'dev':
-    DATABASES = {
-        #'default': {
-        #    'ENGINE': 'django.db.backends.sqlite3',
-        #    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        #}
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'jk',
-            'USER': DEV_DB_USER,
-            'PASSWORD': DEV_DB_PWD,
-            'HOST': DEV_DB_HOST,   # Or an IP Address that your DB is hosted on
-            'PORT': DEV_DB_PORT,
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'jk',
+        'USER': DB_USER,
+        'PASSWORD': DB_PWD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
     }
-elif DEPLOY_TYPE == 'production':
-    DATABASES = {
-        #'default': {
-        #    'ENGINE': 'django.db.backends.sqlite3',
-        #    'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
-        #}
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'lenovo',
-                    'USER': PRODUCTION_DB_USER,
-                    'PASSWORD': PRODUCTION_DB_PWD,
-                    # Or an IP Address that your DB is hosted on
-                    'HOST': AWS_MYSQL_ENDPOINT,
-                    'PORT': PRODUCTION_DB_PORT,
-        }
-    }
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/1.7/topics/i18n/
@@ -143,10 +123,9 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/1.7/howto/static-files/
-STATIC_URL = 'http://127.0.0.1/static/'
-STATICFILES_DIRS = (
-    os.path.join(BASE_DIR, "static"),
-)
+STATIC_URL = '/static/'
+STATICFILES_DIRS = (os.path.join(BASE_DIR, "static"),
+                    )
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder",
@@ -156,12 +135,27 @@ STATICFILES_FINDERS = (
 # crispy forms
 CRISPY_TEMPLATE_PACK = 'bootstrap3'
 
-TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
-    'django.core.context_processors.request',
-    'social.apps.django_app.context_processors.backends',
-    'social.apps.django_app.context_processors.login_redirect',
-)
+# TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
+#     'django.core.context_processors.request',
+#     'social.apps.django_app.context_processors.backends',
+#     'social.apps.django_app.context_processors.login_redirect',
+# )
 
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.debug',
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
 # for django-allauth
 SITE_ID = 1
 
@@ -222,7 +216,8 @@ elif DEPLOY_TYPE == 'production':
 
 # Celery redis
 # CELERY SETTINGS
-BROKER_URL = 'redis://%s:6379/0' % DEV_DB_HOST
+BROKER_URL = 'redis://%s:6379/0' % REDIS_HOST
+
 # BROKER_URL = 'amqp://guest:guest@localhost:5672//'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
@@ -244,15 +239,12 @@ INTERNAL_IPS = ('127.0.0.1',)
 # 'OPTIONS': {  # Maps to pylibmc "behaviors"
 #             'tcp_nodelay': True,
 #             'ketama': True
-#         }
+# }
 #     }
 # }
 
 # python social auth
 AUTHENTICATION_BACKENDS = (
-    'social.backends.facebook.FacebookOAuth2',
-    'social.backends.google.GoogleOAuth2',
-    'social.backends.twitter.TwitterOAuth',
     'django.contrib.auth.backends.ModelBackend',
 )
 

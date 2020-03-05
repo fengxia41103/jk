@@ -1,0 +1,24 @@
+FROM python:2.7
+ENV PYTHONUNBUFFERED 1
+
+# Install system packages
+RUN apt-get update && apt-get install -y \
+    graphviz/stable \
+    libgraphviz-dev \
+    memcached \
+    libmemcached-dev
+
+# For some strange reason, this is required before
+# we hit `pip install -r`
+RUN pip install requests
+
+# Set up code destination
+RUN mkdir /code
+WORKDIR /code
+
+# Install dependencies
+ADD requirements.txt /code/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Source code to its destination
+ADD . /code/

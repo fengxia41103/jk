@@ -102,7 +102,6 @@ mccabe==0.3.1
 memory-profiler==0.32
 microsofttranslator==0.7
 mock==1.0.1
-MySQL-python==1.2.5
 nltk==3.0.5
 nodeenv==0.13.6
 numpy==1.9.1
@@ -181,3 +180,4 @@ wrapt==1.10.8
 xlrd==0.9.4
 XlsxWriter==0.7.2
 xlwt==1.0.0
+mysqlclient==1.4.6

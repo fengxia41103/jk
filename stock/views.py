@@ -678,7 +678,7 @@ class MySimulationResultList(ListView):
     template_name = 'stock/backtesting/simulation_result_list.html'
 
     def get_queryset(self):
-        return MySimulationCondition.objects.all()
+        return MySimulationCondition.objects.all()[:10]
 
 
 @class_view_decorator(login_required)
