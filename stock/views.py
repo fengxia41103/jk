@@ -787,7 +787,7 @@ class MySimulationSlidingWindow(FormView):
 
         for w in sliding_windows:
             batch_simulation_daily_return.delay(
-                data_range=w,
+                date_range=w,
                 strategies=[2, 3],
                 capital=10000,
                 per_trade=500
