@@ -1,0 +1,38 @@
+{% extends "stock/common/base.html" %}
+
+{% load crispy_forms_tags %}
+
+
+{% block page-header %}
+Sliding Window Simulation
+{% endblock %}
+
+
+{% block content %}
+
+<form
+  action="{% url 'simulation_sliding_window' %}"
+  class="uniForm"
+  method="post"
+>
+  {% csrf_token %} {{ form|crispy }}
+  <input type="submit" value="Submit" />
+</form>
+
+<h2>Sliding Windows</h2>
+<table class="table my-datatable">
+  <thead>
+    <th>Start</th>
+    <th>End</th>
+  </thead>
+
+  <tbody>
+    {% for start,end in windows %}
+    <tr>
+      <td>{{start}}</td>
+      <td>{{end}}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

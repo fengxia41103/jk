@@ -26,6 +26,20 @@ class HistoricalListForm(forms.Form):
     )
 
 
+class SlidingWindowForm(forms.Form):
+    start_date = forms.DateField(
+        initial="2014-01-01",
+        label='Start date',
+        widget=AdminDateWidget,
+    )
+    end_date = forms.DateField(
+        initial="2014-01-01",
+        label='Start date',
+        widget=AdminDateWidget,
+    )
+    window = forms.IntegerField()
+
+
 class StrategyControlForm(ModelForm):
 
     class Meta:

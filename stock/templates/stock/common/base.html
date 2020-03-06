@@ -1,23 +1,20 @@
-{% extends "stock/common/layout.html" %}
-{% load staticfiles %}
-{% load compress %}
-{% load crispy_forms_tags %}
-
-
-{% block title %}
+{% extends "stock/common/layout.html" %} {% load staticfiles %} {% load compress
+%} {% load crispy_forms_tags %} {% block title %}
 <title>Stock backtesting</title>
-{% endblock %}
-
-
-{% block navbar %}
+{% endblock %} {% block navbar %}
 <div class="navbar navbar-default navbar-static-top" role="navigation">
   <div class="container-fluid">
     <div class="navbar-header">
-      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">
-	<span class="sr-only">Toggle navigation</span>
-	<span class="icon-bar"></span>
-	<span class="icon-bar"></span>
-	<span class="icon-bar"></span>
+      <button
+        type="button"
+        class="navbar-toggle collapsed"
+        data-toggle="collapse"
+        data-target=".navbar-collapse"
+      >
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
       </button>
       <a class="navbar-brand" href="{% url 'home' %}">
         <i class="fa fa-home"></i> JK Project
@@ -25,11 +22,8 @@
     </div>
     <div class="collapse navbar-collapse">
       <ul class="nav navbar-nav">
-
         <li>
-          <a href="">
-            <i class="fa fa-user"></i> Hello {{ user }}
-          </a>
+          <a href=""> <i class="fa fa-user"></i> Hello {{ user }} </a>
         </li>
         <li>
           <a href="{% url 'stock_list' %}">
@@ -132,14 +126,23 @@
                 <i class="fa fa-pencil"></i> Historicals
               </a>
             </li>
+            <li>
+              <a href="{% url 'simulation_sliding_window' %}">
+                <i class="fa fa-pencil"></i> Sliding windows
+              </a>
+            </li>
           </ul>
         </li>
       </ul>
 
       <ul class="nav navbar-nav navbar-right visible-md visible-lg">
         {# user profile #}
-        <li class="dropdown" data-toggle="tooltip" title="更新你的用户信息" id="user-profile">
-        </li>
+        <li
+          class="dropdown"
+          data-toggle="tooltip"
+          title="更新你的用户信息"
+          id="user-profile"
+        ></li>
 
         {% if user.is_authenticated %}
         <li>
@@ -154,4 +157,5 @@
     <!--/.nav-collapse -->
   </div>
   <!-- container-fluid -->
-</div>{% endblock %}<!-- end of block navbar -->
+</div>
+{% endblock %}<!-- end of block navbar -->

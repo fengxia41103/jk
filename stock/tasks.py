@@ -36,7 +36,6 @@ from django.contrib.auth.models import User
 from django.core.files import File
 from influxdb.influxdb08 import InfluxDBClient
 from lxml.html.clean import clean_html
-
 #################################
 #
 #   Alpha strategy values
@@ -55,7 +54,6 @@ from selenium.webdriver.support.ui import \
 
 from jk.production_envvars import ALPHAVANTAGE_KEY
 from jk.tor_handler import *
-from scipy import stats
 from stock.models import *
 from stock.simulations import *
 
@@ -874,6 +872,7 @@ class MyStockStrategyValue(object):
         """
         pass
 
+
 class MyStockDailyReturn(MyStockStrategyValue):
     """Daily return value.
 
@@ -1108,3 +1107,79 @@ def stock_historical_alpha_consumer(symbol):
     http_agent = PlainUtility()
     crawler = MyStockHistoricalAlphaVantage(http_agent)
     crawler.parser(symbol)
+
+
+@shared_task
+def batch_simulation_daily_return(date_range,
+                                  strategies=[1, 2],
+                                  capital=10000,
+                                  per_trade=1000):
+    sources = [1, ]
+    strategy_values = [1]
+
+    # simulation run
+    for (source, strategy, strategy_value) in itertools.product(
+            sources, strategies, strategy_values):
+        for (start, end) in date_range:
+            # we only try strategy 2 with source 1
+            if strategy == 2 and source != 1:
+                continue
+
+            # simulation parameters
+            logger.info(source, strategy, strategy_value, start, end)
+
+            # cutoffs have different meanings based on strategy
+            if strategy == 1:
+                step = 25
+                buy_cutoff = range(0, 100, step)
+                sell_cutoff = [b + step for b in buy_cutoff]
+                cutoffs = zip(buy_cutoff, sell_cutoff)
+            elif strategy == 2:
+                buy_cutoff = range(1, 6, 1)
+                sell_cutoff = range(1, 6, 1)
+                cutoffs = itertools.product(buy_cutoff, sell_cutoff)
+                # cutoffs = [(1,1)]
+            elif strategy == 3:
+                buy_cutoff = range(1, 6, 1)
+                sell_cutoff = range(1, 6, 1)
+                cutoffs = itertools.product(buy_cutoff, sell_cutoff)
+
+            # Set up simulation condition objects based on combination
+            # of specified parameters. Note that the count of this
+            # matrix increases dramatically if we expand this
+            # parameter list.
+            for (buy_cutoff, sell_cutoff) in cutoffs:
+                condition, created = MySimulationCondition.objects.get_or_create(
+                    data_source=source,
+                    data_sort=1,  # descending
+                    strategy=strategy,
+                    strategy_value=strategy_value,
+                    start=start,
+                    end=end,
+                    capital=capital,
+                    per_trade=per_trade,
+                    buy_cutoff=buy_cutoff,
+                    sell_cutoff=sell_cutoff
+                )
+
+                # if condition.data_source == 1 and strategy == 2:
+                # MySimulationCondition is not json-able, using python pickle
+                # instead. The downside of this is that we are relying on a
+                # python-specif data format.  But it is safe in this context.
+                if strategy in [2, 3]:
+                    # buy low sell high
+                    # Set is_update=True will remove all
+                    # existing results first and then rerun all
+                    # simulations. This is necessary because SP500 is gettting
+                    # new data each day.
+                    is_update = True
+                else:
+                    # alpha
+                    # Because computing alpha index values are very time consuming,
+                    # so we are to skip existing results to save time. Ideally
+                    # we should set is_update=True to recompute from a clean sheet.
+                    is_update = False
+
+                crawler = MyStockBacktestingSimulation(
+                    cPickle.dumps(condition))
+                crawler.run(is_update)

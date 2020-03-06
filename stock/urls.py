@@ -75,4 +75,6 @@ urlpatterns = patterns(
         name='simulation_result_list'),
     url(r'^backtesting/result/comp/$',
         views.MySimulationResultComp.as_view(), name='simulation_result_comp'),
+    url(r'^backtesting/sliding/window/$', views.MySimulationSlidingWindow.as_view(),
+        name='simulation_sliding_window'),
 ) + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,0 +1,105 @@
+# docker-compose version
+version: '3.3'
+
+# network
+networks:
+  data:
+  management:
+
+# storage
+volumes:
+  mysql-data:
+  redis-data:
+
+# computes
+services:
+  db:
+    image: mysql:5.7
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./data:/docker-entrypoint-initdb.d
+    environment:
+      MYSQL_DATABASE: jk
+      MYSQL_USER: fengxia
+      MYSQL_PASSWORD: natalie
+      MYSQL_ROOT_HOST: "%" # allow remote conn from these hosts
+      MYSQL_ROOT_PASSWORD: natalie
+    networks:
+      - data
+
+  redis:
+    image: redis
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - data
+
+  web:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-web
+    volumes:
+      - .:/code
+      - type: bind
+        source: ../static
+        target: /code/static
+        readonly: true
+    environment:
+      DJANGO_DEBUG: 1 # 0 or 1
+      DEPLOY_TYPE: dev # dev or prod
+      DJANGO_DB_USER: fengxia
+      DJANGO_DB_PWD: natalie
+      DJANGO_DB_HOST: db
+      DJANGO_DB_PORT: 3306
+      DJANGO_REDIS_HOST: redis
+
+    command: bash -c "python /code/manage.py migrate --noinput && python /code/manage.py runserver 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    networks:
+      - data
+      - management
+    depends_on:
+      - db
+      - redis
+
+
+  celery:
+    image: jk_web
+    environment:
+      DJANGO_DEBUG: 0 # 0 or 1
+      DEPLOY_TYPE: dev # dev or prod
+      DJANGO_DB_USER: fengxia
+      DJANGO_DB_PWD: natalie
+      DJANGO_DB_HOST: db
+      DJANGO_DB_PORT: 3306
+      DJANGO_REDIS_HOST: redis
+    command: celery -A jk worker -l INFO
+    volumes:
+      - .:/code
+    networks:
+      - management
+      - data
+    depends_on:
+      - db
+      - redis
+
+  flower:
+    image: jk_web
+    command: celery flower --broker=redis://redis:6379/0 --port=5555
+    ports:
+      - "5555:5555"
+    volumes:
+      - .:/code
+    depends_on:
+      - db
+      - redis
+    networks:
+      - data
+      - management

@@ -95,6 +95,7 @@ from stock.simulations import MySimulationBuyLowSellHigh
 #####################################################
 from stock.tasks import MyStockBacktestingSimulation
 from stock.tasks import backtesting_simulation_consumer
+from stock.tasks import batch_simulation_daily_return
 from tasks import stock_monitor_yahoo_consumer
 from tasks import stock_monitor_yahoo_consumer2
 from utility import JSONEncoder
@@ -769,3 +770,33 @@ class MySimulationConditionDetail(DetailView):
             lambda x: x[0] - x[1], zip(context['asset_gain_pcnt_t0'], context['index_gain_pcnt']))
 
         return context
+
+
+@class_view_decorator(login_required)
+class MySimulationSlidingWindow(FormView):
+    template_name = 'stock/backtesting/sliding_windows.html'
+    form_class = SlidingWindowForm
+
+    def form_valid(self, form):
+        start_date = form.cleaned_data["start_date"]
+        end_date = form.cleaned_data["end_date"]
+        window = form.cleaned_data["window"]
+
+        sliding_windows = MyUtility.sliding_windows(
+            start_date, end_date, window)
+
+        for w in sliding_windows:
+            batch_simulation_daily_return.delay(
+                data_range=w,
+                strategies=[2, 3],
+                capital=10000,
+                per_trade=500
+            )
+
+        # render HTML
+        return render(self.request, self.template_name, {
+            'form': form,
+            'start_date': start_date,
+            'end_date': end_date,
+            'step': window,
+            "windows": sliding_windows})

@@ -1,7 +1,11 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+import cPickle
 import datetime
+import inspect
+import itertools
+import logging
 import pprint
 import random
 import re
@@ -32,8 +36,10 @@ from selenium.webdriver.support.ui import \
     WebDriverWait  # available since 2.4.0
 
 # import models
-#from pi.models import *
-from models import *
+from stock.models import MySimulationCondition
+from stock.tasks import backtesting_simulation_consumer
+
+logger = logging.getLogger(__name__)
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -167,3 +173,95 @@ class MyUtility():
                            for i in range(delta.days - window_size)]
         return map(lambda (x, y): (x.isoformat(), y.isoformat()),
                    sliding_windows)
+
+
+class MyBatchHandler():
+
+    def __init__(self):
+        pass
+
+    @classmethod
+    def batch_simulation_daily_return(self,
+                                      date_range,
+                                      strategies=[1, 2],
+                                      capital=10000,
+                                      per_trade=1000):
+        sources = [1, ]
+        strategy_values = [1]
+
+        # simulation run
+        for (source, strategy, strategy_value) in itertools.product(
+                sources, strategies, strategy_values):
+            for (start, end) in date_range:
+                # we only try strategy 2 with source 1
+                if strategy == 2 and source != 1:
+                    continue
+
+                # simulation parameters
+                logger.info(source, strategy, strategy_value, start, end)
+
+                # cutoffs have different meanings based on strategy
+                if strategy == 1:
+                    step = 25
+                    buy_cutoff = range(0, 100, step)
+                    sell_cutoff = [b + step for b in buy_cutoff]
+                    cutoffs = zip(buy_cutoff, sell_cutoff)
+                elif strategy == 2:
+                    buy_cutoff = range(1, 6, 1)
+                    sell_cutoff = range(1, 6, 1)
+                    cutoffs = itertools.product(buy_cutoff, sell_cutoff)
+                    # cutoffs = [(1,1)]
+                elif strategy == 3:
+                    buy_cutoff = range(1, 6, 1)
+                    sell_cutoff = range(1, 6, 1)
+                    cutoffs = itertools.product(buy_cutoff, sell_cutoff)
+
+                # Set up simulation condition objects based on combination
+                # of specified parameters. Note that the count of this
+                # matrix increases dramatically if we expand this
+                # parameter list.
+                for (buy_cutoff, sell_cutoff) in cutoffs:
+                    condition, created = MySimulationCondition.objects.get_or_create(
+                        data_source=source,
+                        data_sort=1,  # descending
+                        strategy=strategy,
+                        strategy_value=strategy_value,
+                        start=start,
+                        end=end,
+                        capital=capital,
+                        per_trade=per_trade,
+                        buy_cutoff=buy_cutoff,
+                        sell_cutoff=sell_cutoff
+                    )
+
+                    # if condition.data_source == 1 and strategy == 2:
+                    # MySimulationCondition is not json-able, using python pickle
+                    # instead. The downside of this is that we are relying on a
+                    # python-specif data format.  But it is safe in this context.
+                    if strategy in [2, 3]:
+                        # buy low sell high
+                        # Set is_update=True will remove all
+                        # existing results first and then rerun all
+                        # simulations. This is necessary because SP500 is gettting
+                        # new data each day.
+                        backtesting_simulation_consumer.delay(
+                            cPickle.dumps(condition), is_update=True)
+                    else:
+                        # alpha
+                        # Because computing alpha index values are very time consuming,
+                        # so we are to skip existing results to save time. Ideally
+                        # we should set is_update=True to recompute from a clean sheet.
+                        backtesting_simulation_consumer.delay(
+                            cPickle.dumps(condition), is_update=False)
+
+    @classmethod
+    def rerun_existing_simulations(self, strategy=2):
+        total_count = MySimulationCondition.objects.all().count()
+        for counter, condition in enumerate(
+                MySimulationCondition.objects.filter(strategy=strategy)):
+            logger.debug('%s: %d/%d' % (inspect.stack()[1][3], counter, total_count))
+
+            # simulation run
+            backtesting_simulation_consumer.delay(
+                cPickle.dumps(condition),
+                is_update=True)
