@@ -2,35 +2,66 @@
 {% load staticfiles %}
 {% load crispy_forms_tags %}
 
+
 {% block page-header %}
 Backtesting 2 simulation
 {% endblock %}
 
 {% block strategy-intro %}
 <div>
-<p>
-The core of backtesting 2 strategies is to compute a "factor value" for each historical record. Based on the strategy and specified cutoff values, it simulates trades and generate a report.
+    <p>
+        The core of backtesting 2 strategies is to compute a "factor
+        value" for each historical record. Based on the strategy and
+        specified cutoff values, it simulates trades and generate a report.
 
-<h3>Data source</h3>
-	<ul>
-		<li> S&P 500 stocks</li>
-		<li> "CI00" sector</li>
-		<li> "8821" WIND sector</li>
-		<li> China stocks</li>
-	</ul>
-Special symbol "000001" is the China equivalent of S&P500 index.
+        <h2>Data source</h2>
+        <ul>
+            <li> S&P 500 stocks</li>
+            <li> "CI00" sector</li>
+            <li> "8821" WIND sector</li>
+            <li> China stocks</li>
+        </ul>
+        Special symbol "000001" is the China equivalent of S&P500 index.
 
-<h3>Trading strategy</h3>
-<h4>by daily ranking</h4>
-<p>
-Given a date, we rank samples by precomputed "factor value". We buy symbols whose rank falls into a band defined by "buy_cutoff" and "sell_cutoff".
+        <h2>Trading strategy</h2>
+        <h3>by daily ranking</h3>
+        <p>
+            Given a date, we rank samples by precomputed "factor
+            value". We buy symbols whose rank falls into a band
+            defined by "buy_cutoff" and "sell_cutoff".
+        </p>
+        <p>
+            Rank defaults to ascending order. The meaning of it
+            depends on how the factor value is
+            calculated. Eg. factor value using `daily return = (close[t0] - close[t-1])/close[t-1]`,
+            ascending order means we will buy stock whose price
+            has dropped the most on t0 &rarr; we chase losers;
+            descending order would reverse this logic &rarr; we
+            chase winners.
+        </p>
+        <h3>buy low, sell high</h3>
+        <p>
 
-<p>
-Rank defaults to ascending order. The meaning of it depends on how the factor value is calculated. Eg. factor value using daily return = (close[t0] - close[t-1])/close[t-1], ascending order means we will buy stock whose price has dropped the most on t0 &rarr; we chase losers; descending order would reverse this logic &rarr; we chase winners.
+            The idea here is that pretty conventional wisdom
+            &mdash; if a stock has dropped, buy it; then sell it
+            when the price goes back up. The `cutoff` is the
+            criteria how much drop when I buy, and how much
+            recovery I will sell.
 
-<h4>buy low sell high</h4>
-<p>
-Based on "daily return", if buy_cutoff is 0.04, we buy stocks whose has seen a daily price DROP greater than 0.04; if sell_cutoff is 0.05, we sell stocks whose daily price INCREASE is greater than 0.05. For this strategy, sorting is irrelevant.
+            Based on "daily return", if buy_cutoff is 0.04, we buy
+            stocks whose has seen a daily price DROP greater than 0.04;
+            if sell_cutoff is 0.05, we sell stocks whose daily price
+            INCREASE is greater than 0.05. For this strategy, sorting is
+            irrelevant.
+        </p>
+        <h3>buy high, sell low</h3>
+        <p>
+            This seems to be counter-intuitive &mdash; why buy a stock when it goes
+            up, and sells it when it drops? The idea is that, when a
+            stock is on its rising path, it is likely to keep going up,
+            like inertia. So we buy when it is having such momentum, and
+            dump it when the tide turns.
+        </p>
 </div>
 {% endblock %}
 
@@ -43,4 +74,3 @@ Based on "daily return", if buy_cutoff is 0.04, we buy stocks whose has seen a d
 </form>
 {% endif %}
 {% endblock %}
-

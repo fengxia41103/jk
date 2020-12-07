@@ -10,563 +10,566 @@ Result details
 
 {% block strategy-result %}
 <table class="table table-striped">
-	<caption>Simulation conditions</caption>
-    <thead>
-    	<th>Data source</th>
-    	<th>Strategy value</th>
-    	<th>Strategy</th>
-    	<th>Start</th>
-    	<th>End</th>
-    	<th>Cutoffs</th>
-    	<th>Capital</th>
-    	<th>Per trade</th>
-    	<th>Sector</th>
-    	<th>Manage</th>
-    </thead>
-    <tbody>
-		<tr><td>
-			{{ object.get_data_source_display }}
-		</td><td>
-			{{ object.get_strategy_value_display }}
-		</td><td>
-			{{ object.get_strategy_display }}
-		</td><td>
-			{{ object.start }}
-		</td><td>
-			{{ object.end }}
-		</td><td>
-			{{ object.buy_cutoff }}% &mdash; {{ object.sell_cutoff }}%
-		</td><td>
-			{{ object.capital|intcomma }}
-		</td><td>
-			{{ object.per_trade|intcomma }}
-		</td><td>
-			{{ object.sector }}
-		</td><td>
-			<a href="{% url 'condition_delete' object.id %}">Delete</a>
-		</td</tr>
-    </tbody>
+  <caption>Simulation conditions</caption>
+  <thead>
+    <th>Data source</th>
+    <th>Strategy value</th>
+    <th>Strategy</th>
+    <th>Start</th>
+    <th>End</th>
+    <th>Cutoffs</th>
+    <th>Capital</th>
+    <th>Per trade</th>
+    <th>Sector</th>
+    <th>Manage</th>
+  </thead>
+  <tbody>
+    <tr><td>
+      {{ object.get_data_source_display }}
+    </td><td>
+      {{ object.get_strategy_value_display }}
+    </td><td>
+      {{ object.get_strategy_display }}
+    </td><td>
+      {{ object.start }}
+    </td><td>
+      {{ object.end }}
+    </td><td>
+      {{ object.buy_cutoff }}% &mdash; {{ object.sell_cutoff }}%
+    </td><td>
+      {{ object.capital|intcomma }}
+    </td><td>
+      {{ object.per_trade|intcomma }}
+    </td><td>
+      {{ object.sector }}
+    </td><td>
+      <a href="{% url 'condition_delete' object.id %}">Delete</a>
+    </td</tr>
+  </tbody>
 </table>
 
 <h2 class="page-header">Performance</h2>
 <div id="simulation" style="width:100%; height:580px;"></div>
 
 <div class="row">
-	<div class="col-md-6">
-		<div id="equity-gain-from-hold" style="width:100%; height:400px;"></div>
-	</div>
-	<div class="col-md-6">
-		<div id="equity-gain-from-trade" style="width:100%; height:400px;"></div>
-	</div>
+  <div class="col-md-6">
+    <div id="equity-gain-from-hold" style="width:100%; height:400px;"></div>
+  </div>
+  <div class="col-md-6">
+    <div id="equity-gain-from-trade" style="width:100%; height:400px;"></div>
+  </div>
 </div>
 
 {# asset vs. index #}
 <h2 class="page-header">Cumulative return vs. Index</h2>
 <div class="row">
-	<div class="col-md-6">
-		<div id="comp-index" style="width:100%; height:400px;"></div>
-	</div>
-	<div class="col-md-6">
-		<div id="alpha-return" style="width:100%; height:400px;"></div>
-	</div>
+  <div class="col-md-6">
+    <div id="comp-index" style="width:100%; height:400px;"></div>
+  </div>
+  <div class="col-md-6">
+    <div id="alpha-return" style="width:100%; height:400px;"></div>
+  </div>
 </div>
 
 <h2 class="page-header">Statistics</h2>
 <table class="table table-striped">
-    <thead>	   
-    	<th>Index</th>
-    	<th>Data source</th>
-    	<th>Cutoffs</th>
-    	<th>End return</th>   	
-    	<th>Max return</th>
-    	<th>Min return</th>
-    	<th>Avg return</th>
-    	<th>STD return</th>
-    	<th>Buys</th>
-    	<th>Sells</th>
-    	<th>Life in days</th>
-    	<th>Sector</th>
-    </thead>
-    <tbody>
-		<tr><td>
-			{{ object.id }}
-		</td><td>
-			{{ object.get_data_source_display }}
-		</td><td>
-			{{ object.buy_cutoff }}% &mdash; {{ object.sell_cutoff }}%
-		</td><td>
-			{{ object.asset_end_return|floatformat:"2" }}
-		</td><td>
-			{{ object.asset_max_return|floatformat:"2" }}
-		</td><td>
-			{{ object.asset_min_return|floatformat:"2" }}
-		</td><td>
-			{{ object.asset_cumulative_return_mean|floatformat:"2" }}
-		</td><td>
-			{{ object.asset_cumulative_return_std|floatformat:"4" }}
-		</td><td>
-			{{ object.num_of_buys|intcomma }}
-		</td><td>
-			{{ object.num_of_sells|intcomma }}
-		</td><td>
-			<dl>
-			{% for symbol,life in object.equity_life_in_days %}
-				<dt>{{ symbol }}</dt>
-				<dd>{{ life|floatformat:"2" }}</dd>
-			{% endfor %}
-			</dl>
-		</td><td>
-			{{ object.sector }}
-		</td</tr>
-    </tbody>
+  <thead>	   
+    <th>Index</th>
+    <th>Data source</th>
+    <th>Cutoffs</th>
+    <th>End return</th>   	
+    <th>Max return</th>
+    <th>Min return</th>
+    <th>Avg return</th>
+    <th>STD return</th>
+    <th>Buys</th>
+    <th>Sells</th>
+    <th>Life in days</th>
+    <th>Sector</th>
+  </thead>
+  <tbody>
+    <tr><td>
+      {{ object.id }}
+    </td><td>
+      {{ object.get_data_source_display }}
+    </td><td>
+      {{ object.buy_cutoff }}% &mdash; {{ object.sell_cutoff }}%
+    </td><td>
+      {{ object.asset_end_return|floatformat:"2" }}
+    </td><td>
+      {{ object.asset_max_return|floatformat:"2" }}
+    </td><td>
+      {{ object.asset_min_return|floatformat:"2" }}
+    </td><td>
+      {{ object.asset_cumulative_return_mean|floatformat:"2" }}
+    </td><td>
+      {{ object.asset_cumulative_return_std|floatformat:"4" }}
+    </td><td>
+      {{ object.num_of_buys|intcomma }}
+    </td><td>
+      {{ object.num_of_sells|intcomma }}
+    </td><td>
+      <dl>
+	{% for symbol,life in object.equity_life_in_days %}
+	<dt>{{ symbol }}</dt>
+	<dd>{{ life|floatformat:"2" }}</dd>
+	{% endfor %}
+      </dl>
+    </td><td>
+      {{ object.sector }}
+    </td</tr>
+  </tbody>
 </table>
 
 <h2 class="page-header">Traces</h1>
-{% paginate snapshots %}
-{% for sp in snapshots %}
-<div>
-<h3 class="my-section-header">{{ sp.on_date }}</h3>
+  {% paginate snapshots %}
+  {% for sp in snapshots %}
+  <div>
+    <h3 class="my-section-header">{{ sp.on_date }}</h3>
 
-<ul class="list-inline text-center">
-	<li><span class="label label-default">asset</span>{{ sp.asset|floatformat:2 }}</li>
-	<li> = </li>
-	<li><span class="label label-default">cash</span>{{ sp.cash|floatformat:2 }}</li>
-	<li> + </li>
-	<li><span class="label label-default">equity</span>{{ sp.equity|floatformat:2 }}</li>
-	<li> | </li>
-	<li><span class="label label-default">Gain from equity exit</span>
-		{% if sp.gain_from_exit < 0 %}
-			<font color="red">{{ sp.gain_from_exit|floatformat:"2" }}</font>
-		{% else %}
-			{{ sp.gain_from_exit|floatformat:"2" }}
-		{% endif %}
-	</li>
-	<li><span class="label label-default">Gain from equity portfolio</span>
-		{% if sp.gain_from_holding < 0 %}
-			<font color="red">{{ sp.gain_from_holding|floatformat:"2" }}</font>
-		{% else %}
-			{{ sp.gain_from_holding|floatformat:"2" }}
-		{% endif %}
-	</li>
-</ul>
-
-<ul class="nav nav-tabs">
-    {% if sp.equities %}
-    <li class="active"><a data-toggle="tab" href="#{{sp.id}}-portfolio">Portfolio</a></li>
-    {% endif %}    
-
-	{% if sp.buy_transactions %}
-    <li><a data-toggle="tab" href="#{{sp.id}}-buy">Buy</a></li>
-    {% endif %}
-
-    {% if sp.sell_transactions %}
-    <li><a data-toggle="tab" href="#{{sp.id}}-sell">Sell</a></li>
-    {% endif %}
-</ul>
-
-<div class="tab-content">
-	{% if sp.equities %}
-	<div id="{{sp.id}}-portfolio" class="tab-pane fade in active">
-		<table class="table table-condensed table-hover table-responsive">
-			<thead>
-				<th></th>
-				<th>Symbol</th>
-				<th>Cost</th>
-				<th>Vol</th>
-			</thead>
-			<tbody>
-				{% for p in sp.equities %}
-				<tr><td>
-					{{ forloop.counter }}
-				</td><td>
-					<a href="{% url 'stock_detail' p.stock.id %}">
-						{{ p.stock.symbol }}
-					</a>
-				</td><td>
-					{{ p.position|floatformat:"2" }}
-				</td><td>
-					{{ p.vol|floatformat:"2" }}
-				</td></tr>
-				{% endfor %}{# end of buys #}
-			</tbody>
-		</table>
-	</div>
+    <ul class="list-inline text-center">
+      <li><span class="label label-default">asset</span>
+        {{ sp.asset|floatformat:2 }}</li>
+      <li> = </li>
+      <li><span class="label label-default">cash</span>
+        {{ sp.cash|floatformat:2 }}</li>
+      <li> + </li>
+      <li><span class="label label-default">equity</span>
+        {{ sp.equity|floatformat:2 }}</li>
+      <li> | </li>
+      <li><span class="label label-default">Gain from equity exit</span>
+	{% if sp.gain_from_exit < 0 %}
+	<font color="red">{{ sp.gain_from_exit|floatformat:"2" }}</font>
+	{% else %}
+	{{ sp.gain_from_exit|floatformat:"2" }}
 	{% endif %}
-
-	{% if sp.buy_transactions %}
-	<div id="{{sp.id}}-buy" class="tab-pane fade in">
-		<table class="table table-condensed table-hover table-responsive">
-			<thead>
-				<th></th>
-				<th>Symbol</th>
-				<th>Cost</th>
-				<th>Vol</th>
-			</thead>
-			<tbody>
-				{% for p in sp.buy_transactions %}
-				<tr><td>
-					{{ forloop.counter }}
-				</td><td>
-					{{ p.stock.symbol }}
-				</td><td>
-					{{ p.position|floatformat:2 }}
-				</td><td>
-					{{ p.vol|floatformat:2 }}
-				</td></tr>
-				{% endfor %}{# end of buys #}
-			</tbody>
-		</table>
-	</div>
+      </li>
+      <li><span class="label label-default">Gain from equity portfolio</span>
+	{% if sp.gain_from_holding < 0 %}
+	<font color="red">{{ sp.gain_from_holding|floatformat:"2" }}</font>
+	{% else %}
+	{{ sp.gain_from_holding|floatformat:"2" }}
 	{% endif %}
+      </li>
+    </ul>
 
-	{% if sp.sell_transactions %}
-	<div id="{{sp.id}}-sell" class="tab-pane fade in">
-		<table class="table table-condensed table-hover table-responsive">
-			<thead>
-				<th></th>
-				<th>Symbol</th>
-				<th>Cost</th>
-				<th>Exit</th>
-				<th>Gain</th>
-				<th>Life in days</th>
-			</thead>
-			<tbody>
-				{% for p in sp.sell_transactions %}
-				<tr><td>
-					{{ forloop.counter }}
-				</td><td>
-					{{ p.stock.symbol }}
-				</td><td>
-					{{ p.position|floatformat:"2" }}
-				</td><td>
-					{{ p.close_position|floatformat:"2" }}
-				</td><td>
-					{{ p.gain|floatformat:"2" }}
-				</td><td>
-					{{ p.life_in_days }}
-				</td></tr>
-				{% endfor %}{# end of buys #}
-			</tbody>
-		</table>
-	</div>
-	{% endif %}
-</div>{# end of row #}
-</div>
-{% endfor %}
-{% show_pages %}
+    <ul class="nav nav-tabs">
+      {% if sp.equities %}
+      <li class="active"><a data-toggle="tab" href="#{{sp.id}}-portfolio">Portfolio</a></li>
+      {% endif %}    
 
-{% endblock %}
+      {% if sp.buy_transactions %}
+      <li><a data-toggle="tab" href="#{{sp.id}}-buy">Buy</a></li>
+      {% endif %}
 
-{% block custom_js %}
-<script type="text/javascript"
-	src="{% static 'highcharts/highcharts-custom.js' %}">
-</script>
-<script type="text/javascript"
-	src="{% static 'highcharts/js/modules/boost.js' %}">
-</script>   
+      {% if sp.sell_transactions %}
+      <li><a data-toggle="tab" href="#{{sp.id}}-sell">Sell</a></li>
+      {% endif %}
+    </ul>
 
-<script type="text/javascript">
-var j$ = jQuery.noConflict();
+    <div class="tab-content">
+      {% if sp.equities %}
+      <div id="{{sp.id}}-portfolio" class="tab-pane fade in active">
+	<table class="table table-condensed table-hover table-responsive">
+	  <thead>
+	    <th></th>
+	    <th>Symbol</th>
+	    <th>Cost</th>
+	    <th>Vol</th>
+	  </thead>
+	  <tbody>
+	    {% for p in sp.equities %}
+	    <tr><td>
+	      {{ forloop.counter }}
+	    </td><td>
+	      <a href="{% url 'stock_detail' p.stock.id %}">
+		{{ p.stock.symbol }}
+	      </a>
+	    </td><td>
+	      {{ p.position|floatformat:"2" }}
+	    </td><td>
+	      {{ p.vol|floatformat:"2" }}
+            </td></tr>
+	    {% endfor %}{# end of buys #}
+	  </tbody>
+	</table>
+      </div>
+      {% endif %}
 
-j$(document).ready(function(){
-    j$('#simulation').highcharts({
-        chart: {
-        	zoomType: 'x',
-        	type: 'spline'
-    	},
-        title: {
-            text: '{{ strategy|safe }} Trading Simulation'
-        },
-        subtitle: {
-            text: '{{start}} - {{end}}'
-        },
-        xAxis: {
-            categories: {{ on_dates|safe }}
-        },
-        yAxis: {
-            title: {
-                text: 'Values'
-            }
-        },
-		tooltip: {
-		    crosshairs: {
-		        color: 'green',
-		        dashStyle: 'solid'
-		    },
-		    shared: true,
-		    valueDecimals: 2			    
-		},	        
-        plotOptions: {	        	
-            line: {
-                dataLabels: {
-                    enabled: false
-                },
-                enableMouseTracking: false,
-                lineWidth: 4,
-                marker: {
-                	enabled: false
-                }
-            },
-			spline: {
-			    marker: {
-			        radius: 1,
-			        lineColor: '#666666',
-			        lineWidth: 1,
-			        enabled: false
-			    },
-				lineWidth: 4,
-				states: {
-				    hover: {
-				        lineWidth: 5
-				    }
-				}				    
-			},		            
-			area: {
-				stacking: 'normal',
-				lineColor: '#666666',
-				lineWidth: 1,
-				marker: {
-					lineWidth: 1,
-					lineColor: '#666666'
-				}
-			},
-	    }, // end of plot option
-        series: [{
-        	name: 'Assets',
-        	data: {{ assets }},	    	
-        },{
-        	type: "line",
-        	name: 'Cashes',
-        	data: {{ cashes }},
-        	step: true,
-        	visible: false
-        },{ 
-    		name: 'Equities',
-    		data: {{ equities }},
-    		visible: false
-    	}]
-	}); // end of highchart
+      {% if sp.buy_transactions %}
+      <div id="{{sp.id}}-buy" class="tab-pane fade in">
+	<table class="table table-condensed table-hover table-responsive">
+	  <thead>
+	    <th></th>
+	    <th>Symbol</th>
+	    <th>Cost</th>
+	    <th>Vol</th>
+	  </thead>
+	  <tbody>
+	    {% for p in sp.buy_transactions %}
+	    <tr><td>
+	      {{ forloop.counter }}
+	    </td><td>
+	      {{ p.stock.symbol }}
+	    </td><td>
+	      {{ p.position|floatformat:2 }}
+	    </td><td>
+	      {{ p.vol|floatformat:2 }}
+	    </td></tr>
+	    {% endfor %}{# end of buys #}
+	  </tbody>
+	</table>
+      </div>
+      {% endif %}
 
-   j$('#equity-gain-from-hold').highcharts({
-        chart: {
-        	zoomType: 'x',
-        	type: 'column'
-    	},
-        title: {
-            text: 'Equity Gain From Holding'
-        },
-        subtitle: {
-            text: '{{start}} - {{end}}'
-        },
-        xAxis: {
-            categories: {{ on_dates|safe }}
-        },
-        yAxis: {
-            title: {
-                text: 'Gain'
-            }
-        },
-		tooltip: {
-		    crosshairs: {
-		        color: 'green',
-		        dashStyle: 'solid'
-		    },
-		    shared: true,
-		    valueDecimals: 2			    
-		},	        
-        plotOptions: {	        	
-            line: {
-                dataLabels: {
-                    enabled: false
-                },
-                enableMouseTracking: false,
-                lineWidth: 4,
-                marker: {
-                	enabled: false
-                }
-            },
-			spline: {
-			    marker: {
-			        radius: 1,
-			        lineColor: '#666666',
-			        lineWidth: 1,
-			        enabled: false
-			    },
-				lineWidth: 3,
-				states: {
-				    hover: {
-				        lineWidth: 4
-				    }
-				}				    
-			}
-	    }, // end of option
-        series: [{
-        	name: 'Gain from equity portfolio',
-        	data: {{ gain_from_holding }},	    	
-        }]
-	});// end of highcharts
-   j$('#equity-gain-from-trade').highcharts({
-        chart: {
-        	zoomType: 'x',
-        	type: 'column'
-    	},
-        title: {
-            text: 'Equity Gain From Trading'
-        },
-        subtitle: {
-            text: '{{start}} - {{end}}'
-        },
-        xAxis: {
-            categories: {{ on_dates|safe }}
-        },
-        yAxis: {
-            title: {
-                text: "Gain"
-            }
-        },
-		tooltip: {
-		    crosshairs: {
-		        color: 'green',
-		        dashStyle: 'solid'
-		    },
-		    shared: true,
-		    valueDecimals: 2			    
-		},	        
-        plotOptions: {	        	
-            line: {
-                dataLabels: {
-                    enabled: false
-                },
-                enableMouseTracking: false,
-                lineWidth: 4,
-                marker: {
-                	enabled: false
-                }
-            },
-			spline: {
-			    marker: {
-			        radius: 1,
-			        lineColor: '#666666',
-			        lineWidth: 1,
-			        enabled: false
-			    },
-				lineWidth: 3,
-				states: {
-				    hover: {
-				        lineWidth: 4
-				    }
-				}				    
-			}
-	    }, // end of option
-        series: [{
-        	name: 'Gain from equity trading',
-        	data: {{ gain_from_exit }},	    	
-        }]
-	});// end of highcharts
+      {% if sp.sell_transactions %}
+      <div id="{{sp.id}}-sell" class="tab-pane fade in">
+	<table class="table table-condensed table-hover table-responsive">
+	  <thead>
+	    <th></th>
+	    <th>Symbol</th>
+	    <th>Cost</th>
+	    <th>Exit</th>
+	    <th>Gain</th>
+	    <th>Life in days</th>
+	  </thead>
+	  <tbody>
+	    {% for p in sp.sell_transactions %}
+	    <tr><td>
+	      {{ forloop.counter }}
+	    </td><td>
+	      {{ p.stock.symbol }}
+	    </td><td>
+	      {{ p.position|floatformat:"2" }}
+	    </td><td>
+	      {{ p.close_position|floatformat:"2" }}
+	    </td><td>
+	      {{ p.gain|floatformat:"2" }}
+	    </td><td>
+	      {{ p.life_in_days }}
+	    </td></tr>
+	    {% endfor %}{# end of buys #}
+	  </tbody>
+	</table>
+      </div>
+      {% endif %}
+    </div>{# end of row #}
+  </div>
+  {% endfor %}
+  {% show_pages %}
 
-    j$('#comp-index').highcharts({
-        chart: {
-        	zoomType: 'x',
-        	type: 'spline'
-    	},
-        title: {
-            text: 'Simulation vs. Index'
-        },
-        subtitle: {
-            text: '{{start}} - {{end}}'
-        },
-        xAxis: {
-            categories: {{ on_dates|safe }}
-        },
-        yAxis: {
-            title: {
-                text: 'Values'
-            }
-        },
-		tooltip: {
-		    crosshairs: {
-		        color: 'green',
-		        dashStyle: 'solid'
-		    },
-		    shared: true,
-		    valueDecimals: 2			    
-		},	        
-        plotOptions: {	        	
-            line: {
-                dataLabels: {
-                    enabled: false
-                },
-                enableMouseTracking: false,
-                lineWidth: 4,
-                marker: {
-                	enabled: false
-                }
-            },
-			spline: {
-			    marker: {
-			        radius: 1,
-			        lineColor: '#666666',
-			        lineWidth: 1,
-			        enabled: false
-			    },
-				lineWidth: 3,
-				states: {
-				    hover: {
-				        lineWidth: 4
-				    }
-				}				    
-			}
-	    }, // end of option
-        series: [{
-        	name: 'Simulation asset cumulative',
-        	data: {{ asset_gain_pcnt_t0 }},	    	
-        },{ 
-    		name: 'Index cumulative',
-    		data: {{ index_gain_pcnt }},
-    	}]
-	});// end of highcharts
-    j$('#alpha-return').highcharts({
-        chart: {
-        	zoomType: 'x',
-        	type: 'column'
-    	},
-        title: {
-            text: 'Alpha Return'
-        },
-        subtitle: {
-            text: '{{start}} - {{end}}'
-        },
-        xAxis: {
-            categories: {{ on_dates|safe }}
-        },
-        yAxis: {
-            title: {
-                text: 'Values'
-            }
-        },
-		tooltip: {
-		    crosshairs: {
-		        color: 'green',
-		        dashStyle: 'solid'
-		    },
-		    shared: true,
-		    valueDecimals: 2			    
-		},	        
-        plotOptions: {	        	
-			column: {
-			    marker: {
-			        radius: 1,
-			        lineColor: '#666666',
-			        lineWidth: 1,
-			        enabled: false
-			    }			    
-			}
-	    }, // end of option
-        series: [{
-        	name: 'Alpha return',
-        	data: {{ alpha_return }},	    	
-        }]
-	});// end of highcharts
-});// end of document.ready
-	</script>    
-{% endblock %}
+  {% endblock %}
+
+  {% block custom_js %}
+  <script type="text/javascript"
+	        src="{% static 'highcharts/highcharts-custom.js' %}">
+  </script>
+  <script type="text/javascript"
+	        src="{% static 'highcharts/js/modules/boost.js' %}">
+  </script>   
+
+  <script type="text/javascript">
+   var j$ = jQuery.noConflict();
+
+   j$(document).ready(function(){
+     j$('#simulation').highcharts({
+       chart: {
+         zoomType: 'x',
+         type: 'spline'
+       },
+       title: {
+         text: '{{ strategy|safe }} Trading Simulation'
+       },
+       subtitle: {
+         text: '{{start}} - {{end}}'
+       },
+       xAxis: {
+         categories: {{ on_dates|safe }}
+       },
+       yAxis: {
+         title: {
+           text: 'Values'
+         }
+       },
+       tooltip: {
+	 crosshairs: {
+	   color: 'green',
+	   dashStyle: 'solid'
+	 },
+	 shared: true,
+	 valueDecimals: 2			    
+       },	        
+       plotOptions: {	        	
+         line: {
+           dataLabels: {
+             enabled: false
+           },
+           enableMouseTracking: false,
+           lineWidth: 4,
+           marker: {
+             enabled: false
+           }
+         },
+         spline: {
+	   marker: {
+	     radius: 1,
+	     lineColor: '#666666',
+	     lineWidth: 1,
+	     enabled: false
+	   },
+	   lineWidth: 4,
+	   states: {
+	     hover: {
+	       lineWidth: 5
+	     }
+	   }				    
+	 },		            
+		     area: {
+		       stacking: 'normal',
+		       lineColor: '#666666',
+		       lineWidth: 1,
+		       marker: {
+			 lineWidth: 1,
+			 lineColor: '#666666'
+		       }
+		     },
+       }, // end of plot option
+       series: [{
+         name: 'Assets',
+         data: {{ assets }},	    	
+       },{
+         type: "line",
+         name: 'Cashes',
+         data: {{ cashes }},
+         step: true,
+         visible: false
+       },{ 
+    	 name: 'Equities',
+    	 data: {{ equities }},
+    	 visible: false
+       }]
+     }); // end of highchart
+
+     j$('#equity-gain-from-hold').highcharts({
+       chart: {
+         zoomType: 'x',
+         type: 'column'
+       },
+       title: {
+         text: 'Equity Gain From Holding'
+       },
+       subtitle: {
+         text: '{{start}} - {{end}}'
+       },
+       xAxis: {
+         categories: {{ on_dates|safe }}
+       },
+       yAxis: {
+         title: {
+           text: 'Gain'
+         }
+       },
+       tooltip: {
+	 crosshairs: {
+	   color: 'green',
+	   dashStyle: 'solid'
+	 },
+	 shared: true,
+	 valueDecimals: 2			    
+       },	        
+       plotOptions: {	        	
+         line: {
+           dataLabels: {
+             enabled: false
+           },
+           enableMouseTracking: false,
+           lineWidth: 4,
+           marker: {
+             enabled: false
+           }
+         },
+		     spline: {
+		       marker: {
+			 radius: 1,
+			 lineColor: '#666666',
+			 lineWidth: 1,
+			 enabled: false
+		       },
+		       lineWidth: 3,
+		       states: {
+			 hover: {
+			   lineWidth: 4
+			 }
+		       }				    
+		     }
+       }, // end of option
+       series: [{
+         name: 'Gain from equity portfolio',
+         data: {{ gain_from_holding }},	    	
+       }]
+     });// end of highcharts
+     j$('#equity-gain-from-trade').highcharts({
+       chart: {
+         zoomType: 'x',
+         type: 'column'
+       },
+       title: {
+         text: 'Equity Gain From Trading'
+       },
+       subtitle: {
+         text: '{{start}} - {{end}}'
+       },
+       xAxis: {
+         categories: {{ on_dates|safe }}
+       },
+       yAxis: {
+         title: {
+           text: "Gain"
+         }
+       },
+       tooltip: {
+	 crosshairs: {
+	   color: 'green',
+	   dashStyle: 'solid'
+	 },
+	 shared: true,
+	 valueDecimals: 2			    
+       },	        
+       plotOptions: {	        	
+         line: {
+           dataLabels: {
+             enabled: false
+           },
+           enableMouseTracking: false,
+           lineWidth: 4,
+           marker: {
+             enabled: false
+           }
+         },
+         spline: {
+	   marker: {
+	     radius: 1,
+	     lineColor: '#666666',
+	     lineWidth: 1,
+	     enabled: false
+	   },
+	   lineWidth: 3,
+	   states: {
+	     hover: {
+	       lineWidth: 4
+	     }
+	   }				    
+	 }
+       }, // end of option
+       series: [{
+         name: 'Gain from equity trading',
+         data: {{ gain_from_exit }},	    	
+       }]
+     });// end of highcharts
+
+     j$('#comp-index').highcharts({
+       chart: {
+         zoomType: 'x',
+         type: 'spline'
+       },
+       title: {
+         text: 'Simulation vs. Index'
+       },
+       subtitle: {
+         text: '{{start}} - {{end}}'
+       },
+       xAxis: {
+         categories: {{ on_dates|safe }}
+       },
+       yAxis: {
+         title: {
+           text: 'Values'
+         }
+       },
+       tooltip: {
+	 crosshairs: {
+	   color: 'green',
+	   dashStyle: 'solid'
+	 },
+	 shared: true,
+	 valueDecimals: 2			    
+       },	        
+       plotOptions: {	        	
+         line: {
+           dataLabels: {
+             enabled: false
+           },
+           enableMouseTracking: false,
+           lineWidth: 4,
+           marker: {
+             enabled: false
+           }
+         },
+         spline: {
+	   marker: {
+	     radius: 1,
+	     lineColor: '#666666',
+	     lineWidth: 1,
+	     enabled: false
+	   },
+	   lineWidth: 3,
+	   states: {
+	     hover: {
+	       lineWidth: 4
+	     }
+	   }				    
+	 }
+       }, // end of option
+       series: [{
+         name: 'Simulation asset cumulative',
+         data: {{ asset_gain_pcnt_t0 }},	    	
+       },{ 
+    	 name: 'Index cumulative',
+    	 data: {{ index_gain_pcnt }},
+       }]
+     });// end of highcharts
+     j$('#alpha-return').highcharts({
+       chart: {
+         zoomType: 'x',
+         type: 'column'
+       },
+       title: {
+         text: 'Alpha Return'
+       },
+       subtitle: {
+         text: '{{start}} - {{end}}'
+       },
+       xAxis: {
+         categories: {{ on_dates|safe }}
+       },
+       yAxis: {
+         title: {
+           text: 'Values'
+         }
+       },
+       tooltip: {
+	 crosshairs: {
+	   color: 'green',
+	   dashStyle: 'solid'
+	 },
+	 shared: true,
+	 valueDecimals: 2			    
+       },	        
+       plotOptions: {	        	
+	 column: {
+	   marker: {
+	     radius: 1,
+	     lineColor: '#666666',
+	     lineWidth: 1,
+	     enabled: false
+	   }			    
+	 }
+       }, // end of option
+       series: [{
+         name: 'Alpha return',
+         data: {{ alpha_return }},	    	
+       }]
+     });// end of highcharts
+   });// end of document.ready
+  </script>    
+  {% endblock %}

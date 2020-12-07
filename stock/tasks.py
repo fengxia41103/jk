@@ -776,8 +776,8 @@ def backtesting_s1_consumer(symbol):
 class MyStockBacktestingSimulation():
 
     def __init__(self, condition):
-        # Model MySimulation is not json-able,
-        # so we are passing it over as python pickle, so cool!
+        # Model MySimulation is not json-able, so we are passing it
+        # over as python pickle, so cool!
         self.condition = cPickle.loads(str(condition))
 
     def run(self, is_update):
@@ -842,9 +842,10 @@ class MyStockStrategyValue(object):
         records = MyStockHistorical.objects.filter(
             stock__symbol=symbol).order_by('date_stamp')
 
-        # The starting point is depending on how much past data your strategy is calling for.
-        # For example, if we are to calculate 10 weeks of fib score, we need at
-        # least 10 weeks of history data.
+        # The starting point is depending on how much past data your
+        # strategy is calling for.  For example, if we are to
+        # calculate 10 weeks of fib score, we need at least 10 weeks
+        # of history data.
         if window_length > len(records):
             logger.error('%s: not enough data' % symbol)
             return

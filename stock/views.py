@@ -679,7 +679,7 @@ class MySimulationResultList(ListView):
     template_name = 'stock/backtesting/simulation_result_list.html'
 
     def get_queryset(self):
-        return MySimulationCondition.objects.all()[:10]
+        return MySimulationCondition.objects.all()
 
 
 @class_view_decorator(login_required)
@@ -758,17 +758,21 @@ class MySimulationConditionDetail(DetailView):
         # compute ndex cumulative return for selected time period
         index_historicals = MyStockHistorical.objects.filter(
             stock__symbol=index_symbol, date_stamp__in=context['on_dates']).values('adj_close').order_by('date_stamp')
-        index_t0 = index_historicals[0]['adj_close']
+        if (index_historicals):
+            index_t0 = index_historicals[0]['adj_close']
 
-        # index historicals normalized to its T0 value
-        context['index_gain_pcnt'] = [float(index_historicals[x]['adj_close'] / index_t0)
-                                      for x in range(1, len(index_historicals))]
+            # index historicals normalized to its T0 value
+            context['index_gain_pcnt'] = [float(index_historicals[x]['adj_close'] / index_t0)
+                                          for x in range(1, len(index_historicals))]
 
-        # alpha return is the diff between measured asset returns and index returns
-        # < 0: when portfolio is underforming index; >0: overperforming
-        context['alpha_return'] = map(
-            lambda x: x[0] - x[1], zip(context['asset_gain_pcnt_t0'], context['index_gain_pcnt']))
+            # alpha return is the diff between measured asset returns and index returns
+            # < 0: when portfolio is underforming index; >0: overperforming
+            context['alpha_return'] = map(
+                lambda x: x[0] - x[1], zip(context['asset_gain_pcnt_t0'], context['index_gain_pcnt']))
 
+        else:
+            context['index_gain_pcnt'] = []
+            context['alpha_return'] = []
         return context
 
 

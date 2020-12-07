@@ -1,30 +1,80 @@
 {% extends "stock/common/base.html" %}
 
 {% block page-header %}
-	{{stock}}
+{{stock}}
 {% endblock %}
+
 
 
 {% block content %}
 
 <table class="table table-striped table-hover">
-	<thead>
-		<th colspan="2">Pattern</th><th>Probability</th>
-	</thead>
-	<tbody>
-		<tr><td>GuGuG</td><td>/_/_/</td><td>{{ prob_ggg}}</td></tr>
-		<tr><td>GuGuL</td><td>/_/_\</td><td>{{ prob_ggl}}</td></tr>
-		<tr><td>GuLuG</td><td>/_\_/</td><td>{{ prob_glg}}</td></tr>
-		<tr><td>GuLuL</td><td>/_\_\</td><td>{{ prob_gll}}</td></tr>
-		<tr><td>LuGuG</td><td>\_/_/</td><td>{{ prob_lgg}}</td></tr>
-		<tr><td>LuGuL</td><td>\_/_\</td><td>{{ prob_lgl}}</td></tr>
-		<tr><td>LuLuG</td><td>\_\_/</td><td>{{ prob_llg}}</td></tr>
-		<tr><td>LuLuL</td><td>\_\_\</td><td>{{ prob_lll}}</td></tr>
-		<tr><td>Ending G over L</td><td></td><td>{{ ending_g_over_l|floatformat:2 }}</td></tr>
-		<tr><td>Consequetive U</td><td></td><td>{{ prob_conseq_u}}</td></tr>
-		<tr><td>Consequetive G</td><td></td><td>{{ prob_conseq_g}}</td></tr>
-		<tr><td>Consequetive L</td><td></td><td>{{ prob_conseq_l}}</td></tr>
-	</tbody>
+    <thead>
+        <th colspan="2">Pattern</th>
+        <th>Probability</th>
+    </thead>
+    <tbody>
+        <tr>
+            <td>GuGuG</td>
+            <td>/_/_/</td>
+            <td>{{ prob_ggg}}</td>
+        </tr>
+        <tr>
+            <td>GuGuL</td>
+            <td>/_/_\</td>
+            <td>{{ prob_ggl}}</td>
+        </tr>
+        <tr>
+            <td>GuLuG</td>
+            <td>/_\_/</td>
+            <td>{{ prob_glg}}</td>
+        </tr>
+        <tr>
+            <td>GuLuL</td>
+            <td>/_\_\</td>
+            <td>{{ prob_gll}}</td>
+        </tr>
+        <tr>
+            <td>LuGuG</td>
+            <td>\_/_/</td>
+            <td>{{ prob_lgg}}</td>
+        </tr>
+        <tr>
+            <td>LuGuL</td>
+            <td>\_/_\</td>
+            <td>{{ prob_lgl}}</td>
+        </tr>
+        <tr>
+            <td>LuLuG</td>
+            <td>\_\_/</td>
+            <td>{{ prob_llg}}</td>
+        </tr>
+        <tr>
+            <td>LuLuL</td>
+            <td>\_\_\</td>
+            <td>{{ prob_lll}}</td>
+        </tr>
+        <tr>
+            <td>Ending G over L</td>
+            <td></td>
+            <td>{{ ending_g_over_l|floatformat:2 }}</td>
+        </tr>
+        <tr>
+            <td>Consequetive U</td>
+            <td></td>
+            <td>{{ prob_conseq_u}}</td>
+        </tr>
+        <tr>
+            <td>Consequetive G</td>
+            <td></td>
+            <td>{{ prob_conseq_g}}</td>
+        </tr>
+        <tr>
+            <td>Consequetive L</td>
+            <td></td>
+            <td>{{ prob_conseq_l}}</td>
+        </tr>
+    </tbody>
 </table>
 
 {% endblock %}
@@ -32,4 +82,3 @@
 {% block custom_js %}
 
 {% endblock %}
-

@@ -179,7 +179,8 @@ class MySimulation(object):
             daily_equity = []
             gain_from_holding = []
             positions = MyPosition.objects.filter(
-                simulation=self.simulation, is_open=True).values('stock__symbol', 'position', 'vol')
+                simulation=self.simulation,
+                is_open=True).values('stock__symbol', 'position', 'vol')
             for p in positions:
                 if p['stock__symbol'] in self.historicals[on_date]:
                     # if symbol's historicals are missing for some reason
@@ -187,7 +188,6 @@ class MySimulation(object):
                     # this would result some open position at the end of
                     # portfolio
                     his = self.historicals[on_date][p['stock__symbol']]
-
                     # we compute equity value based on daily close price
                     if 'adj_close' in his and his['adj_close'] > 0:
                         simulated_spot = his['adj_close']
@@ -204,13 +204,15 @@ class MySimulation(object):
 
                 # record the spot equity value
                 if p['vol'] * simulated_spot == 0:
-                    logger.error('spot equity = 0!')
+                    logger.error('MySimulation.run: spot equity = 0!')
                     1 / 0
                 daily_equity.append(p['vol'] * simulated_spot)
 
                 # compute gain/loss of the holding portfolio
                 # self.snapshot[on_date]['gain']['hold']
                 gain_from_holding.append(p['vol'] * (simulated_spot - p['position']))
+                logger.debug("MySimulation.run: on date: %s, simulated_spot %f, position: %f, " %
+                             (on_date, simulated_spot, p['position']))
 
             # computed values
             if snapshot_records:
@@ -321,7 +323,9 @@ class MySimulationAlpha(MySimulation):
     def buy(self, on_date, symbols):
         total_symbols = len(symbols)
 
-        positions = MyPosition.objects.filter(simulation=self.simulation, is_open=True).values_list(
+        positions = MyPosition.objects.filter(
+            simulation=self.simulation,
+            is_open=True).values_list(
             "stock__symbol", flat=True).distinct()
 
         # In this strategy, buy_cutoff defines the starting index,
@@ -443,7 +447,7 @@ class MySimulationBuyLowSellHigh(MySimulation):
 
             # if it passed threshold test, buy at today's
             # adj close. Again, account for stock split.
-            simulated_spot = his['open_price']
+            simulated_spot = his['adj_close']
 
             # Set up position.
             # Notice that position's open_date = on_date, so we could

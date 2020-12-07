@@ -17,7 +17,7 @@ import os
 # for django-pagination, very COOL!
 from django.conf import global_settings
 
-DJANGO_DEBUG = os.environ.get('DJANGO_DEBUG', False)
+DJANGO_DEBUG = os.environ.get('DJANGO_DEBUG')
 DEPLOY_TYPE = os.environ.get("DEPLOY_TYPE", "dev")
 DB_USER = os.environ.get("DJANGO_DB_USER")
 DB_PWD = os.environ.get("DJANGO_DB_PWD")

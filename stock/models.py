@@ -195,9 +195,9 @@ class MyStockCustomManager(models.Manager):
 class MySector(models.Model):
     """Sector that is used to group stocks.
 
-    The company that a stock represents is usually
-    linked to a sector. Each country may have a different way to
-    define these.
+    The company that a stock represents is usually linked to a
+    sector. Each country may have a different way to define these.
+
     """
     parent = models.ForeignKey(
         'self',
@@ -338,6 +338,7 @@ class MyStock(models.Model):
         verbose_name=u'Day low'
     )
 
+    # CAUTION: last spot price doesn't account for adjustment
     last = models.DecimalField(
         max_digits=20,
         decimal_places=5,
@@ -980,7 +981,7 @@ class MySimulationCondition(models.Model):
     )
     strategy = models.IntegerField(
         choices=STRATEGY_CHOICES,
-        default=1
+        default=2
     )
     strategy_value = models.IntegerField(
         choices=STRATEGY_VALUE_CHOICES,
@@ -993,23 +994,23 @@ class MySimulationCondition(models.Model):
         verbose_name=u"Sort order"
     )
     start = models.DateField(
-        default="2014-01-01",
+        default="2000-01-01",
         verbose_name=u'Start date'
     )
     end = models.DateField(
-        default="2014-01-10",
+        default="2000-01-08",
         verbose_name=u'End date',
     )
     capital = models.IntegerField(
-        default=100000,
+        default=10000,
         verbose_name=u"Starting cash"
     )
     per_trade = models.IntegerField(
-        default=10000,
+        default=1000,
         verbose_name=u"Per trade amount"
     )
     buy_cutoff = models.IntegerField(
-        default=25,
+        default=1,
         validators=[
             MaxValueValidator(100),
             MinValueValidator(0)
@@ -1017,7 +1018,7 @@ class MySimulationCondition(models.Model):
         verbose_name="Buy cutoff (%)"
     )
     sell_cutoff = models.IntegerField(
-        default=75,
+        default=1,
         validators=[
             MaxValueValidator(100),
             MinValueValidator(0)
@@ -1065,15 +1066,24 @@ class MySimulationCondition(models.Model):
     snapshots_sort_by_date = property(_snapshots_sort_by_date)
 
     def _assets(self):
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset', flat=True).order_by('on_date')
+        return MySimulationSnapshot.objects.filter(
+            simulation=self).values_list(
+                'asset',
+                flat=True).order_by('on_date')
     assets = property(_assets)
 
     def _equities(self):
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('equity', flat=True).order_by('on_date')
+        return MySimulationSnapshot.objects.filter(
+            simulation=self).values_list(
+                'equity',
+                flat=True).order_by('on_date')
     equities = property(_equities)
 
     def _cashes(self):
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('cash', flat=True).order_by('on_date')
+        return MySimulationSnapshot.objects.filter(
+            simulation=self).values_list(
+                'cash',
+                flat=True).order_by('on_date')
     cashes = property(_cashes)
 
     def _num_of_buys(self):
@@ -1098,7 +1108,10 @@ class MySimulationCondition(models.Model):
         This index shows how a user's asset fluctuates from day to day
         during simulation period.
         """
-        return MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt', flat=True).order_by('on_date')
+        return MySimulationSnapshot.objects.filter(
+            simulation=self).values_list(
+                'asset_gain_pcnt',
+                flat=True).order_by('on_date')
     asset_daily_return = property(_asset_daily_return)
 
     def _asset_gain_pcnt_t0(self):
@@ -1108,7 +1121,10 @@ class MySimulationCondition(models.Model):
         This can be viewed as an overall performance indicator over time.
         """
         # return [x.asset_gain_pcnt_t0 for x in self.snapshots]
-        return list(MySimulationSnapshot.objects.filter(simulation=self).values_list('asset_gain_pcnt_t0', flat=True).order_by('on_date'))
+        return list(MySimulationSnapshot.objects.filter(
+            simulation=self).values_list(
+                'asset_gain_pcnt_t0',
+                flat=True).order_by('on_date'))
     asset_gain_pcnt_t0 = property(_asset_gain_pcnt_t0)
 
     def _asset_end_return(self):
@@ -1286,10 +1302,11 @@ class MySimulationSnapshot(models.Model):
     def _buy_transactions(self):
         """Buy transactions.
 
-        A buy transaction will create a MyPosition, which
-        has a MyCondition and on_date. Using these values
-        are sufficient to determine that this position was created
-        by our simulation run and belongs to this snapshot (by on_date).
+        A buy transaction will create a MyPosition, which has a
+        MyCondition and on_date. Using these values are sufficient to
+        determine that this position was created by our simulation run
+        and belongs to this snapshot (by on_date).
+
         """
         buys = MyPosition.objects.filter(
             simulation=self.simulation,
@@ -1301,8 +1318,9 @@ class MySimulationSnapshot(models.Model):
     def _sell_transactions(self):
         """Sell transactions.
 
-        The difference from a buy transaction is to filter MyPosition by close_date
-        instead of open_date.
+        The difference from a buy transaction is to filter MyPosition
+        by close_date instead of open_date.
+
         """
         sells = MyPosition.objects.filter(
             simulation=self.simulation,

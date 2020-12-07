@@ -2,7 +2,6 @@ from django.contrib import admin
 
 from stock.models import *
 
-
 # Register your models here.
 
 
@@ -19,3 +18,8 @@ class MySimulationConditionAdmin(admin.ModelAdmin):
 
     list_filter = ("strategy", "buy_cutoff", "sell_cutoff")
 admin.site.register(MySimulationCondition, MySimulationConditionAdmin)
+
+
+class MySimulationSnapshotAdmin(admin.ModelAdmin):
+    list_display = ("on_date", "cash", "equity", "asset",)
+admin.site.register(MySimulationSnapshot, MySimulationSnapshotAdmin)

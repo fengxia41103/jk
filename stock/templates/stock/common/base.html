@@ -1,7 +1,24 @@
-{% extends "stock/common/layout.html" %} {% load staticfiles %} {% load compress
-%} {% load crispy_forms_tags %} {% block title %}
+{% extends "stock/common/layout.html" %}
+
+{% load staticfiles %}
+
+{% load compress %}
+
+{% load crispy_forms_tags %}
+
+
+{% block custom_css %}
+<link rel="stylesheet"
+      href="{% static 'css/my.css' %}">
+{% endblock %}
+
+
+{% block title %}
 <title>Stock backtesting</title>
-{% endblock %} {% block navbar %}
+{% endblock %}
+
+
+{% block navbar %}
 <div class="navbar navbar-default navbar-static-top" role="navigation">
   <div class="container-fluid">
     <div class="navbar-header">

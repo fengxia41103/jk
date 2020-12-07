@@ -21,8 +21,6 @@ import urllib2
 from datetime import date
 from datetime import timedelta
 from decimal import Decimal
-sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
 
 import django
 import lxml.html
@@ -56,8 +54,8 @@ from stock.tasks import stock_prev_yahoo_consumer
 from stock.utility import JSONEncoder
 from stock.utility import MyUtility
 
-
-
+sys.path.append(os.path.join(os.path.dirname(__file__), 'jk'))
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "jk.settings")
 
 
 logger = logging.getLogger('jk')
@@ -232,22 +230,24 @@ def batch_simulation_daily_return(date_range,
                 )
 
                 # if condition.data_source == 1 and strategy == 2:
-                # MySimulationCondition is not json-able, using python pickle
-                # instead. The downside of this is that we are relying on a
-                # python-specif data format.  But it is safe in this context.
+                # MySimulationCondition is not json-able, using python
+                # pickle instead. The downside of this is that we are
+                # relying on a python-specif data format.  But it is
+                # safe in this context.
                 if strategy in [2, 3]:
                     # buy low sell high
-                    # Set is_update=True will remove all
-                    # existing results first and then rerun all
-                    # simulations. This is necessary because SP500 is gettting
-                    # new data each day.
+                    # Set is_update=True will remove all existing
+                    # results first and then rerun all
+                    # simulations. This is necessary because SP500 is
+                    # gettting new data each day.
                     backtesting_simulation_consumer.delay(
                         cPickle.dumps(condition), is_update=True)
                 else:
                     # alpha
-                    # Because computing alpha index values are very time consuming,
-                    # so we are to skip existing results to save time. Ideally
-                    # we should set is_update=True to recompute from a clean sheet.
+                    # Because computing alpha index values are very
+                    # time consuming, so we are to skip existing
+                    # results to save time. Ideally we should set
+                    # is_update=True to recompute from a clean sheet.
                     backtesting_simulation_consumer.delay(
                         cPickle.dumps(condition), is_update=False)
 
