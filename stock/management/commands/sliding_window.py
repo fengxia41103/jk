@@ -22,6 +22,10 @@ class Command(BaseCommand):
         parser.add_argument('end',
                             help="End date")
 
+        parser.add_argument('strategy',
+                            type=int,
+                            help="Strategy to use")
+
         parser.add_argument('window',
                             type=int,
                             help="Sliding window (days)")
@@ -38,6 +42,6 @@ class Command(BaseCommand):
 
         MyBatchHandler.batch_simulation_daily_return(
             date_range=sliding_windows,
-            strategies=[2, 3],
+            strategies=[options.get("strategy")],
             capital=10000,
             per_trade=1000)

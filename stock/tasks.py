@@ -329,12 +329,17 @@ class MyStockHistoricalYahoo():
 
         # Read Yahoo api to get data
         # https://code.google.com/p/yahoo-finance-managed/wiki/csvHistQuotesDownload
+        unix_origin = dt(1970, 1, 1)
         now = dt.now()
-        ago = now + relativedelta(years=-20)  # 20 years
+        ago = now + relativedelta(years=-50)  # 50 years
 
-        date_str = 'a=%d&b=%d&c=%d%%20&d=%d&e=%d&f=%d' % (
-            ago.month, ago.day, ago.year, now.month, now.day, now.year + 1)
-        url = 'http://ichart.yahoo.com/table.csv?s=%s&%s&g=d&ignore=.csv' % (
+        # https://query1.finance.yahoo.com/v7/finance/download/AMZN?period1=863654400&period2=1607990400&interval=1d&events=history&includeAdjustedClose=true
+
+        date_str = "period1={}&period2={}".format(
+            int((ago - unix_origin).total_seconds()),
+            int((now - unix_origin).total_seconds())
+        )
+        url = "https://query1.finance.yahoo.com/v7/finance/download/{}?{}&interval=1d&events=history&includeAdjustedClose=true".format(
             symbol, date_str)
         logger.debug(url)
         content = self.http_handler.request(url)
@@ -343,7 +348,7 @@ class MyStockHistoricalYahoo():
         f = StringIO.StringIO(content)
         records = []
         for cnt, vals in enumerate(csv.reader(f)):
-            # logger.debug(vals)
+            logger.debug(vals)
             if not vals:
                 # protect from blank line or invalid symbol, eg. China stock symbols
                 # logger.debug('not vals')
@@ -355,7 +360,7 @@ class MyStockHistoricalYahoo():
             elif len(vals) != 7:
                 logger.error('[%s] error, %d' % (symbol, len(vals)))
                 continue
-            elif 'Adj' in vals[-1]:
+            elif 'Adj' in vals[-2]:
                 # this is to skip the column header line
                 continue
 
@@ -383,13 +388,13 @@ class MyStockHistoricalYahoo():
                 except:
                     close_p = Decimal(-1)
                 try:
-                    vol = int(vals[5]) / 1000.0
-                except:
-                    vol = -1
-                try:
-                    adj_p = Decimal(vals[6])
+                    adj_p = Decimal(vals[5])
                 except:
                     adj_p = Decimal(-1)
+                try:
+                    vol = int(vals[6]) / 1000.0
+                except:
+                    vol = -1
                 h = MyStockHistorical(
                     stock=stock,
                     date_stamp=date_stamp,
@@ -504,7 +509,8 @@ class MyStockMonitorYahoo2():
             try:
                 stock = MyStock.objects.get(symbol=symbol)
             except:
-                logger.error('MyStockMonitorYahoo2: symbol [%s] not found in DB' % symbol)
+                logger.error(
+                    'MyStockMonitorYahoo2: symbol [%s] not found in DB' % symbol)
                 continue
 
             stock.last = Decimal(fields['price'])
@@ -519,169 +525,6 @@ def stock_monitor_yahoo_consumer2(symbols):
     http_agent = PlainUtility()
     crawler = MyStockMonitorYahoo2(http_agent)
     crawler.parser(symbols)
-
-
-class MyImportChinaStock():
-
-    def __init__(self):
-        pass
-
-    def parser(self, symbol, val_list):
-        logger.info('processing %s' % symbol)
-        stock = MyStock.objects.get(symbol=symbol)
-        records = []
-        cnt = 0
-        total = len(val_list)
-        for vals in val_list:
-            if len(vals) < 10:
-                logger.error('wrong length %s' % ','.join(vals))
-
-            exec_start = time.time()
-            date_stamp = dt(year=int(vals[1][:4]), month=int(
-                vals[1][4:6]), day=int(vals[1][-2:]))
-            open_p = Decimal(vals[2])
-            high_p = Decimal(vals[3])
-            low_p = Decimal(vals[4])
-            close_p = Decimal(vals[5])
-            vol = Decimal(vals[6])
-            amount = Decimal(vals[7]) * Decimal(10.0)
-            adj = Decimal(vals[8])
-            status = int(vals[9])
-
-            h = MyStockHistorical(
-                stock=stock,
-                date_stamp=date_stamp,
-                open_price=open_p,
-                high_price=high_p,
-                low_price=low_p,
-                close_price=close_p,
-                vol=vol,
-                amount=amount,
-                status=status,
-
-                # adjusted values
-                adj_open=open_p * adj,
-                adj_high=high_p * adj,
-                adj_low=low_p * adj,
-                adj_close=close_p * adj,
-            )
-            records.append(h)
-            if len(records) >= 1000:
-                MyStockHistorical.objects.bulk_create(records)
-                cnt += len(records)
-                records = []
-                logger.info('%s inserted %d/%d' % (symbol, cnt, total))
-        if len(records):
-            MyStockHistorical.objects.bulk_create(records)
-        logger.info('%s elapse %f' % (symbol, time.time() - exec_start))
-
-
-@shared_task
-def import_china_stock_consumer(symbol, val_list):
-    crawler = MyImportChinaStock()
-    crawler.parser(symbol, val_list)
-
-
-class MyChenMin():
-
-    def __init__(self):
-        pass
-
-    def parser(self, f, output=None):
-        try:
-            book = xlrd.open_workbook(f)
-        except:
-            logger.error('%s error' % f)
-            return
-
-        sh = book.sheet_by_index(0)
-        if sh.name != u'账户对账单':
-            logger.error(f)
-
-        # range for 账户对账单
-        first_col_vals = [sh.cell_value(rowx=i, colx=0)
-                          for i in range(sh.nrows)]
-        start = end = None
-        for idx, val in enumerate(first_col_vals):
-            if val == u'对帐单':
-                start = idx
-            if val == u'当日持仓清单':
-                end = idx
-            if start and end:
-                break
-
-        vals = []
-        for row in xrange(start, end):
-            vals.append([sh.cell_value(rowx=row, colx=c)
-                         for c in range(sh.ncols)])
-
-        for row in filter(lambda x: u'20' in x[0], vals):
-            symbol = row[3]
-            transaction_type = row[1]
-            price = float(row[7])
-            vol = int(row[5])
-            total = float(row[8])
-            name = row[4]
-
-            # timestamp
-            yr = int(row[0][:4])
-            m = int(row[0][5:6])
-            d = int(row[0][-2:])
-            executed_on = dt(year=yr, month=m, day=d)
-
-            c = MyChenmin(
-                executed_on=executed_on,
-                transaction_type=transaction_type,
-                symbol=symbol,
-                name=name,
-                price=price,
-                vol=vol,
-                total=total
-            )
-            c.save()
-        logger.debug('%s done' % f)
-
-
-@shared_task
-def chenmin_consumer(files):
-    crawler = MyChenMin()
-    crawler.parser(files)
-
-
-class MyStockInflux():
-
-    def __init__(self):
-        db_name = 'stock'
-        self.client = InfluxDBClient(
-            'localhost', 8086, 'root', 'root', db_name)
-        # all_dbs_list = self.client.get_list_database()
-        # that list comes back like: [{u'name': u'hello_world'}]
-        # if db_name not in [str    (x['name']) for x in all_dbs_list]:
-        #   print "Creating db {0}".format(db_name)
-        #   self.client.create_database(db_name)
-        # else:
-        #   print "Reusing db {0}".format(db_name)
-        self.client.switch_db(db_name)
-
-    def parser(self, symbol):
-        points = []
-        for h in MyStockHistorical.objects.filter(stock__symbol=symbol).order_by('date_stamp'):
-            points = [[h.id, h.date_stamp.strftime('%Y-%m-%d'), time.mktime(h.date_stamp.timetuple()), float(
-                h.open_price), float(h.high_price), float(h.low_price), float(h.close_price), float(h.adj_close), h.vol]]
-
-            self.client.write_points([{
-                'name': symbol,
-                'columns': ['id', 'date', 'time', 'open', 'high', 'low', 'close', 'adj_close', 'vol'],
-                'points':points
-            }], time_precision='s')
-
-        logger.debug('%s completed' % symbol)
-
-
-@shared_task
-def influx_consumer(symbol):
-    crawler = MyStockInflux()
-    crawler.parser(symbol)
 
 
 class MyStockBacktesting_1():
@@ -875,7 +718,7 @@ class MyStockStrategyValue(object):
 
 
 class MyStockDailyReturn(MyStockStrategyValue):
-    """Daily return value.
+    """Daily return % using adj close.
 
     Compute historical oneday_change = (today's close - prev's
     close)/prev's close *100
@@ -898,7 +741,8 @@ class MyStockDailyReturn(MyStockStrategyValue):
 
         # compute nightly return
         if t0.adj_close and prev.adj_close:
-            t0.overnight_return = (t0.adj_close - prev.adj_close) / prev.adj_close * 100
+            t0.overnight_return = (
+                t0.adj_close - prev.adj_close) / prev.adj_close * 100
         else:
             t0.overnight_return = 0
 
@@ -1098,7 +942,8 @@ Indicator= 100*K*DecycleOsc/Price;
 
         # ok so we now save
 
-        logger.debug('[%s]:  writing historicals to DB. This can take a while.' % symbol)
+        logger.debug(
+            '[%s]:  writing historicals to DB. This can take a while.' % symbol)
         for obj in to_save.values():
             obj.save()
 

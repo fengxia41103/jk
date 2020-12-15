@@ -80,7 +80,7 @@ services:
       DJANGO_DB_HOST: db
       DJANGO_DB_PORT: 3306
       DJANGO_REDIS_HOST: redis
-    command: celery -A jk worker -l INFO
+    command: celery -A jk worker -l ERROR
     volumes:
       - .:/code
     networks:
