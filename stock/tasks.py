@@ -323,7 +323,7 @@ class MyStockHistoricalYahoo():
         """
 
         # Get stock and its existing historicals
-        stock = MyStock.objects.get(symbol=symbol)
+        stock, created = MyStock.objects.get_or_create(symbol=symbol)
         his = [x.isoformat() for x in MyStockHistorical.objects.filter(
             stock=stock).values_list('date_stamp', flat=True)]
 
@@ -348,7 +348,6 @@ class MyStockHistoricalYahoo():
         f = StringIO.StringIO(content)
         records = []
         for cnt, vals in enumerate(csv.reader(f)):
-            logger.debug(vals)
             if not vals:
                 # protect from blank line or invalid symbol, eg. China stock symbols
                 # logger.debug('not vals')

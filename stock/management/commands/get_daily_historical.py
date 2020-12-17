@@ -50,8 +50,8 @@ class Command(BaseCommand):
             if symbol == "all":
                 for s in SYMBOLS.split(","):
                     stock_historical_yahoo_consumer.delay(s)
-                else:
-                    stock_historical_yahoo_consumer.delay(symbol)
+            else:
+                stock_historical_yahoo_consumer.delay(symbol)
 
     def _dump(self, dest, symbol):
         header = "Date,Open,High,Low,Close,Adj Close,Volume"
