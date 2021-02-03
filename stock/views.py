@@ -7,13 +7,13 @@ from functools import reduce
 import cPickle
 import simplejson as json
 from django.contrib import messages
+from django.contrib.auth import authenticate
+from django.contrib.auth import login
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
-from django.contrib.auto import authenticate
-from django.contrib.auto import login
-from django.contrib.auto import logout
 from django.core.urlresolvers import reverse_lazy
 from django.db.models import F
 from django.http import HttpResponse
