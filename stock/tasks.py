@@ -2,12 +2,12 @@
 from __future__ import absolute_import
 
 import csv
-import datetime as dt
 import inspect
 import itertools
 import logging
 import sys
 import time
+from datetime import datetime as dt
 from datetime import timedelta
 from decimal import Decimal
 from decimal import InvalidOperation
