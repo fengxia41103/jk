@@ -2,37 +2,24 @@
 # -*- coding: utf-8 -*-
 
 import datetime
-import itertools
 import logging
-import pprint
 import random
-import re
-import shelve
 import string
-import sys
-import time
 import unittest
-from datetime import date
 from datetime import timedelta
 from decimal import Decimal
 from itertools import izip_longest
 from unittest import TestCase
-from unittest import TestSuite
 
-import cPickle
-import lxml.html
 import simplejson as json
-import urllib2
 from selenium import webdriver
-from selenium.common.exceptions import TimeoutException
-from selenium.webdriver.common.by import By
 from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
-from selenium.webdriver.common.keys import Keys
+from urllib3 import PoolManager
+from urllib3 import Retry
+from urllib3 import Timeout
 
 # available since 2.26.0
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.select import Select
-from selenium.webdriver.support.ui import WebDriverWait  # available since 2.4.0
+
 
 logger = logging.getLogger(__name__)
 
@@ -160,3 +147,22 @@ class MyUtility:
             for i in range(delta.days - window_size)
         ]
         return map(lambda x, y: (x.isoformat(), y.isoformat()), sliding_windows)
+
+
+class PlainUtility:
+    def __init__(self):
+        user_agent = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.0.7) Gecko/2009021910 Firefox/3.0.7"
+        self.headers = {"User-Agent": user_agent}
+        self.ip_url = "http://icanhazip.com/"
+        retries = Retry(connect=5, read=5, redirect=5)
+        self.agent = PoolManager(10, retries=retries, timeout=Timeout(total=30.0))
+
+    def current_ip(self):
+        return self.request(self.ip_url)
+
+    def request(self, url):
+        r = self.agent.request("GET", url)
+        if r.status == 200:
+            return r.data
+        else:
+            logger.error("status %s" % r.status)
