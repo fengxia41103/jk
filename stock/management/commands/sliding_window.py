@@ -5,10 +5,12 @@ from datetime import date
 from itertools import chain
 
 from django.contrib.auth.hashers import make_password
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
+from django.core.management.base import CommandError
 from django.utils.dateparse import parse_date
 
-from stock.utility import MyBatchHandler, MyUtility
+from stock.tasks import MyBatchHandler
+from stock.utility import MyUtility
 
 
 class Command(BaseCommand):
