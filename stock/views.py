@@ -7,17 +7,26 @@ from functools import reduce
 import cPickle
 import simplejson as json
 from django.contrib import messages
-from django.contrib.auth import User, authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
+from django.contrib.auto import authenticate
+from django.contrib.auto import login
+from django.contrib.auto import logout
 from django.core.urlresolvers import reverse_lazy
 from django.db.models import F
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 from django.shortcuts import render
-from django.template import Context, loader
+from django.template import Context
+from django.template import loader
 from django.utils.decorators import method_decorator
-from django.views.generic import DetailView, ListView, TemplateView
-from django.views.generic.edit import DeleteView, FormView
+from django.views.generic import DetailView
+from django.views.generic import ListView
+from django.views.generic import TemplateView
+from django.views.generic.edit import DeleteView
+from django.views.generic.edit import FormView
 from django_filters import FilterSet
 from django_filters.views import FilterView
 from nltk import FreqDist
@@ -25,16 +34,17 @@ from numpy import mean
 from tasks import stock_monitor_yahoo_consumer
 from utility import MyUtility
 
-from stock.forms import HistoricalListForm, SlidingWindowForm, StrategyControlForm
-from stock.models import (
-    MyPosition,
-    MySimulationCondition,
-    MySimulationSnapshot,
-    MyStock,
-    MyStockHistorical,
-    MyUserProfile,
-)
-from stock.tasks import backtesting_simulation_consumer, batch_simulation_daily_return
+from stock.forms import HistoricalListForm
+from stock.forms import SlidingWindowForm
+from stock.forms import StrategyControlForm
+from stock.models import MyPosition
+from stock.models import MySimulationCondition
+from stock.models import MySimulationSnapshot
+from stock.models import MyStock
+from stock.models import MyStockHistorical
+from stock.models import MyUserProfile
+from stock.tasks import backtesting_simulation_consumer
+from stock.tasks import batch_simulation_daily_return
 
 # django-crispy-forms
 
