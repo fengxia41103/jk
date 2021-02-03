@@ -8,10 +8,12 @@ import logging
 import sys
 import time
 from datetime import timedelta
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
+from decimal import InvalidOperation
 from functools import reduce
 from itertools import izip_longest
-from math import cos, sin
+from math import cos
+from math import sin
 
 import cPickle
 import numpy as np
@@ -21,15 +23,14 @@ from celery import shared_task
 from dateutil.relativedelta import relativedelta
 from django.contrib.auth.models import User
 from django.core.exceptions import ObjectDoesNotExist
-from numpy import mean, std
+from numpy import mean
+from numpy import std
 from scipy import stats
 
-from stock.models import (
-    MySimulationCondition,
-    MySimulationSnapshot,
-    MyStock,
-    MyStockHistorical,
-)
+from stock.models import MySimulationCondition
+from stock.models import MySimulationSnapshot
+from stock.models import MyStock
+from stock.models import MyStockHistorical
 from stock.utility import PlainUtility
 
 logger = logging.getLogger("jk")

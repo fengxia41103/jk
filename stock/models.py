@@ -10,13 +10,20 @@ from django.contrib.auth.models import User
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.generic import GenericRelation
 from django.contrib.contenttypes.models import ContentType
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator
+from django.core.validators import MinValueValidator
 from django.db import models
-from django.db.models import Avg, Count, Max, Min, Q
+from django.db.models import Avg
+from django.db.models import Count
+from django.db.models import Max
+from django.db.models import Min
+from django.db.models import Q
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.forms import ModelForm
-from rest_framework import filters, serializers, viewsets
+from rest_framework import filters
+from rest_framework import serializers
+from rest_framework import viewsets
 
 logger = logging.getLogger("jk")
 logger.setLevel(logging.DEBUG)
